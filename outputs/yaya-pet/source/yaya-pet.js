@@ -26,13 +26,23 @@
   // Directional motion vocabulary stays separate from the five interaction clips.
   // These loops are intentionally short, readable gestures that can later be
   // mapped to live controls on a learning device.
-  const MOTION_ACTIONS = ['wave','hug','jump','sway','spin','walk','reach','stomp','turn','nod','celebrate'];
-  const STATE_ALIASES = { feed:'eat', touch:'cuddle', nap:'sleep', think:'thinking' };
+  const MOTION_ACTIONS = [
+    'wave','hug','jump','sway','spin','walk','reach','stomp','turn','nod','celebrate',
+    // Daily routines are deliberately separate clips so a learning-device UI
+    // can label them with concrete verbs instead of making children infer a
+    // generic ``play`` animation.
+    'drink','run','exercise','stretch','ball','dance'
+  ];
+  const STATE_ALIASES = {
+    feed:'eat', touch:'cuddle', nap:'sleep', think:'thinking',
+    water:'drink', hydrate:'drink', jog:'run', football:'ball'
+  };
   const ACTION_MOODS = {
     hello:'happy', cuddle:'love', eat:'happy', play:'playful', sleep:'sleepy',
     wave:'happy', hug:'love', jump:'excited', sway:'happy', spin:'playful',
     walk:'curious', reach:'hopeful', stomp:'determined', turn:'curious',
-    nod:'happy', celebrate:'excited'
+    nod:'happy', celebrate:'excited', drink:'happy', run:'excited',
+    exercise:'excited', stretch:'relieved', ball:'playful', dance:'playful'
   };
   const EMOTION_PROFILES = {
     idle:      { eyes:'normal', mouth:'smile', blush:.22, lookX:0, lookY:0, tilt:0, arms:'soft' },
@@ -123,6 +133,12 @@
     if(action==='jump'||action==='celebrate'){rot+=side*.08*wave;sy*=1.05;}
     if(action==='spin') rot+=side*.25*Math.sin(age*TAU/2);
     if(action==='reach') rot+=side*.16;
+    if(action==='drink') {rot+=side*.04*wave;drift-=side*.035;}
+    if(action==='run') {rot+=side*.13*wave;drift-=side*.12*Math.sin(age*TAU/1.1);sy*=1.04;}
+    if(action==='exercise') {rot+=side*.18*wave;drift-=side*.09*Math.sin(age*TAU/1.25);sy*=1.06;}
+    if(action==='stretch') {rot-=side*.18;sy*=1.06;dy-=.08*Math.abs(Math.sin(age*TAU/2));}
+    if(action==='ball') {rot+=side*.1*wave;drift+=side*.06*Math.sin(age*TAU*1.4);}
+    if(action==='dance') {rot+=side*.16*wave;drift+=side*.09*Math.sin(age*TAU/1.2);sy*=1.05;}
     return {rot,drift,sx,sy,dy};
   }
   function blink(t,phase) {
@@ -150,7 +166,7 @@
     const S=typeof state==='string'?getYayaEmotionState(state,t):state||getYayaEmotionState('idle',t);
     const key=S.state||'idle', e=S.face||S, kinds=Array.isArray(e.eyes)?e.eyes:e.eyes==='wink'?['happy','wink']:[e.eyes||'normal',e.eyes||'normal'];
     const close=e.closed ?? e.half ?? blink(t,.18), ey=(-5.15+(e.lookY||0)*.3)*u;
-    const look=(e.lookX||0)+(key==='eat'?.28:key==='play'?.1*Math.sin(t*4):0);
+    const look=(e.lookX||0)+(key==='eat'?.28:key==='drink'?-.12:key==='play'||key==='ball'?.1*Math.sin(t*4):0);
     const drawEye=(kind,s)=>{
       const lx=look*u*.34, ly=(e.lookY||0)*u*.22;
       const line=(pts,w=1,c=.25)=>inkLine(pts.map(([a,b])=>[a*u+lx,b*u+ly]),.72*w,YC.ink,'ink',c);
@@ -243,6 +259,15 @@
     if(key==='hello'){p.left=1.05+.25*Math.sin(age*TAU*2.2);p.right=.12;}
     if(key==='wave'){p.left=1.05+.3*Math.sin(age*TAU*2.2);p.right=.12;p.rot=.035*Math.sin(age*TAU/2);}
     if(key==='eat'){p.left=.92;p.right=.92;}
+    // Daily-care and exercise clips keep the cheek anchors stable while the
+    // body, feet and leaves share one readable phase. Front props are layered
+    // later by flatFrontGesture/flatActionProps.
+    if(key==='drink'){p.left=.28;p.right=.9;p.dy+=.015*Math.sin(age*TAU*1.5);p.rot=.025*Math.sin(age*TAU/2);}
+    if(key==='stretch'){const a=Math.sin(age*TAU/1.8);p.left=1.08+.12*a;p.right=1.08-.12*a;p.dy-=.16*Math.abs(Math.sin(age*TAU/1.8));p.sq-=.025;p.rot=.035*a;}
+    if(key==='run'){const a=Math.sin(age*TAU/1.1), b=Math.sin(age*TAU*2.2);p.dx=1.15*a;p.dy-=.13*Math.abs(a);p.rot=.1*a;p.sq+=.035*Math.abs(a);p.left=.7+.3*b;p.right=.42-.25*b;p.footL=.38*Math.sin(age*TAU*2.2);p.footR=-p.footL;}
+    if(key==='exercise'){const a=Math.sin(age*TAU/1.25), b=Math.sin(age*TAU*2.5);p.dx=.28*a;p.dy-=.24*Math.abs(a);p.rot=.12*a;p.sq+=.045*Math.abs(a);p.left=1+.42*b;p.right=1-.42*b;p.footL=.3*b;p.footR=-.3*b;}
+    if(key==='ball'){const a=Math.sin(age*TAU/1.5), b=Math.sin(age*TAU*1.5);p.dx=.2*a;p.dy-=.08*Math.abs(a);p.rot=.06*a;p.left=.72+.34*b;p.right=.35-.16*b;p.footL=.15*Math.max(0,a);p.footR=-.1*Math.max(0,-a);}
+    if(key==='dance'){const a=Math.sin(age*TAU/1.35), b=Math.sin(age*TAU*2.7);p.dx=.38*a;p.dy-=.2*Math.abs(a);p.rot=.11*a;p.sq+=.02*Math.abs(b);p.left=.86+.4*b;p.right=.86-.4*b;p.footL=.24*b;p.footR=-.24*b;}
     if(key==='play'){const a=age<1.7?jump(age,.35,1.15,1.35):jump(age,2,2.8,1.35);p.dy+=a.dy;p.sq+=a.sq;p.left=.8+.35*Math.sin(age*9);p.right=.35;}
     if(key==='hug'){p.rot=-.08+.03*Math.sin(age*2.2);p.left=-.28;p.right=-.55;p.dy-=.1;}
     if(key==='jump'){const a=jump(age,.2,.9,1.45);p.dy+=a.dy;p.sq+=a.sq;p.left=1.02;p.right=1.02;}
@@ -400,11 +425,34 @@
     pop();
   }
   function flatFrontGesture(u,key,age,S,cols={}) {
-    if(S.action) return;
     const mode=(S.face||S).arms||'';
     const pulse=Math.sin(age*TAU*.55), tremble=Math.sin(age*TAU*1.1);
     const hand=(side,x,y,angle=0,scale=1,opts={})=>flatFrontBall(u,side,x,y,angle,scale,cols,opts);
-    if(mode==='coverMouth') {
+    // Actions with a tangible prop use the same fixed-cheek arm rig as
+    // emotion gestures. Keeping the shoulder anchor at the cheek makes the
+    // cup/ball feel attached while the free hand remains at the side.
+    if(key==='eat') {
+      const q=age<1.05?ease(seg(age,.1,1.05)):age<2.15?1:1-ease(seg(age,2.15,2.75));
+      hand(-1,-1.2-.32*q,-3.2-.12*q,.42,.92,{rx:.7,ry:.68,seams:true});
+    } else if(key==='drink') {
+      const q=.5+.5*Math.sin(age*TAU/1.7), side=1;
+      hand(side,1.12+.08*q,-3.18-.16*q,-.46,.96,{rx:.72,ry:.72,seams:true});
+    } else if(key==='ball') {
+      const side=1, q=.5+.5*Math.sin(age*TAU/1.5);
+      hand(side,1.28+.16*q,-2.78-.12*q,-.26,.94,{rx:.72,ry:.68,fist:true});
+    } else if(key==='stretch') {
+      const a=Math.sin(age*TAU/1.8);
+      for(const side of [-1,1]) hand(side,side*(2.28+.08*a*side),-5.72-.12*Math.abs(a),side*.08,.84,{rx:.68,ry:.68,fingers:true});
+    } else if(key==='exercise') {
+      const a=Math.sin(age*TAU/1.25), hi=Math.max(0,a);
+      // Keep the eyes visible: this reads as a warm-up/jumping-jack pose,
+      // with the hands opening beside the cheeks instead of covering them.
+      for(const side of [-1,1]) hand(side,side*(2.42+.18*hi),-4.68-.14*hi,side*.14,.86,{rx:.7,ry:.68,fist:true});
+    } else if(key==='dance') {
+      const side=Math.sin(age*TAU/1.35)>=0?1:-1;
+      hand(side,side*2.02,-5.55,side*.18,.85,{rx:.68,ry:.68,fingers:true});
+    } else if(S.action) return;
+    else if(mode==='coverMouth') {
       const side=key==='laugh'?-1:1, x=side*(1.22+.025*Math.max(0,pulse)), y=-3.46+.025*tremble;
       hand(side,x,y,side*.2,1,{fingers:true,rx:.78,ry:.82});
     } else if(mode==='frontFists') {
@@ -429,13 +477,114 @@
       for(const side of [-1,1]) { const x=side*1.2, y=-2.46; hand(side,x,y,side*.48,.92,{fist:true,rx:.72,ry:.68}); }
     }
   }
+  function dailyFrontSideActive(key,side) {
+    const s=side<0?-1:1;
+    if(key==='eat') return s===-1;
+    if(key==='drink'||key==='ball') return s===1;
+    if(key==='stretch'||key==='exercise'||key==='dance') return true;
+    return false;
+  }
   function frontGestureSideActive(key,S,side) {
-    if(S.action) return false;
     const mode=(S.face||S).arms||'', s=side<0?-1:1;
+    if(dailyFrontSideActive(key,side)) return true;
+    if(S.action) return false;
     if(mode==='coverMouth') return s===(key==='laugh'?-1:1);
     if(['frontFists','coverEye','rub','pushAway','turnAway'].includes(mode)) return true;
     if(['chin','palmUp','peek','pointCheek'].includes(mode)) return s===1;
     return false;
+  }
+  // Props are drawn after the face and front paws so a child can immediately
+  // read the verb: the spoon reaches the mouth, the cup tilts for a sip, and
+  // the ball follows a short, repeating bounce. All positions stay within a
+  // small radius of the body to preserve the fixed cheek-root rig.
+  function flatActionProps(u,key,age,cols={}) {
+    const ink=YC.ink, handFill=mixCol(cols.light||YC.light,'#FFF8D6',.48);
+    if(key==='eat') {
+      const q=age<1.05?ease(seg(age,.1,1.05)):age<2.15?1:1-ease(seg(age,2.15,2.75));
+      const fx=lerp(-2.5,-.22,q), fy=-3.72-.18*Math.sin(age*TAU*1.35)*(q>.9?1:0);
+      // A rounded spoon bowl and one thick handle read at small device sizes.
+      flatLine([[(-2.95+.82*q)*u,(-4.22-.16*q)*u],[(fx-.12)*u,(fy+.02)*u]],ink,2.5);
+      flatEllipse(fx*u,fy*u,.5*u,.38*u,'#FFB95A',ink,2);
+      flatEllipse((fx-.14)*u,(fy-.12)*u,.15*u,.11*u,'#FFE38A',null,0);
+      // The morsel briefly disappears at the mouth, giving the bite a clear
+      // start/end without changing the character's silhouette.
+      if(q>.85) flatEllipse((-.32+.22*(q-.85)/.15)*u,-3.66*u,.2*u,.16*u,YC.cheek,ink,1.1);
+    } else if(key==='drink') {
+      const q=.5+.5*Math.sin(age*TAU/1.7), tilt=-.15-.38*q;
+      const cx=(.55+.24*q)*u, cy=(-3.66-.08*q)*u, w=.7*u, h=.95*u;
+      push(); translate(cx,cy); rotate(tilt);
+      flatPoly([[-w*.55,-h*.5],[w*.55,-h*.5],[w*.45,h*.5],[-w*.45,h*.5]],'#8ED8EE',ink,2.2);
+      flatEllipse(0,-h*.48,w*.56,.13*u,'#D9F6FF',ink,1.5);
+      flatLine([[-w*.34,-.05*u],[w*.34,-.05*u]],'#4AA9CC',1.8);
+      flatLine([[w*.42,-.16*u],[w*.86,-.38*u],[w*.9,-.78*u]],'#4AA9CC',1.7);
+      pop();
+      if(q>.65) flatEllipse((.02+.15*q)*u,-4.24*u,.16*u,.12*u,'#D9F6FF',null,0);
+    } else if(key==='ball') {
+      const q=.5+.5*Math.sin(age*TAU/1.5), bx=(2.02-.28*q)*u, by=(-.92-.46*q)*u;
+      flatEllipse(bx,by,.66*u,.66*u,'#FF8A74',ink,2.4);
+      flatLine([[bx-.42*u,by-.26*u],[bx+.42*u,by+.22*u]],'#FFE89A',2.4);
+      flatLine([[bx-.1*u,by-.62*u],[bx+.12*u,by+.6*u]],'#FFE89A',1.4);
+    } else if(key==='exercise') {
+      const a=.5+.5*Math.sin(age*TAU/1.25), spread=(2.42+.18*a)*u, y=(-4.68-.14*a)*u;
+      for(const side of [-1,1]) {
+        flatEllipse(side*spread,y,.22*u,.22*u,'#FFC85A',ink,1.8);
+        flatLine([[side*(spread-.18*u),y],[side*(spread+.18*u),y]],ink,1.6);
+      }
+      flatLine([[-1.2*u,.95*u],[0,1.18*u],[1.2*u,.95*u]],'#74C9B4',2.2);
+    } else if(key==='run') {
+      const a=Math.sin(age*TAU/1.1);
+      flatLine([[(a>0?-.8:-2.0)*u,1.1*u],[(a>0?-2.0:-.8)*u,1.1*u]],'#74C9B4',2.2);
+      flatLine([[(a>0?-1.4:-2.6)*u,.72*u],[(a>0?-2.2:-1.4)*u,.72*u]],'#74C9B4',1.7);
+    } else if(key==='dance') {
+      const a=Math.sin(age*TAU/1.35);
+      flatStar((a>0?2.4:-2.4)*u,-7.9*u,.32*u,'#FFD45A',1.3);
+    }
+  }
+  function actionPaintProps(u,key,age,cols={}) {
+    // Textured mode keeps the same prop vocabulary as the flat renderer. The
+    // forms are intentionally simple so both modes remain spatially aligned.
+    if(key==='drink') {
+      const q=.5+.5*Math.sin(age*TAU/1.7), cx=(.55+.24*q)*u, cy=(-3.66-.08*q)*u;
+      push(); translate(cx,cy); rotate(-.15-.38*q);
+      paint(rectPts(-.42*u,-.5*u,.84*u,.96*u,.12*u),{wash:'#8ED8EE',fill:'#D9F6FF',fillOp:85,ink:YC.ink,sw:.7,curv:.45});
+      inkLine([[-.32*u,-.05*u],[.32*u,-.05*u]],.55,'#4AA9CC','inkfine',.3);
+      inkLine([[.35*u,-.15*u],[.7*u,-.38*u],[.74*u,-.78*u]],.5,'#4AA9CC','inkfine',.3); pop();
+    } else if(key==='ball') {
+      const q=.5+.5*Math.sin(age*TAU/1.5), bx=(2.02-.28*q)*u, by=(-.92-.46*q)*u;
+      paint(ellPts(bx,by,.66*u,.66*u,18,.03*u),{wash:'#FF8A74',fill:'#FFE89A',fillOp:35,ink:YC.ink,sw:.72,curv:.5});
+      inkLine([[bx-.42*u,by-.26*u],[bx+.42*u,by+.22*u]],.55,'#FFE89A','inkfine',.35);
+    } else if(key==='exercise') {
+      const a=.5+.5*Math.sin(age*TAU/1.25), spread=(2.42+.18*a)*u, y=(-4.68-.14*a)*u;
+      for(const side of [-1,1]) {
+        paint(ellPts(side*spread,y,.22*u,.22*u,12,.02*u),{wash:'#FFC85A',fill:'#FFE89A',fillOp:45,ink:YC.ink,sw:.5});
+      }
+      inkLine([[-1.2*u,.95*u],[0,1.18*u],[1.2*u,.95*u]],.65,'#74C9B4','inkfine',.35);
+    } else if(key==='run') {
+      const a=Math.sin(age*TAU/1.1);
+      inkLine([[(a>0?-.8:-2)*u,1.1*u],[(a>0?-2:-.8)*u,1.1*u]],.7,'#74C9B4','inkfine',.4);
+      inkLine([[(a>0?-1.4:-2.6)*u,.72*u],[(a>0?-2.2:-1.4)*u,.72*u]],.55,'#74C9B4','inkfine',.35);
+    }
+  }
+  function paintFrontAction(u,key,age,cols={}) {
+    const palm=(side,x,y,angle=0,size=.86)=>{
+      const s=side<0?-1:1, ax=s*2.28*u, ay=-3.93*u, bx=x*u, by=y*u;
+      const dx=bx-ax, dy=by-ay, len=Math.max(.001,Math.hypot(dx,dy)), half=.34*u*size;
+      const px=-dy/len*half, py=dx/len*half;
+      // Fill reaches into the body, while the shoulder edge stays open. A
+      // closed stroke here would make the hand look pasted onto the pear in
+      // paper mode.
+      paint([[ax+px,ay+py],[bx+px*.8,by+py*.8],[bx-px*.8,by-py*.8],[ax-px,ay-py]],{wash:YC.body,fill:YC.light,fillOp:75,ink:null,sw:.7,curv:.3});
+      inkLine([[ax+px,ay+py],[bx+px*.8,by+py*.8]],.62,YC.ink,'ink',.35);
+      inkLine([[ax-px,ay-py],[bx-px*.8,by-py*.8]],.62,YC.ink,'ink',.35);
+      paint(ellPts(bx,by,.72*u*size,.72*u*size,18,.02*u),{wash:YC.light,fill:YC.shade,fillOp:40,ink:YC.ink,sw:.75,curv:.35});
+      if(angle) inkLine([[bx-.22*u*size,by-.1*u*size],[bx+.2*u*size,by-.2*u*size]],.5,YC.ink,'inkfine',.25);
+    };
+    if(key==='eat') palm(-1,-1.2,-3.2,.4,.92);
+    else if(key==='drink') palm(1,1.12,-3.18,-.46,.96);
+    else if(key==='ball') palm(1,1.28,-2.78,-.26,.94);
+    else if(key==='stretch') for(const side of [-1,1]) palm(side,side*2.28,-5.72,side*.08,.84);
+    else if(key==='exercise') for(const side of [-1,1]) palm(side,side*2.42,-4.68,side*.14,.86);
+    else if(key==='dance') { const side=Math.sin(age*TAU/1.35)>=0?1:-1; palm(side,side*2.02,-5.55,side*.18,.85); }
   }
   function flatLeaf(u,side,drift,lp={}) { push(); translate(0,-6.9*u+(lp.dy||0)*u); rotate(lp.rot||0); scale(lp.sx||1,lp.sy||1); flatPoly(leaf(u,side,drift),YC.leaf,YC.ink,3); flatLine([[0,0],[side<0?-2.15*u:2.15*u,-2.65*u]],YC.leafShade,2); pop(); }
   function flatFace(u,t,S) {
@@ -625,8 +774,7 @@
     if(!frontGestureSideActive(key,S,-1)) flatHand(u,-1,p.left,(key==='hello'||key==='wave')?.12*Math.sin(age*TAU*2.2):0,cols);
     if(!frontGestureSideActive(key,S,1)) flatHand(u,1,p.right,0,cols);
     flatPoly(pear(u),cols.light,YC.ink,3.5);
-    flatHeart(0,-2.05*u,.48*u,'#FFB07D',2); flatFace(u,age,S); flatFrontGesture(u,key,age,S,cols);
-    if(key==='eat'){ const q=age<1.15?ease(seg(age,.15,1.15)):age<2.3?1:1-ease(seg(age,2.3,2.8)); flatEllipse(lerp(-2.45*u,0,q),-3.7*u,u*.55,u*.5,YC.cheek,YC.ink,1.8); }
+    flatHeart(0,-2.05*u,.48*u,'#FFB07D',2); flatFace(u,age,S); flatFrontGesture(u,key,age,S,cols); flatActionProps(u,key,age,cols);
     pop();
     const question=['?','question'].includes(S.emote), emoteX=question?x+4.8*u:S.emote==='huff'?x+2.7*u:x+dx, emoteY=question?y+bob-10.3*u:S.emote==='huff'?y+bob-5.8*u:y+bob-8.65*u;
     flatEmote(S.emote,emoteX,emoteY,u*.92,S.emoteAge??age);
@@ -645,9 +793,10 @@
     paint(leaf(u,1,lpR.drift*u),{wash:YC.leafLight,fill:YC.leaf,fillOp:130,bleed:.08,tex:.7,ink:YC.ink,sw:.9,curv:.35});
     inkLine([[0,0],[2.15*u,-2.65*u]],.72,YC.leafShade,'inkfine',.5); pop();
     foot(u,-1,p.footL*u+.03*u*Math.sin(age*2.1)); foot(u,1,p.footR*u+.03*u*Math.sin(age*2.1+1.4));
-    hand(u,-1,p.left,(key==='hello'||key==='wave')?.12*Math.sin(age*TAU*2.2):0); hand(u,1,p.right,0);
+    if(!dailyFrontSideActive(key,-1)) hand(u,-1,p.left,(key==='hello'||key==='wave')?.12*Math.sin(age*TAU*2.2):0);
+    if(!dailyFrontSideActive(key,1)) hand(u,1,p.right,0);
     paint(pear(u),{wash:cols.body,fill:cols.light,fillOp:95,bleed:.09,tex:.65,ink:YC.ink,sw:1.05,curv:.35});
-    badge(u,(key==='cuddle'||key==='comforted'||key==='love')?.8:0); face(u,age,S);
+    badge(u,(key==='cuddle'||key==='comforted'||key==='love')?.8:0); face(u,age,S); paintFrontAction(u,key,age,cols); actionPaintProps(u,key,age,cols);
     if(key==='eat'){
       const q=age<1.15?ease(seg(age,.15,1.15)):age<2.3?1:1-ease(seg(age,2.3,2.8));
       peach(lerp(-2.45*u,0,q),lerp(-3.35*u,-3.72*u,q)-.35*u*Math.sin(age*5)*(age>1.15&&age<2.35?1:0),u,.72);

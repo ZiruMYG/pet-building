@@ -127,7 +127,7 @@ happy: {
 4. **再做动画**：给每个状态加预备、主动作和回弹，动作幅度先小后大。
 5. **优先修结构**：先修身体、手臂锚点、遮挡和轮廓，再调颜色和装饰。
 6. **渲染关键状态**：至少检查 `idle`、`laugh`、`love`、`shy`、`thinking`、`sad`、`surprised`。
-7. **跑完整验证**：确认 31 种情绪、11 种动作、页面点击、MP4 输出和源码副本一致。
+7. **跑完整验证**：确认 31 种情绪、17 种运动循环、19 个页面动作按钮、页面点击、MP4 输出和源码副本一致。
 
 一个适合交给 agent 的任务描述是：
 
@@ -150,7 +150,8 @@ node test-yaya-output.mjs
 - `src/config-yaya-pet.js`：明亮 flat 模式和画布配置。
 - `studio-yaya-pet.html`：独立预览工作室。
 - `render-yaya-emotion-previews.mjs`：31 种情绪静态图。
-- `render-yaya-action-previews.mjs`：11 种动作静态图。
+- `render-yaya-action-previews.mjs`：17 种运动循环静态图。
+- `render-yaya-daily-action-videos.mjs`：快速重渲染日常动作的 JPG 和 MP4。
 - `render-yaya-preview-videos.mjs`：情绪和动作 MP4 预览。
 - `test-yaya-output.mjs`：页面状态、数量和交互回归测试。
 - `outputs/yaya-pet/`：给用户打开的离线 HTML、JPG 和 MP4 资源。
@@ -164,4 +165,4 @@ node test-yaya-output.mjs
 - 好奇、咯咯笑、安心、自豪、难过、惊讶、害羞、思考彼此可区分。
 - 叶子参与情绪表达，sad/cry 向下，shy 向内，happy/excited 向上。
 - 静态图和 MP4 使用同一份源码，不能出现页面显示旧图、视频显示新图的版本漂移。
-- 页面启动后 `ready === true`，情绪数量为 31，动作数量为 11。
+- 页面启动后 `ready === true`，情绪数量为 31，动作循环数量为 17，页面动作按钮数量为 19。

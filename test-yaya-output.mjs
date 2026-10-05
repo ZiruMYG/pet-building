@@ -15,12 +15,19 @@ const initial = await page.evaluate(() => ({ state: window.yayaPet.getState(), e
 await page.click('[data-emotion="surprised"]');
 await page.waitForFunction(() => document.querySelector('[data-testid="emotion-preview-video"]').currentTime > 0, { timeout: 10000 });
 const selected = await page.evaluate(() => ({ title: document.querySelector('[data-testid="emotion-preview-title"]').textContent, image: document.querySelector('[data-testid="emotion-preview-image"]').getAttribute('src') }));
+await page.click('[data-action-category="exercise"]');
+// Motion buttons are grouped behind the exercise tab on the learning-device UI.
 await page.click('[data-motion="walk"]');
 await page.click('[data-direction="-1"]');
 await page.waitForFunction(() => document.querySelector('[data-testid="action-preview-video"]').currentTime > 0, { timeout: 10000 });
 const selectedAction = await page.evaluate(() => ({ title: document.querySelector('[data-testid="action-preview-title"]').textContent, image: document.querySelector('[data-testid="action-preview-image"]').getAttribute('src'), direction: document.querySelector('[data-direction="-1"]').getAttribute('aria-pressed') }));
 await page.click('[data-testid="action-feed"]');
 await page.waitForFunction(() => window.yayaPet.getState().clip === 'eat', { timeout: 10000 });
+await page.click('[data-testid="action-drink"]');
+await page.waitForFunction(() => window.yayaPet.getState().clip === 'drink', { timeout: 10000 });
+await page.click('[data-testid="action-exercise"]');
+await page.waitForFunction(() => window.yayaPet.getState().clip === 'exercise', { timeout: 10000 });
+const categories = await page.evaluate(() => [...document.querySelectorAll('.action-tab')].map(tab => ({ category: tab.dataset.actionCategory, selected: tab.getAttribute('aria-selected') })));
 const afterAction = await page.evaluate(() => window.yayaPet.getState());
-console.log(JSON.stringify({ initial, selected, selectedAction, afterAction }));
+console.log(JSON.stringify({ initial, selected, selectedAction, categories, afterAction }));
 await browser.close();

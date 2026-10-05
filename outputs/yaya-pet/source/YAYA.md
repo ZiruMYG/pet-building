@@ -11,7 +11,10 @@
 - 情绪：`idle`、`curious`、`happy`、`excited`、`laugh`、`love`、`shy`、`proud`、`relieved`、`sad`、`cry`、`angry`、`furious`、`scared`、`surprised`、`confused`、`thinking`、`idea`、`determined`、`sleepy`、`bored`、`nervous`、`suspicious`、`disgusted`、`dizzy`、`cool`、`starstruck`、`ko`、`playful`、`mischief`、`hopeful`
 - 基础动作：`hello`、`cuddle`、`eat`、`play`、`sleep`
 - 方向动作：`wave`、`hug`、`jump`、`sway`、`spin`、`walk`、`reach`、`stomp`、`turn`、`nod`、`celebrate`
-- 交互别名：`feed` → `eat`、`touch` → `cuddle`、`nap` → `sleep`、`think` → `thinking`
+- 日常动作：`drink`、`run`、`exercise`、`stretch`、`ball`、`dance`
+- 交互别名：`feed` → `eat`、`touch` → `cuddle`、`nap` → `sleep`、`think` → `thinking`、`water`/`hydrate` → `drink`、`jog` → `run`、`football` → `ball`
+
+日常动作使用具体道具和身体证据：`eat` 用勺子把食物送到嘴边并做咀嚼，`drink` 持杯倾斜并出现水滴，`stretch` 双手向上拉伸，`run` 用交替脚步和位移线表现小跑，`exercise` 举小哑铃热身，`ball` 追着弹跳球，`dance` 左右摆动并让叶子跟拍。每个循环保持 4 秒，方便学习机按钮重复播放。
 
 叶子会随状态参与表演：`sad`/`cry`/`sleepy`/`ko` 向下折，`shy` 向内收，`happy`/`excited`/`surprised` 向上弹起；`wave`、`walk`、`jump` 等动作还会叠加叶子的摆动惯性。方向动作可以用状态对象表达朝向：
 

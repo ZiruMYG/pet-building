@@ -13,7 +13,10 @@
 - 情绪：`idle`、`curious`、`happy`、`excited`、`laugh`、`love`、`shy`、`proud`、`relieved`、`sad`、`cry`、`angry`、`furious`、`scared`、`surprised`、`confused`、`thinking`、`idea`、`determined`、`sleepy`、`bored`、`nervous`、`suspicious`、`disgusted`、`dizzy`、`cool`、`starstruck`、`ko`、`playful`、`mischief`、`hopeful`
 - 基础动作：`hello`、`cuddle`、`eat`、`play`、`sleep`
 - 方向动作：`wave`、`hug`、`jump`、`sway`、`spin`、`walk`、`reach`、`stomp`、`turn`、`nod`、`celebrate`
-- 交互别名：`feed` → `eat`、`touch` → `cuddle`、`nap` → `sleep`、`think` → `thinking`
+- 日常动作：`drink`、`run`、`exercise`、`stretch`、`ball`、`dance`
+- 交互别名：`feed` → `eat`、`touch` → `cuddle`、`nap` → `sleep`、`think` → `thinking`、`water`/`hydrate` → `drink`、`jog` → `run`、`football` → `ball`
+
+日常动作使用具体道具和身体证据：`eat` 用勺子把食物送到嘴边并做咀嚼，`drink` 持杯倾斜并出现水滴，`stretch` 双手向上拉伸，`run` 用交替脚步和位移线表现小跑，`exercise` 举小哑铃热身，`ball` 追着弹跳球，`dance` 左右摆动并让叶子跟拍。每个循环仍保持 4 秒，方便学习机按钮重复播放。
 
 叶子会随状态参与表演：`sad`/`cry`/`sleepy`/`ko` 向下折，`shy` 向内收，`happy`/`excited`/`surprised` 向上弹起；`wave`、`walk`、`jump` 等动作还会叠加叶子的摆动惯性。方向动作可以用状态对象表达朝向：
 
@@ -39,7 +42,7 @@ $env:STUDIO_FILE = 'studio-yaya-pet.html'
 node render.mjs --loop=yaya_surprised --sheet=0,1,2,3.5 --cols=4 --w=300 --out=out/surprised.jpg
 ```
 
-工作室里可用的循环名称是 `yaya_` 加上上面的情绪或动作名，例如 `yaya_shy`、`yaya_love`、`yaya_cuddle`、`yaya_walk`、`yaya_celebrate`。`yayaEmotions()` 会在状态切换时加入眨眼预备、挤压回弹、腮红过渡和反应符号弹出。
+工作室里可用的循环名称是 `yaya_` 加上上面的情绪或动作名，例如 `yaya_shy`、`yaya_love`、`yaya_cuddle`、`yaya_drink`、`yaya_run`、`yaya_celebrate`。`yayaEmotions()` 会在状态切换时加入眨眼预备、挤压回弹、腮红过渡和反应符号弹出。
 
 ## 预览和渲染
 
@@ -49,4 +52,4 @@ start studio-yaya-pet.html
 node render.mjs --clip --out=out/yaya.mp4
 ```
 
-`studio-yaya-pet.html` 是 16 秒的 hello → cuddle → eat → play 展示场景；`outputs/yaya-pet/` 中的离线页面则提供摸摸、喂食、一起玩、睡觉等按钮。
+`studio-yaya-pet.html` 是 16 秒的 hello → cuddle → eat → play 展示场景；`outputs/yaya-pet/` 中的离线页面则提供摸摸、喂食、喝水、运动、一起玩、睡觉等按钮。日常动作的 JPG/MP4 可用 `node render-yaya-daily-action-videos.mjs drink run exercise stretch ball dance` 重新生成。
