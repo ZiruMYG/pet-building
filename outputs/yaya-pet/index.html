@@ -36,6 +36,7 @@
       padding: 34px 0 22px;
     }
     .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 20px; }
+    .topbar-tools { display:flex; align-items:center; gap:9px; flex-wrap:wrap; justify-content:flex-end; }
     .brand { display: flex; align-items: center; gap: 12px; }
     .brand-mark {
       width: 46px; height: 46px; display: grid; place-items: center;
@@ -53,6 +54,8 @@
     .sound-toggle:hover { transform: translateY(-2px); background: #f2fbff; }
     .sound-toggle[aria-pressed="true"] { background: #d8f7e8; border-color: var(--mint-deep); }
     .sound-toggle svg { width: 19px; height: 19px; flex: none; }
+    .top-action-link { min-height:56px; padding:8px 14px; border:2px solid #9cddbe; border-radius:16px; background:#f0fff7; color:#246c52; cursor:pointer; font-weight:800; box-shadow:0 3px 0 rgba(38,104,147,.08); transition:transform .16s ease, background .16s ease, border-color .16s ease; }
+    .top-action-link:hover { transform:translateY(-2px); background:#d8f7e8; border-color:#2b9b6a; }
     .stage-card {
       position: relative; overflow: hidden; border-radius: var(--radius); padding: 10px;
       background: #ffffff;
@@ -107,7 +110,7 @@
     }
     .pet-button:hover { transform: translateY(-3px); box-shadow: 0 8px 0 rgba(38, 104, 147, .12); background:#f2fbff; }
     .pet-button:active { transform: translateY(0) scale(.97); }
-    .pet-button:focus-visible, .sound-toggle:focus-visible, .start-button:focus-visible, .details summary:focus-visible, .emotion-button:focus-visible, .action-button:focus-visible, .direction-button:focus-visible { outline: 4px solid #ffb300; outline-offset:3px; }
+    .pet-button:focus-visible, .sound-toggle:focus-visible, .top-action-link:focus-visible, .start-button:focus-visible, .details summary:focus-visible, .emotion-button:focus-visible, .action-button:focus-visible, .direction-button:focus-visible, .section-jump:focus-visible { outline: 4px solid #ffb300; outline-offset:3px; }
     .pet-button svg { width: 26px; height: 26px; stroke: currentColor; stroke-width:1.8; fill:none; stroke-linecap:round; stroke-linejoin:round; }
     .pet-button[data-action="touch"] { background: #dcf8e9; border-color: #48b982; }
     .pet-button[data-action="feed"] { background: #fff0d7; border-color: #f0ac36; }
@@ -118,6 +121,12 @@
     .pause-row { display:flex; justify-content:center; margin: 8px 0 0; }
     .pause-button { border:2px solid #8bd5f5; background:#ffffff; color:var(--ink-soft); cursor:pointer; padding:8px 14px; border-radius:14px; font-size:.86rem; min-height:56px; }
     .pause-button:hover { background: #f2fbff; color:var(--ink); }
+    .section-nav { display:flex; justify-content:center; flex-wrap:wrap; gap:9px; margin: 14px auto 0; }
+    .section-jump { min-height:48px; padding:8px 15px; border:2px solid #9fddf7; border-radius:999px; background:#ffffff; color:#286b91; cursor:pointer; font-weight:800; box-shadow:0 3px 0 rgba(38,104,147,.08); transition:transform .16s ease, background .16s ease, border-color .16s ease; }
+    .section-jump:hover { transform:translateY(-2px); background:#f2fbff; border-color:#2689bd; }
+    .section-jump[data-jump-to="action-panel"] { border-color:#9cddbe; color:#246c52; background:#f0fff7; }
+    .section-jump[data-jump-to="action-panel"]:hover { border-color:#2b9b6a; background:#d8f7e8; }
+    .section-jump b { margin-left:4px; font-size:.78rem; }
     .emotion-panel { margin: 24px auto 0; max-width: 980px; padding: 22px; border: 3px solid #9fddf7; border-radius: 26px; background: #ffffff; box-shadow: 0 8px 0 rgba(38,104,147,.08); }
     .emotion-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:14px; }
     .emotion-heading h2 { margin:0; font-size:1.05rem; color:var(--ink); }
@@ -177,8 +186,8 @@
       .topbar { align-items:center; }
       .tagline { font-size:.82rem; }
       .brand-mark { width: 40px; height: 40px; border-radius:14px; }
-      .sound-toggle span { display:none; }
-      .sound-toggle { width:56px; justify-content:center; padding:8px; }
+      .sound-toggle span, .top-action-link span { display:none; }
+      .sound-toggle, .top-action-link { width:56px; justify-content:center; padding:8px; }
       .stage-card { padding: 6px; border-radius: 23px; }
       .stage { border-radius:18px; }
       .controls { gap:8px; }
@@ -205,10 +214,13 @@
           <p class="tagline">陪你玩一会儿，也陪你慢慢长大。</p>
         </div>
       </div>
+      <div class="topbar-tools">
+      <button class="top-action-link" type="button" data-jump-to="action-panel" aria-label="查看 19 个日常动作">🧺 <span>动作 19</span></button>
       <button class="sound-toggle" type="button" data-testid="sound-toggle" aria-pressed="false" aria-label="打开轻柔音效">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 9.2v5.6h3.4l4.3 3.7V5.5L7.9 9.2H4.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path class="sound-wave" d="M15.8 9a4.3 4.3 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
         <span>轻柔音效</span>
       </button>
+      </div>
     </header>
 
     <p class="style-note">明亮卡通版：清晰线条、鲜亮色块和大按钮，适合学习机触控。</p>
@@ -234,8 +246,12 @@
       <button class="pet-button" type="button" data-action="sleep" data-testid="action-sleep" aria-label="让芽芽睡觉"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.2 16.8h13.6M7.2 13.4h4.2l-4.2 3.4h4.7M14.3 7.2h4.5l-4.5 3.5h5"/><path d="M6.8 7.4a5.5 5.5 0 0 1 5-3.1c3 0 5.5 2.5 5.5 5.5"/></svg><span class="sleep-label">睡觉</span></button>
     </nav>
     <div class="pause-row"><button class="pause-button" type="button" data-testid="pause-toggle" aria-pressed="false">Ⅱ&nbsp; 暂停</button></div>
+    <nav class="section-nav" aria-label="快速查看">
+      <button class="section-jump" type="button" data-jump-to="action-panel">🧺 日常动作 <b>19</b></button>
+      <button class="section-jump" type="button" data-jump-to="emotion-panel">😊 全部情绪 <b>31</b></button>
+    </nav>
 
-    <section class="emotion-panel" aria-label="芽芽的 31 种情绪">
+    <section id="emotion-panel" class="emotion-panel" aria-label="芽芽的 31 种情绪">
       <div class="emotion-heading"><h2>芽芽的 31 种情绪</h2><span>点击按钮查看不同表情</span></div>
       <div class="emotion-grid" data-testid="emotion-grid" role="list"></div>
       <div class="emotion-preview" data-testid="emotion-preview">
@@ -244,7 +260,7 @@
       </div>
     </section>
 
-    <section class="action-panel" data-testid="action-panel" aria-label="芽芽的日常动作">
+    <section id="action-panel" class="action-panel" data-testid="action-panel" aria-label="芽芽的日常动作">
       <div class="action-heading"><h2>芽芽的日常动作</h2><span>先选类别，再点动作看清楚它怎么做</span></div>
       <div class="action-tabs" data-testid="action-tabs" role="tablist" aria-label="动作类别">
         <button class="action-tab" type="button" role="tab" data-action-category="care" aria-selected="true">🧺 日常照料</button>
@@ -294,6 +310,8 @@
       const emotionPreviewTitle = document.querySelector('[data-testid="emotion-preview-title"]');
       const emotionPreviewDescription = document.querySelector('[data-testid="emotion-preview-description"]');
       const actionGrid = document.querySelector('[data-testid="action-grid"]');
+      const actionPanel = document.querySelector('[data-testid="action-panel"]');
+      const emotionPanel = document.querySelector('.emotion-panel');
       const actionPreviewImage = document.querySelector('[data-testid="action-preview-image"]');
       const actionPreviewVideo = document.querySelector('[data-testid="action-preview-video"]');
       const actionPreviewMedia = document.querySelector('[data-testid="action-preview-media"]');
@@ -302,6 +320,14 @@
       const actionActiveNote = document.querySelector('[data-testid="action-active-note"]');
       const actionTabs = [...document.querySelectorAll('.action-tab')];
       const directionButtons = [...document.querySelectorAll('.direction-button')];
+      // Put the concrete daily-action controls before the long emotion grid so
+      // they are reachable immediately after the stage, instead of being lost
+      // below 31 emotion buttons. The top jump buttons remain useful on small
+      // screens and make the two sections discoverable without guessing.
+      if (actionPanel && emotionPanel) emotionPanel.before(actionPanel);
+      document.querySelectorAll('[data-jump-to]').forEach(button => {
+        button.addEventListener('click', () => document.getElementById(button.dataset.jumpTo)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+      });
       let active = 0;
       let clip = 'idle';
       let sleeping = false;
