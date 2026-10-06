@@ -6,13 +6,13 @@
 
 首页使用左侧实时房间、右侧综合工作台。家里有芽芽卧室及其独卫、伙伴卧室及其独卫、公共客厅、餐厨一体空间。两间卫生间分别从自己的卧室进入；客厅连接两间卧室和餐厨。房间从斜上方观察，床头、书桌和柜子靠墙，窗、顶灯、空调和门都有明确位置，中间保留可行走的通路。
 
-芽芽会沿家具间的通路走到目标，在门口离开、从配对房门进入下一间房；阅读、抱熊、上床休息、书桌与沙发坐下、餐桌吃喝、洗手等活动由当前房间的家具决定。绘本和小熊只由柜子或真实双手中的一方持有，用完再归还。技术说明见 [YAYA_HOME.md](docs/YAYA_HOME.md)。
+空地中芽芽直接斜走，遇到家具才绕行并平滑转弯；先握门把手、推门，再从配对房门进入下一间房。六个房间共有 75 个物品操作入口：床、书桌、柜子、灯、绿植、玩具、厨房和卫浴各有对应过程。绘本、小熊、笔、球、毛巾、遥控器、浇水壶与勺子都由真实手掌拿取，使用后归还。技术说明见 [YAYA_HOME.md](docs/YAYA_HOME.md)。
 
 ![芽芽的小家与右侧综合工作台](outputs/yaya-pet/assets/home/workbench-desktop.png)
 
 工作台分成「生活、表情、动作、造型」四个页签。生活页选择房间与活动；表情和动作共用一个预览区；三视图、骨架和叶子研究按需打开大窗口。全屋布局与能力总表也是按需查看，主页面不再连续堆叠所有实验面板。交互协议见 [YAYA_WORKBENCH.md](docs/YAYA_WORKBENCH.md)。
 
-`src/yaya-catalog.js` 保留 31 个外显状态、基础动作与旧卧室行为目录；**当前六空间的真实能力读取 `YayaHomeLayout.rooms[id].activities`**。完整的 [表情分类、动作表与生活机制](docs/YAYA_LIFE_CATALOG.md) 说明了情绪与需求的区别。自主活动使用当前房间的可用动作与间隔，尚未接入旧花园的饥饿、口渴等需求数值。画画、浇花、整理任意散落玩具仍是后续能力。
+`src/yaya-catalog.js` 保留 31 个外显状态、基础动作与旧卧室行为目录；**完整物品能力读取 `YayaHomeInteractions.list(roomId)`，房间快捷活动读取 `YayaHomeLayout.rooms[id].activities`**。完整的 [表情分类、动作表与生活机制](docs/YAYA_LIFE_CATALOG.md) 说明了情绪与需求的区别。自主活动使用当前房间的可用动作与间隔，尚未接入旧花园的饥饿、口渴等需求数值。已补画画、浇花、擦桌子、玩球、整理水果、搅汤锅、淋浴和擦手；任意散落物品的通用抓取仍不在当前实现范围。完整过程与验收记录见 [物品交互约定](docs/YAYA_HOME_INTERACTIONS.md)。
 
 ## 芽芽电子宠物
 
@@ -24,12 +24,15 @@
 | --- | --- |
 | `src/yaya-home-layout.js` | 六空间、成对房门、家具占地、可站位置与活动能力 |
 | `src/yaya-home-art.js` | 统一斜上方投影、墙面、地板、家具与接触参照 |
-| `src/yaya-home-model.js` | 家具避让、跨房路线、行为队列、物品所属和连续状态 |
+| `src/yaya-home-nav.js` | 直线可见性、带宽度的避障路线和安全圆角 |
+| `src/yaya-home-model.js` | 跨房路线、行为队列、物品所属和连续状态 |
+| `src/yaya-home-interactions.js` | 完整物品目录、真实工具接触与归还过程 |
+| `src/yaya-home-effects.js` | 与手掌同源的道具绘制、流水及遮挡效果 |
 | `src/yaya-home.js` | 使用原有角色与短手求解器绘制房间活动 |
 | `src/yaya-home-ui.js` | 单一时钟、暂停、点击物品与 iframe 指令 |
 | `src/yaya-workbench.js` / `.css` | 右侧工作台、分类预览、全屋图与能力表 |
 
-运行 `node test-yaya-home.mjs` 检查房间数据、路径和接触连续性；运行 `node test-yaya-workbench.mjs` 检查主页面与房间通信、分类预览、弹层及移动布局。
+运行 `node test-yaya-home-nav.mjs` 检查直接路线与避障；`node test-yaya-home-interactions.mjs` 逐项检查物品；`node test-yaya-home-continuous.mjs` 检查连续使用、中途换房与自主生活；`node test-yaya-home.mjs` 检查原有活动和全部跨房旅行；运行 `node test-yaya-workbench.mjs` 检查主页面与房间通信、分类预览、弹层及移动布局。
 
 历史样例继续保留：`gallery.html` 是旧花园、卧室与素材图库页面，`bedroom.html` 是原二维侧床卧室。它们分别由 `test-yaya-output.mjs`、`test-yaya-life-page.mjs` 和 `test-yaya-bedroom.mjs --browser` 回归验证。旧卧室设计经验见 [YAYA_BEDROOM.md](docs/YAYA_BEDROOM.md)；9 段花园流程仍可用于研究需求调度，但不随新首页同时启动。
 

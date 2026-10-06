@@ -10,44 +10,10 @@
  const nearYaw=(from,to)=>{while(to-from>PI)to-=2*PI;while(to-from< -PI)to+=2*PI;return to;};
  const restHands=yaw=>Object.fromEntries([-1,1].map(side=>[side,[side*3.48*Math.cos(yaw)+.45*Math.sin(yaw),-3.54]]));
  const holdHands=yaw=>Object.fromEntries([-1,1].map(side=>[side,[Math.sin(yaw)*1.25+side*1.4*Math.cos(yaw),-3.05]]));
- function blocked(r,x,z,pad=.43){
-  if(x<.40||z<.40||x>r.w-.40||z>r.d-.40)return true;
-  return r.furniture.some(o=>o.collision!==false&&o.blocks!==false&&!o.mounted&&x>o.x-pad&&x<o.x+o.w+pad&&z>o.z-pad&&z<o.z+o.d+pad);
- }
- function clearLine(r,a,b){
-  if(blocked(r,b.x,b.z))return false;
-  for(const o of r.furniture){if(o.collision===false||o.blocks===false||o.mounted)continue;
-   let lo=0,hi=1;for(const [axis,min,max]of [['x',o.x-.431,o.x+o.w+.431],['z',o.z-.431,o.z+o.d+.431]]){
-    const d=b[axis]-a[axis];if(Math.abs(d)<1e-9){if(a[axis]<=min||a[axis]>=max){lo=2;break;}continue;}
-    let q=(min-a[axis])/d,t=(max-a[axis])/d;if(q>t)[q,t]=[t,q];lo=Math.max(lo,q);hi=Math.min(hi,t);
-   }if(lo<=hi&&hi>1e-7&&lo<1-1e-7)return false;
-  }return true;
- }
- function pathfind(r,start,end){
-  if(blocked(r,end.x,end.z))throw Error(`${r.id}: 目标位于家具内 (${end.x.toFixed(2)},${end.z.toFixed(2)})`);
-  if(clearLine(r,start,end))return [{...start},{...end}];
-  const step=.25,key=(x,z)=>`${x},${z}`,sx=Math.round(start.x/step),sz=Math.round(start.z/step),ex=Math.round(end.x/step),ez=Math.round(end.z/step);
-  // Do not round a valid contact stance into the neighboring furniture cell.
-  // Seed reachable grid nodes from the actual continuous start position.
-  const startKey='@start',open=[],cost=new Map(),parents=new Map(),closed=new Set();
-  for(let x=sx-1;x<=sx+1;x++)for(let z=sz-1;z<=sz+1;z++){
-   const p={x:x*step,z:z*step};if(blocked(r,p.x,p.z)||!clearLine(r,start,p))continue;
-   const k=key(x,z),g=Math.hypot(p.x-start.x,p.z-start.z)/step;cost.set(k,g);parents.set(k,startKey);open.push({x,z,g,f:g+Math.hypot(x-ex,z-ez)});
-  }
-  let last;
-  while(open.length){open.sort((a,b)=>a.f-b.f);const cur=open.shift(),ck=key(cur.x,cur.z);if(closed.has(ck))continue;closed.add(ck);
-   if(Math.hypot(cur.x*step-end.x,cur.z*step-end.z)<.38&&clearLine(r,{x:cur.x*step,z:cur.z*step},end)){last=ck;break;}
-   for(const [dx,dz]of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]){const nx=cur.x+dx,nz=cur.z+dz,nk=key(nx,nz),p={x:nx*step,z:nz*step};if(blocked(r,p.x,p.z)||!clearLine(r,{x:cur.x*step,z:cur.z*step},p))continue;
-    const g=cur.g+Math.hypot(dx,dz);if(g>=(cost.get(nk)??Infinity))continue;cost.set(nk,g);parents.set(nk,ck);open.push({x:nx,z:nz,g,f:g+Math.hypot(nx-ex,nz-ez)});
-   }
-  }
-  if(!last)throw Error(`${r.id}: 家具之间没有可走的路线`);
-  const raw=[{...end}];for(let k=last;k&&k!==startKey;k=parents.get(k)){const [x,z]=k.split(',').map(Number);raw.unshift({x:x*step,z:z*step});}raw.unshift({...start});
-  const simplified=[raw[0]];let i=0;while(i<raw.length-1){let j=raw.length-1;while(j>i+1&&!clearLine(r,raw[i],raw[j]))j--;simplified.push(raw[j]);i=j;}
-  return simplified;
- }
+ const defaultHands=s=>s.hands||(s.carrying?holdHands(s.yaw):s.heldObject?{...restHands(s.yaw),[s.heldObject.hand]:[.9*Math.sin(s.yaw)+s.heldObject.hand*2*Math.cos(s.yaw),-3.55]}:restHands(s.yaw));
+ const blocked=(...a)=>YayaHomeNav.blocked(...a),pathfind=(...a)=>YayaHomeNav.pathfind(...a);
  function bodyTransform(s){const p=project(s.p,room(s.room)),walk=s.motion==='walk',speed=s.speed||0,bob=walk?-.075*Math.abs(Math.sin(s.gait))*speed:0,lean=walk?Math.sin(s.yaw)*.025*speed:0,sq=walk?.015*Math.sin(s.gait*2)*speed:s.squash||0;return {x:p.x,y:p.y+bob*U,rotation:(s.rotation||0)+lean,sx:1+sq*.25,sy:1-sq*.45};}
- function grips(s){const targets=s.hands||(s.carrying?holdHands(s.yaw):restHands(s.yaw)),tf=bodyTransform(s);return [-1,1].map(side=>{const a=YayaRig.solveArm({side,shoulder:[side*2.28*Math.cos(s.yaw)+.45*Math.sin(s.yaw),-3.93],target:targets[side],layer:'front'}),x=a.palm[0]*U*tf.sx,y=a.palm[1]*U*tf.sy;return {...a,screen:{x:tf.x+x*Math.cos(tf.rotation)-y*Math.sin(tf.rotation),y:tf.y+x*Math.sin(tf.rotation)+y*Math.cos(tf.rotation)}};});}
+ function grips(s){const targets=defaultHands(s),tf=bodyTransform(s);return [-1,1].map(side=>{const a=YayaRig.solveArm({side,shoulder:[side*2.28*Math.cos(s.yaw)+.45*Math.sin(s.yaw),-3.93],target:targets[side],layer:'front'}),x=a.palm[0]*U*tf.sx,y=a.palm[1]*U*tf.sy;return {...a,screen:{x:tf.x+x*Math.cos(tf.rotation)-y*Math.sin(tf.rotation),y:tf.y+x*Math.sin(tf.rotation)+y*Math.cos(tf.rotation)}};});}
  function propLocal(s,arms){if(s.carrying==='book'&&s.phase==='page'){const a=arms.find(a=>a.side===-1);return [(a.palm[0]+1.4)*U,a.palm[1]*U+8];}return [(arms[0].palm[0]+arms[1].palm[0])*U/2,(arms[0].palm[1]+arms[1].palm[1])*U/2+8];}
  function heldScreen(s){const tf=bodyTransform(s),p=propLocal(s,grips(s)),x=p[0]*tf.sx,y=p[1]*tf.sy;return {x:tf.x+x*Math.cos(tf.rotation)-y*Math.sin(tf.rotation),y:tf.y+x*Math.sin(tf.rotation)+y*Math.cos(tf.rotation)};}
  function approachItem(r,anchor){
@@ -67,40 +33,43 @@
  function create({auto=true,random=Math.random}={}){
   const items={book:{room:'bedroom',anchor:{...room('bedroom').anchors.book},owner:'shelf'},teddy:{room:'bedroom',anchor:{...room('bedroom').anchors.teddy},owner:'shelf'}};
   const s={time:0,room:'bedroom',p:{...room('bedroom').spawn,h:0},yaw:0,gait:0,speed:0,motion:'idle',rotation:0,squash:0,seated:0,hands:null,carrying:null,items,phase:'idle',phaseTime:0,action:null,label:'欢迎来到芽芽的家',auto,pending:null,wait:6,completed:0,doorOpen:{},openFurniture:null,inBed:false,cover:0,sleeping:false,lampOn:true,bookOpen:0,bookPage:0,fade:0,recent:{},history:[],error:null};
-  let queue=[],current=null;
+  Object.assign(s,{objects:{},roomItems:YayaHomeInteractions.initialize(),heldObject:null,interactionBusy:false,contactHands:null,support:null,notice:null});
+  let queue=[],current=null,lastDt=1/60;
   const add=(duration,phase,label,enter,update,finish)=>queue.push({duration,phase,label,enter,update,finish});
-  function hold(seconds,phase,label,finish){add(seconds,phase,label,()=>{s.motion='idle';s.speed=0;},()=>{},finish);}
+  function hold(seconds,phase,label,finish){add(seconds,phase,label,()=>{s.motion='idle';s.speed=0;},()=>{},finish);queue.at(-1).isHold=true;}
   function turn(yaw){let a,b;add(.65,'turn','迈一步，转向要去的地方',()=>{a=s.yaw;b=nearYaw(a,yaw);},k=>{s.yaw=mix(a,b,ease(k));s.turnStep={from:a,to:b,phase:k};},()=>{s.turnStep=null;});}
   function walk(target,label='沿空出来的过道走过去'){
-   let points,segments,total,base,initialYaw,firstYaw,turnTime;
-   add(null,'walk',label,()=>{const end=typeof target==='function'?target():target;points=pathfind(room(s.room),s.p,end);segments=[];total=0;for(let i=1;i<points.length;i++){const d=Math.hypot(points[i].x-points[i-1].x,points[i].z-points[i-1].z);segments.push({a:points[i-1],b:points[i],start:total,length:d});total+=d;}base=s.gait;initialYaw=s.yaw;const a=project(points[0],room(s.room)),b=project(points[1]||points[0],room(s.room));firstYaw=nearYaw(s.yaw,Math.atan2(b.x-a.x,b.y-a.y));turnTime=Math.abs(firstYaw-s.yaw)>.1?.65:0;current.duration=turnTime+.3+total/1.10;s.motion='walk';},k=>{
-    const elapsed=k*current.duration,moveTime=current.duration-turnTime,q=ease(clamp((elapsed-turnTime)/moveTime)),distance=q*total;
-    const seg=segments.find(segment=>distance<=segment.start+segment.length+1e-7)||segments.at(-1);if(!seg)return;
-    const f=seg.length?clamp((distance-seg.start)/seg.length):1;s.p={x:mix(seg.a.x,seg.b.x,f),z:mix(seg.a.z,seg.b.z,f),h:0};
+   let route,base,initialYaw,firstYaw,turnTime;
+   add(null,'walk',label,()=>{const r=room(s.room),end=typeof target==='function'?target():target;route=YayaHomeNav.buildRoute(r,pathfind(r,s.p,end));base=s.gait;initialYaw=s.yaw;const sample=YayaHomeNav.sampleRoute(route,0),a=project(sample,r),b=project({x:sample.x+sample.dx,z:sample.z+sample.dz},r);firstYaw=route.length<1e-6?s.yaw:nearYaw(s.yaw,Math.atan2(b.x-a.x,b.y-a.y));turnTime=Math.abs(firstYaw-s.yaw)>.1?.65:0;current.duration=route.length<1e-6?.03:turnTime+.3+route.length/1.15;s.motion='walk';s.route=route.points;},k=>{
+    const elapsed=k*current.duration,moveTime=current.duration-turnTime,progress=clamp((elapsed-turnTime)/moveTime),distance=ease(progress)*route.length,q=YayaHomeNav.sampleRoute(route,distance);s.p={x:q.x,z:q.z,h:0};
     if(elapsed<turnTime){const ph=elapsed/turnTime;s.yaw=mix(initialYaw,firstYaw,ease(ph));s.turnStep={from:initialYaw,to:firstYaw,phase:ph};}
-    else {s.turnStep=null;const a=project(seg.a,room(s.room)),b=project(seg.b,room(s.room)),heading=nearYaw(s.yaw,Math.atan2(b.x-a.x,b.y-a.y));s.yaw+=Math.max(-.065,Math.min(.065,heading-s.yaw));}
-    s.gait=base+distance*PI/.49;s.speed=Math.sin(PI*clamp((elapsed-turnTime)/moveTime));
-   },()=>{s.motion='idle';s.speed=0;s.turnStep=null;});
+    else if(route.length>1e-6){s.turnStep=null;const r=room(s.room),a=project(q,r),b=project({x:q.x+q.dx,z:q.z+q.dz},r),heading=nearYaw(s.yaw,Math.atan2(b.x-a.x,b.y-a.y));s.yaw+=Math.max(-6.5*lastDt,Math.min(6.5*lastDt,heading-s.yaw));}
+    s.gait=base+distance*PI/.49;s.speed=Math.sin(PI*progress);
+   },()=>{s.motion='idle';s.speed=0;s.turnStep=null;s.route=null;});
   }
   function pose(seconds,phase,label,target){let start;add(seconds,phase,label,()=>{start={};for(const key of Object.keys(target))start[key]=s[key];},k=>{for(const key of Object.keys(target))s[key]=mix(start[key],target[key],ease(k));});}
-  function hands(target,seconds,phase,label,finish){let a,b;add(seconds,phase,label,()=>{a=s.hands||(s.carrying?holdHands(s.yaw):restHands(s.yaw));b=typeof target==='function'?target():target;},k=>{s.hands={};for(const side of [-1,1])s.hands[side]=a[side].map((n,i)=>mix(n,b[side][i],ease(k)));},finish);}
+  function hands(target,seconds,phase,label,finish){let a,b;add(seconds,phase,label,()=>{a=defaultHands(s);b=typeof target==='function'?target():target;},k=>{s.hands={};for(const side of [-1,1])s.hands[side]=a[side].map((n,i)=>mix(n,b[side][i],ease(k)));},finish);}
   const contact=key=>{const a=project(s.items[key].anchor,room(s.room)),p=project(s.p,room(s.room));return Object.fromEntries([-1,1].map(side=>[side,[(a.x-p.x)/U+side*.9,(a.y-8-p.y)/U]]));};
   function pick(key){let stance;walk(()=>{stance=approachItem(room(s.room),s.items[key].anchor);return stance;});add(.65,'turn','站稳，看看要拿的东西',()=>{current.from=s.yaw;},k=>{s.yaw=mix(current.from,nearYaw(current.from,stance.yaw),ease(k));});hands(()=>contact(key),1.1,'reach',key==='book'?'两只短手扶住书边':'轻轻扶住小熊',()=>{s.items[key].owner='hand';s.carrying=key;});hands(()=>holdHands(s.yaw),.8,'pick','拿稳了，收进怀里',()=>{s.hands=null;});}
   function put(key){let stance;walk(()=>{stance=approachItem(room(s.room),s.items[key].anchor);return stance;},'带回原来的柜子');add(.65,'turn','转向放东西的位置',()=>{current.from=s.yaw;},k=>{s.yaw=mix(current.from,nearYaw(current.from,stance.yaw),ease(k));});hands(()=>contact(key),1.1,'place','放到柜面，先扶稳',()=>{s.items[key].owner='shelf';s.carrying=null;});hands(()=>restHands(s.yaw),.7,'release','放稳后再收手',()=>{s.hands=null;});}
-  function travel(to){const ids=L.roomPath(s.room,to);for(let i=1;i<ids.length;i++){const from=ids[i-1],dest=ids[i],d=room(from).doors.find(d=>d.to===dest),other=room(dest).doors.find(x=>x.id===d.toDoor);walk(()=>L.doorPoint(room(from),d,1.0),`走到门边，准备${d.label}`);turn(d.wall==='z0'?2.05:-2.05);
-    add(.55,'open-door',d.label,()=>{},k=>{s.doorOpen[d.id]=ease(k);});let start;
+  function travel(to){const ids=L.roomPath(s.room,to);for(let i=1;i<ids.length;i++){const from=ids[i-1],dest=ids[i],d=room(from).doors.find(d=>d.to===dest),other=room(dest).doors.find(x=>x.id===d.toDoor);const hand=d.wall==='z0'?-1:1,yaw=d.wall==='z0'?2.30:-2.30;
+    walk(()=>approachSocket(room(from),[L.doorHandle(d,0),L.doorHandle(d,.10)],yaw,hand),`走到门把手旁，准备${d.label}`);turn(yaw);
+    hands(()=>{s.contactHands=[hand];return socketHands(L.doorHandle(d,0),hand);},.7,'door-reach','先握住自己的门把手');
+    add(.45,'door-push','小手推开门',()=>{},k=>{s.doorOpen[d.id]=.10*ease(k);s.hands=socketHands(L.doorHandle(d,s.doorOpen[d.id]),hand);});
+    hands(()=>restHands(s.yaw),.5,'door-release','松开把手，让门继续打开',()=>{s.hands=null;s.contactHands=null;});
+    add(.55,'open-door',d.label,()=>{},k=>{s.doorOpen[d.id]=.10+.90*ease(k);});turn(d.wall==='z0'?2.05:-2.05);let start;
     add(.7,'leave','穿过打开的门',()=>{start={...s.p};},k=>{const target=L.doorPoint(room(from),d,.12),q=ease(k);s.p={x:mix(start.x,target.x,q),z:mix(start.z,target.z,q),h:0};s.motion='walk';s.speed=.4;s.gait+=.05;s.fade=clamp((k-.55)/.45);},()=>{s.room=dest;s.p={...L.doorPoint(room(dest),other,.15),h:0};s.yaw=other.wall==='z0'?-1.08:1.08;s.doorOpen={[other.id]:1};s.fade=1;});
     add(.75,'arrive',`来到${room(dest).label}`,()=>{},k=>{const a=L.doorPoint(room(dest),other,.15),b=L.doorPoint(room(dest),other,1);s.p={x:mix(a.x,b.x,ease(k)),z:mix(a.z,b.z,ease(k)),h:0};s.fade=1-clamp(k/.45);s.motion='walk';s.speed=.4;s.gait+=.05;},()=>{s.motion='idle';s.speed=0;});
-    add(.4,'close-door','轻轻把门带上',()=>{},k=>{s.doorOpen[other.id]=1-ease(k);},()=>{s.doorOpen={};});
-   }if(ids.length>1)walk(()=>room(s.room).spawn,'走到房间里的空地');turn(0);
+    add(.4,'close-door','门缓缓回合，站稳再走',()=>{},k=>{s.doorOpen[other.id]=1-ease(k);},()=>{s.doorOpen={};});
+   }turn(0);
   }
-  function sitOn(furniture,label){let a,b;walk(furniture.approach,label);turn(furniture.seatYaw??0);add(1.0,'sit',label,()=>{a={...s.p};b=furniture.seat||{x:furniture.x+furniture.w/2,z:furniture.z+furniture.d/2,h:furniture.h};},k=>{const q=ease(k);s.p={x:mix(a.x,b.x,q),z:mix(a.z,b.z,q),h:mix(0,b.h,q)+.15*Math.sin(PI*k)};s.seated=q;});}
-  function standFrom(furniture){let a;add(1,'stand','小脚落地，站稳再走',()=>{a={...s.p};},k=>{const q=ease(k);s.p={x:mix(a.x,furniture.approach.x,q),z:mix(a.z,furniture.approach.z,q),h:a.h*(1-q)};s.seated=1-q;});}
+  function sitOn(furniture,label){let a,b;walk(furniture.approach,label);turn(furniture.seatYaw??0);add(1.0,'sit',label,()=>{a={...s.p};s.seatFurniture=furniture.id;b=furniture.seat||{x:furniture.x+furniture.w/2,z:furniture.z+furniture.d/2,h:furniture.h};},k=>{const q=ease(k);s.p={x:mix(a.x,b.x,q),z:mix(a.z,b.z,q),h:mix(0,b.h,q)+.15*Math.sin(PI*k)};s.seated=q;});}
+  function standFrom(furniture){let a;add(1,'stand','小脚落地，站稳再走',()=>{a={...s.p};},k=>{const q=ease(k);s.p={x:mix(a.x,furniture.approach.x,q),z:mix(a.z,furniture.approach.z,q),h:a.h*(1-q)};s.seated=1-q;},()=>{s.seatFurniture=null;});}
   function sleep(){const bed=get(s.room,'bed');walk(bed.approach,'走到自己的床边');turn(-1.08);let start,startYaw,endYaw;
-   add(1.2,'climb','蹬一下小脚，坐到床沿',()=>{start={...s.p};s.inBed=true;},k=>{const q=ease(k),b=bed.sit;s.p={x:mix(start.x,b.x,q),z:mix(start.z,b.z,q),h:mix(0,b.h,q)+.22*Math.sin(PI*k)};s.seated=q;});
+   add(1.2,'climb','蹬一下小脚，坐到床沿',()=>{start={...s.p};s.inBed=true;s.cover=1;},k=>{const q=ease(k),b=bed.sit;s.p={x:mix(start.x,b.x,q),z:mix(start.z,b.z,q),h:mix(0,b.h,q)+.22*Math.sin(PI*k)};s.seated=q;});
    turn(0);hold(.6,'bed-sit','在床边坐稳');
    add(1.8,'lie-down','后脑慢慢靠上枕头',()=>{start={...s.p};startYaw=s.yaw;endYaw=nearYaw(startYaw,1.28);},k=>{const q=ease(k);s.p={x:mix(start.x,bed.x+bed.w-.62,q),z:mix(start.z,bed.z+bed.d/2,q),h:mix(start.h,bed.h+.50,q)};s.rotation=-Math.atan2(.82,.43)*q;s.yaw=mix(startYaw,endYaw,q);s.seated=1-q;},()=>{s.sleeping=true;});
-   pose(1.2,'cover','盖好自己的小被子',{cover:1});hold(7,'sleep','躺在枕头上，安静睡一会儿');pose(1.1,'uncover','醒了，轻轻把被子推开',{cover:0});
+   hold(1.2,'cover','小脚已经藏进铺好的被子里');hold(7,'sleep','躺在枕头上，安静睡一会儿');hold(1.1,'uncover','醒来了，准备从被子里坐起来');
    add(1.7,'sit-up','慢慢坐起来',()=>{start={...s.p};startYaw=s.yaw;endYaw=nearYaw(startYaw,0);s.sleeping=false;},k=>{const q=ease(k),b=bed.sit;s.p={x:mix(start.x,b.x,q),z:mix(start.z,b.z,q),h:mix(start.h,b.h,q)};s.rotation=-Math.atan2(.82,.43)*(1-q);s.yaw=mix(startYaw,endYaw,q);s.seated=q;});hold(.6,'bed-sit','坐稳了再下床');
    add(1.15,'climb-down','小脚落回地面',()=>{start={...s.p};},k=>{const q=ease(k),b=bed.approach;s.p={x:mix(start.x,b.x,q),z:mix(start.z,b.z,q),h:start.h*(1-q)+.12*Math.sin(PI*k)};s.seated=1-q;},()=>{s.inBed=false;});
   }
@@ -141,9 +110,11 @@
    add(1,'wardrobe-open','小手带着柜门打开一点',()=>{},k=>{const amount=max*ease(k);s.openFurniture={id:f.id,amount};s.hands=socketHands(handle(amount));});hold(2,'wardrobe','看看整齐挂好的衣物');
    add(1,'wardrobe-close','扶住把手，轻轻合上柜门',()=>{},k=>{const amount=max*(1-ease(k));s.openFurniture={id:f.id,amount};s.hands=socketHands(handle(amount));},()=>{s.openFurniture=null;});hands(()=>restHands(s.yaw),.7,'wardrobe-release','关好柜门，再松开小手',()=>{s.hands=null;});
   }
-  function build(action){queue=[];s.action=action;s.error=null;s.recent[action]=s.time;s.history.unshift(action.startsWith('room:')?`去${room(action.slice(5)).label}`:labels[action]);s.history=s.history.slice(0,6);
-   if(action.startsWith('room:')){travel(action.slice(5));return;}
+  function build(command){queue=[];const spec=command.startsWith('object:')?YayaHomeInteractions.get(s.room,command.slice(7)):null,action=spec?.alias||command;s.action=command;s.behavior=action;s.activeObject=spec?.id||null;s.error=null;s.notice=null;s.recent[command]=s.time;s.recent[action]=s.time;s.history.unshift(spec?.label||(action.startsWith('room:')?`去${room(action.slice(5)).label}`:labels[action]||'走到这里'));s.history=s.history.slice(0,6);
+   if(action.startsWith('goto:')){const [x,z]=action.slice(5).split(',').map(Number);walk({x,z},'沿空地直接走过去');return;}
+   if(action.startsWith('room:')){s.interactionBusy=true;travel(action.slice(5));hold(.05,'settle','走进房间，站稳了',()=>{s.interactionBusy=false;});return;}
    const r=room(s.room);
+   if(spec&&!spec.alias){s.interactionBusy=true;YayaHomeInteractions.build(spec,{s,r,walk,turn,add,hold,hands,pose,sitOn,standFrom,project,restHands,approachSocket,socketHands,ease,mix,wash});hold(.4,'settle','用好了，在这里歇一会儿',()=>{s.interactionBusy=false;s.contactHands=null;s.hands=null;});return;}
    if(action==='read'||action==='teddy'){
     const key=action==='read'?'book':'teddy';pick(key);walk(r.anchors.read||r.anchors.rest,'带到柔软的地毯上');turn(0);pose(.7,'sit','在地毯上坐好',{seated:1,squash:.12});
     if(key==='book'){pose(.7,'open-book','打开绘本',{bookOpen:1});hold(3,'read','低头看看书里的图画');add(1.5,'page','一只手托住书，另一只手翻页',()=>{},k=>{s.bookPage=ease(k);s.hands=holdHands(s.yaw);s.hands[1][0]-=.56*Math.sin(PI*k)**2;s.hands[1][1]-=.24*Math.sin(PI*k)**2;},()=>{s.hands=null;});hold(3,'read','再看看这一页');pose(.7,'close-book','把绘本合好',{bookOpen:0});}
@@ -154,18 +125,20 @@
    else if(action==='eat'||action==='drink')meal(action);
    else if(action==='wardrobe')wardrobe();
    else if(action==='wash')wash();
-   else if(action==='mirror')touch(get(r,'sink'),action,'抬起脸，看看镜子里的自己');
+   else if(action==='mirror'){touch(get(r,'sink'),action,'抬起脸，看看镜子里的自己');hold(.2,'mirror','镜子里的芽芽也在看着你',()=>{(s.objects[r.id+':mirror']??={}).used=true;});}
    else if(action==='window'){const f=get(r,'window');touch(f,'window','走到窗边，看看外面的树');}
    else if(action==='lamp')lamp();
    else if(action==='wave'||action==='stretch'){turn(0);hold(4,action,labels[action]);}
    else{const targets=[{x:7.3,z:6.2},{x:8.0,z:3.5},{x:5.9,z:6.3},{x:3.0,z:7.1}].filter(p=>!blocked(r,p.x,p.z));for(const p of targets.slice(0,2)){walk(p);hold(1,'look','停一下，看看自己的家');}}
-   walk(()=>room(s.room).anchors.rest||room(s.room).spawn,'回到空地歇一会儿');turn(0);
+   hold(.4,'settle','做完了，在这里歇一会儿');
   }
-  function enter(){if(s.pending&&!s.carrying&&!s.inBed&&!s.hands&&s.seated<.01){const key=s.pending;s.pending=null;build(key);}current=queue.shift();if(!current){s.action=null;s.phase='idle';s.label='在家里安静歇一会儿';s.wait=7+random()*7;s.motion='idle';s.speed=0;s.completed++;return;}s.phase=current.phase;s.label=current.label;s.phaseTime=0;current.enter?.();}
+  function enter(){if(s.pending&&!s.carrying&&!s.heldObject&&!s.interactionBusy&&!s.support&&!s.inBed&&!s.hands&&s.seated<.01){const key=s.pending;s.pending=null;build(key);}current=queue.shift();if(!current){s.action=null;s.behavior=null;s.activeObject=null;s.phase='idle';s.label='在家里安静歇一会儿';s.wait=7+random()*7;s.motion='idle';s.speed=0;s.completed++;return;}s.phase=current.phase;s.label=current.label;s.phaseTime=0;current.enter?.();}
   function fail(error){s.error=error.message;s.label='这里的通道暂时走不过去';s.auto=false;current=null;queue=[];s.action=null;s.motion='idle';s.speed=0;}
-  function request(key){if(typeof key!=='string')return false;if(!key.startsWith('room:')&&!room(s.room).activities.includes(key)&&!(key==='lamp'&&get(s.room,'bedside')))return false;if(key.startsWith('room:')&&!L.rooms[key.slice(5)])return false;try{if(current){s.pending=key;if(s.phase==='sleep')current.duration=Math.min(current.duration,s.phaseTime+.5);}else{build(key);enter();}return true;}catch(error){fail(error);return false;}}
-  function step(dt){if(!Number.isFinite(dt)||dt<=0)return;dt=Math.min(.05,dt);s.time+=dt;try{if(!current){s.wait-=dt;if(s.auto&&s.wait<=0){
-    const choices=room(s.room).activities.filter(k=>!['wardrobe','mirror','desk'].includes(k)&&(s.recent[k]===undefined||s.time-s.recent[k]>60));
+  function request(key){if(typeof key!=='string')return false;if(key===s.action||key===s.pending)return true;const object=key.startsWith('object:')&&YayaHomeInteractions.get(s.room,key.slice(7)),destination=key.startsWith('goto:');if(!object&&!destination&&!key.startsWith('room:')&&!room(s.room).activities.includes(key)&&!(key==='lamp'&&get(s.room,'bedside')))return false;if((object||destination)&&s.action?.startsWith('room:')){s.notice='先走进目的房间，再选择这里的物品';return false;}if(destination){const v=key.slice(5).split(',').map(Number);if(v.length!==2||!v.every(Number.isFinite)||blocked(room(s.room),v[0],v[1])){s.notice='那里有家具挡住，选一块空地吧';return false;}}if(key.startsWith('room:')&&!L.rooms[key.slice(5)])return false;try{if(current){s.pending=key;if(current.isHold)current.duration=Math.min(current.duration,s.phaseTime+.4);for(const task of queue)if(task.isHold)task.duration=Math.min(task.duration,.4);}else{build(key);enter();}return true;}catch(error){fail(error);return false;}}
+  function step(dt){if(!Number.isFinite(dt)||dt<=0)return;dt=Math.min(.05,dt);lastDt=dt;s.time+=dt;try{if(!current){s.wait-=dt;if(s.auto&&s.wait<=0){
+    const routines={bedroom:['object:desk','object:plant'],ensuite:['object:towel','object:shower','object:toilet'],living:['object:toy-basket','object:coffee-table','object:plant'],kitchen:['object:prep-counter','object:sink-counter','object:stove']};
+    const extras=(routines[s.room]||[]).filter(k=>s.recent[k]===undefined||s.time-s.recent[k]>180),base=room(s.room).activities.filter(k=>!['wardrobe','mirror','desk','wander'].includes(k)&&(s.recent[k]===undefined||s.time-s.recent[k]>60));
+    const choices=extras.length&&(s.completed%3===2||!base.length)?extras:base;
     const neighbors=room(s.room).doors.map(d=>d.to).filter(id=>['bedroom','ensuite','living','kitchen'].includes(id)&&(s.recent['room:'+id]===undefined||s.time-s.recent['room:'+id]>90));
     if(['guestroom','bathroom'].includes(s.room))request('room:living');
     else if(s.completed>1&&neighbors.length&&(!choices.length||random()<.20))request('room:'+neighbors[Math.floor(random()*neighbors.length)]);
@@ -174,5 +147,5 @@
   function getState(){const out=JSON.parse(JSON.stringify(s));out.u=U;out.grips=grips(s);out.heldScreen=s.carrying?heldScreen(s):null;out.remaining=current?current.duration-s.phaseTime:0;out.queueLength=queue.length;return out;}
   return {step,request,setRoom:id=>request('room:'+id),setAuto:value=>{s.auto=!!value;s.wait=Math.min(s.wait,3);},getState};
  }
- globalThis.YayaHomeModel={create,labels,project,blocked,pathfind,approachItem,bodyTransform,grips,propLocal,restHands,holdHands,U};
+ globalThis.YayaHomeModel={create,labels,project,blocked,pathfind,approachItem,bodyTransform,grips,propLocal,restHands,holdHands,defaultHands,U};
 })();

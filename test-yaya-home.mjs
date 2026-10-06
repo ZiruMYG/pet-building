@@ -6,7 +6,7 @@ import vm from 'node:vm';
 // browser. No mock room coordinates or alternative movement implementation.
 const context=vm.createContext({console});
 context.window=context;
-for(const file of ['src/yaya-home-layout.js','src/yaya-home-art.js','src/yaya-rig.js','src/yaya-body.js','src/yaya-home-model.js'])
+for(const file of ['src/yaya-home-layout.js','src/yaya-home-art.js','src/yaya-rig.js','src/yaya-body.js','src/yaya-home-nav.js','src/yaya-home-interactions.js','src/yaya-home-model.js'])
   vm.runInContext(readFileSync(file,'utf8'),context,{filename:file});
 const L=context.YayaHomeLayout,M=context.YayaHomeModel,R=context.YayaRig;
 const near=(a,b,label,epsilon=1e-6)=>assert.ok(Math.abs(a-b)<epsilon,`${label}: ${a} != ${b}`);

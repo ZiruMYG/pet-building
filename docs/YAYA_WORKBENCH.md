@@ -19,6 +19,10 @@
 
 `YayaHomeLayout` 是房间列表、房间能力、平面图和连接关系的来源。工作台读取 `roomOrder`、`rooms[id].activities`、`rooms[id].plan` 和 `connections`，不另行定义一套门路。
 
+完整物品入口来自 `YayaHomeInteractions.list(roomId)`：生活页保留少量快捷活动，并在可折叠的“房间里的物品”中列出家具、灯、空调和可拿取物品。总表也读取同一份物品清单。增加物品时必须同时定义清晰的中文动作与说明，不能只有画面没有入口。列表中悬停或键盘聚焦会高亮房间里对应的实物。
+
+画布点击使用物体在同一世界坐标中的投影凸多边形，并按前后遮挡选择命中对象；表面的书、玩具和床头灯单独命中。椅背、床头板、吊灯采用实际可见高度，不能用“离中心几十像素”选第一个家具。点击可通行空地会把屏幕坐标反投影为地面坐标，发送 `goto:x,z`；路径有效性与避障仍由模型验证。物体范围内的点击不会落到家具背后的地板。
+
 - 两间卧室各有自己的卫生间；第二间卧室与第二独卫为下一位宠物预留。
 - 客厅连接两间卧室和一体餐厨。
 - 选择“去某个房间”调用房间导航，不直接替换画面中的房间编号。具体走门与完成手上活动的逻辑属于 home model。
@@ -32,6 +36,9 @@
 ```js
 // Parent -> home iframe
 { type: 'yaya-home-command', command: 'request', value: 'read' }
+{ type: 'yaya-home-command', command: 'request', value: 'object:bed' }
+{ type: 'yaya-home-command', command: 'request', value: 'goto:7.2,5.4' }
+{ type: 'yaya-home-command', command: 'highlight', value: 'bed' }
 { type: 'yaya-home-command', command: 'setRoom', value: 'kitchen' }
 { type: 'yaya-home-command', command: 'setAuto', value: true }
 { type: 'yaya-home-command', command: 'pause' }
@@ -46,9 +53,10 @@
     label: '芽芽正在看书', action: 'read', phase: 'reading', pending: null
   }
 }
+{ type: 'yaya-home-result', key: 'object:bed', ok: true, duplicate: false, message: '好，芽芽这就过去' }
 ```
 
-父页面只接受来自当前 home iframe 的状态消息。iframe 初始化完成前，生活指令先排队；收到 `ready: true` 后依次发出。状态消息驱动房间名称、当前活动、播放状态、自主开关和选中状态；目的房间在实际抵达之前显示为等待状态。每 800 毫秒发一次轻量的 `getState`，后台页面不轮询。
+父页面只接受来自当前 home iframe 的状态消息。iframe 初始化完成前，同类生活指令只保留最后一项；收到 `ready: true` 后发出。实际正在做或已经排队的相同指令不会重复排队。反馈由模型确认后显示，不在模型拒绝时留下假的“已安排”状态。状态消息驱动房间名称、当前活动、播放状态、自主开关和选中状态；目的房间在实际抵达之前显示为等待状态。每 800 毫秒发一次轻量的 `getState`，后台页面不轮询。
 
 `window.yayaWorkbench` 提供自动检查入口：`getState()`、`selectTab(key)`、`selectEmotion(key)`、`selectAction(key)`、`setRoom(room)`、`request(action)`。
 
@@ -58,6 +66,6 @@
 - 样式：`src/yaya-workbench.css`
 - 控制器：`src/yaya-workbench.js`
 - 发布副本：对应的 `outputs/yaya-pet/source/` 文件
-- 验证：`node test-yaya-workbench.mjs`。检查桌面单屏、31/19 项数量、分类、预览资源、弹层与移动端宽度；完整运行还检查 home iframe 的状态协议。
+- 验证：`node test-yaya-workbench.mjs`。检查桌面单屏、31/19 项数量、分类、预览资源、弹层与移动端宽度；完整运行还逐房检查物品入口覆盖、热点覆盖、床头灯精确点选、重复指令拦截、暂停与 home iframe 的状态协议。
 
 新增房间活动时先实现 home model 与真实物品接触，再把 key 加入对应房间的 `activities`；同时补工作台中的中文动词、图标和一句动作描述。不要重新堆叠一个独立面板。

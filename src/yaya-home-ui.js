@@ -1,29 +1,43 @@
 (() => {
  'use strict';
- let model=YayaHomeModel.create({auto:!matchMedia('(prefers-reduced-motion: reduce)').matches}),playing=!matchMedia('(prefers-reduced-motion: reduce)').matches,ready=false,busy=false,pending=false,last=0,paintTime=0,reportTime=0,renderPromise=Promise.resolve();
- const canvas=document.getElementById('out'),loading=document.getElementById('loading'),state=()=>({...model.getState(),playing,ready});
+ let model=YayaHomeModel.create({auto:!matchMedia('(prefers-reduced-motion: reduce)').matches}),playing=!matchMedia('(prefers-reduced-motion: reduce)').matches,ready=false,busy=false,pending=false,last=0,paintTime=0,reportTime=0,renderPromise=Promise.resolve(),hover=null,feedbackTimer;
+ const canvas=document.getElementById('out'),loading=document.getElementById('loading'),outline=document.getElementById('hotspot-outline'),tooltip=document.getElementById('object-tooltip'),feedback=document.getElementById('interaction-feedback'),state=()=>({...model.getState(),playing,ready});
  const loop=t=>YayaHome.draw(t,model.getState());loop.len=3600;window.LOOP=loop;
- function report(){if(parent!==window)parent.postMessage({type:'yaya-home-state',state:state()},'*');document.getElementById('status').textContent=model.getState().label;}
+ function report(){if(hover&&!hotspots().some(item=>item.id===hover.id&&item.room===hover.room))highlight(null);if(parent!==window)parent.postMessage({type:'yaya-home-state',state:state()},'*');document.getElementById('status').textContent=model.getState().label;}
  function draw(){pending=true;if(busy||!window.ready)return renderPromise;busy=true;renderPromise=(async()=>{try{while(pending){pending=false;T=model.getState().time;await redraw();composite(T);}ready=true;loading.hidden=true;report();}catch(e){playing=false;loading.hidden=false;loading.textContent='画面没有准备好：'+e.message;console.error(e);}finally{busy=false;}})();return renderPromise;}
- function request(key){const ok=model.request(key);if(ok){playing=true;last=0;}report();draw();return ok;}
- function setRoom(key){const ok=model.setRoom(key);if(ok){playing=true;last=0;}report();draw();return ok;}
+ function result(key,ok,duplicate=false){const s=model.getState(),message=duplicate?'已经安排这件事了':ok?(s.pending?'等手里的物品放好，再继续':'好，芽芽这就过去'):s.notice|| (s.error?'这里暂时走不过去，试试旁边的空地':'这个位置不适合站立，试试空地');if(parent!==window)parent.postMessage({type:'yaya-home-result',key,ok,duplicate,message},'*');if(feedback){feedback.textContent=message;feedback.hidden=false;clearTimeout(feedbackTimer);feedbackTimer=setTimeout(()=>feedback.hidden=true,2200);}return ok;}
+ function request(key){if(typeof key!=='string')return false;const s=model.getState(),canonical=key.startsWith('object:')?YayaHomeInteractions.get(s.room,key.slice(7))?.alias||key:key;if(s.pending===key||s.action===key||s.action&&s.behavior===canonical)return result(key,false,true);const ok=model.request(key);if(ok){playing=true;last=0;highlight(null);}report();draw();return result(key,ok);}
+ function setRoom(key){const s=model.getState();if(s.room===key&&!s.pending)return result('room:'+key,false,true);return request('room:'+key);}
  function pause(){playing=false;report();return draw();}
  function play(){playing=true;last=0;report();return draw();}
  function setAuto(value){model.setAuto(value);if(value)play();report();return draw();}
  function tick(now){const dt=last?Math.min(.05,(now-last)/1000):0;last=now;if(playing&&!document.hidden&&ready){model.step(dt);if(now-paintTime>1000/30){paintTime=now;draw();}}if(now-reportTime>300){reportTime=now;report();}requestAnimationFrame(tick);}
+ // Hit polygons share the art's world bounds and projection. A foreground object
+ // wins overlap; books, lamps and toys on surfaces keep their own hit regions.
+ const cross=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
+ function hull(points){const sorted=points.slice().sort((a,b)=>a.x-b.x||a.y-b.y),lower=[],upper=[];for(const p of sorted){while(lower.length>1&&cross(lower.at(-2),lower.at(-1),p)<=0)lower.pop();lower.push(p);}for(const p of sorted.reverse()){while(upper.length>1&&cross(upper.at(-2),upper.at(-1),p)<=0)upper.pop();upper.push(p);}return lower.slice(0,-1).concat(upper.slice(0,-1));}
+ function inside(p,polygon){let hit=false;for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){const a=polygon[i],b=polygon[j];if((a.y>p.y)!==(b.y>p.y)&&p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)hit=!hit;}return hit;}
+ function prism(r,o){if(o.kind==='ceilingLamp')o={...o,x:o.x+o.w/2-.52,z:o.z+o.d/2-.38,w:1.04,d:.76,elevation:3.23,h:.54};const points=[],base=o.elevation||0;for(const x of [o.x,o.x+o.w])for(const z of [o.z,o.z+o.d])for(const h of [base,base+o.h])points.push(YayaHomeArt.project(x,z,h,r));if(o.kind==='chair'){for(const edge of [0,1]){const acrossX=!['+x','-x'].includes(o.facing);points.push(YayaHomeArt.project(acrossX?o.x+o.w*edge:o.x+(o.facing==='-x'?o.w:0),acrossX?o.z+(o.facing==='-z'?o.d:0):o.z+o.d*edge,o.h+.62,r));}}if(o.kind==='bed')for(const edge of [0,1])points.push(YayaHomeArt.project(o.facing==='+z'?o.x+o.w*edge:o.x,o.facing==='+z'?o.z:o.z+o.d*edge,o.h+.65,r));return hull(points);}
+ function hotspots(){const s=model.getState(),r=YayaHomeLayout.rooms[s.room],objects=YayaHomeInteractions.list(s.room),items=YayaHomeInteractions.items?.(s.room)||[],list=[];
+  for(const item of objects){const f=r.furniture.find(o=>o.id===item.targetId),spec=items.find(o=>o.id===item.targetId),prop=s.items?.[item.targetId]||s.roomItems?.[s.room+':'+item.targetId]||spec||(item.anchor?item:null);let polygon,depth;
+   if(item.targetType==='item'||prop){if(!prop||(['hand','hidden'].includes(prop.owner))||(prop.room&&prop.room!==s.room))continue;const p=YayaHomeModel.project(prop.anchor,r),bounds=({book:[-26,-25,26,6],teddy:[-28,-48,28,4],remote:[-10,-14,10,14],wateringCan:[-17,-4,38,50],cup:[-14,-21,14,5]})[item.kind]||[-22,-25,22,25];polygon=[{x:p.x+bounds[0],y:p.y+bounds[1]},{x:p.x+bounds[2],y:p.y+bounds[1]},{x:p.x+bounds[2],y:p.y+bounds[3]},{x:p.x+bounds[0],y:p.y+bounds[3]}];depth=prop.anchor.x+prop.anchor.z+.2;}
+   else if(f){polygon=prism(r,f);depth=f.x+f.z+(f.w+f.d)/2+(f.parent?.length ? .01 : 0);if(f.kind==='ceilingLamp')depth+=100;}
+   else continue;
+   list.push({...item,room:s.room,polygon,depth});
+  }
+  for(const d of r.doors){const a=d.offset-d.width/2,b=d.offset+d.width/2,polygon=[a,b].flatMap(n=>[0,2.8].map(h=>YayaHomeArt.project(d.wall==='z0'?n:0,d.wall==='x0'?n:0,h,r)));list.push({id:d.id,room:s.room,command:'room:'+d.to,label:d.label,description:'走到门前，开门，再走进房间',polygon:hull(polygon),depth:-1});}
+  return list.sort((a,b)=>b.depth-a.depth);
+ }
+ function toCanvas(clientX,clientY){const box=canvas.getBoundingClientRect(),scale=Math.max(box.width/1920,box.height/1080);return {x:(clientX-box.left-(box.width-1920*scale)/2)/scale,y:(clientY-box.top-(box.height-1080*scale)/2)/scale};}
+ function floorPoint(p){const r=YayaHomeLayout.rooms[model.getState().room],sum=(p.y-355)/(.43*80),diff=(p.x-960)/(.82*80)+(r.w-r.d)/2;return {x:(sum+diff)/2,z:(sum-diff)/2};}
+ function hitTest(x,y){return hotspots().find(item=>inside({x,y},item.polygon))||null;}
+ function highlight(id,event){hover=id?hotspots().find(item=>item.id===id):null;if(outline){outline.setAttribute('points',hover?hover.polygon.map(p=>`${p.x},${p.y}`).join(' '):'');outline.style.display=hover?'':'none';}if(!tooltip)return;if(!hover){tooltip.hidden=true;return;}tooltip.replaceChildren();const title=document.createElement('strong'),detail=document.createElement('span');title.textContent=hover.label;detail.textContent=hover.description;tooltip.append(title,detail);tooltip.hidden=false;const box=canvas.getBoundingClientRect(),scale=Math.max(box.width/1920,box.height/1080),cx=hover.polygon.reduce((n,p)=>n+p.x,0)/hover.polygon.length,cy=Math.min(...hover.polygon.map(p=>p.y));const x=event?event.clientX-box.left:(box.width-1920*scale)/2+cx*scale,y=event?event.clientY-box.top:(box.height-1080*scale)/2+cy*scale;tooltip.style.left=`${Math.max(8,Math.min(box.width-tooltip.offsetWidth-8,x+12))}px`;tooltip.style.top=`${Math.max(8,Math.min(box.height-tooltip.offsetHeight-8,y-tooltip.offsetHeight-12))}px`;}
+ function point(event){const p=toCanvas(event.clientX,event.clientY),hit=hitTest(p.x,p.y),floor=floorPoint(p),r=YayaHomeLayout.rooms[model.getState().room],walkable=floor.x>.4&&floor.z>.4&&floor.x<r.w-.4&&floor.z<r.d-.4&&!YayaHomeModel.blocked(r,floor.x,floor.z);canvas.style.cursor=hit?'pointer':walkable?'crosshair':'default';highlight(hit?.id,event);return {hit,floor,walkable};}
+ canvas.addEventListener('pointermove',point);canvas.addEventListener('pointerleave',()=>highlight(null));
+ canvas.addEventListener('click',event=>{const {hit,floor,walkable}=point(event);if(hit)request(hit.command);else if(walkable)request(`goto:${floor.x.toFixed(3)},${floor.z.toFixed(3)}`);else result('goto',false);});
  window.devUI=()=>{draw();requestAnimationFrame(tick);};
- window.yayaHome={getState:state,request,setRoom,setAuto,pause,play,restart:async()=>{model=YayaHomeModel.create({auto:model.getState().auto});last=0;await draw();return state();},advance:async seconds=>{playing=false;for(let left=Math.min(1200,seconds);left>1e-8;){const dt=Math.min(1/60,left);model.step(dt);left-=dt;}await draw();return state();}};
- window.addEventListener('message',event=>{if(event.source!==parent||event.data?.type!=='yaya-home-command')return;const {command,value}=event.data;if(command==='getState')report();else if(['request','setRoom','setAuto','pause','play'].includes(command))window.yayaHome[command](value);});
+ window.yayaHome={getState:state,request,setRoom,setAuto,pause,play,highlight,hotspots,hitTest,toCanvas,floorPoint,restart:async()=>{model=YayaHomeModel.create({auto:model.getState().auto});last=0;highlight(null);await draw();return state();},advance:async seconds=>{playing=false;for(let left=Math.min(1200,seconds);left>1e-8;){const dt=Math.min(1/60,left);model.step(dt);left-=dt;}await draw();return state();}};
+ window.addEventListener('message',event=>{if(event.source!==parent||event.data?.type!=='yaya-home-command')return;const {command,value}=event.data;if(command==='getState')report();else if(['request','setRoom','setAuto','pause','play','highlight'].includes(command))window.yayaHome[command](value);});
  document.addEventListener('visibilitychange',()=>{last=0;});
- // The right-hand workbench mirrors these interactions. Objects in the room
- // remain clickable and use exactly the same requests as the visible buttons.
- canvas.addEventListener('click',event=>{
-  const box=canvas.getBoundingClientRect(),scale=Math.max(box.width/1920,box.height/1080),x=(event.clientX-box.left-(box.width-1920*scale)/2)/scale,y=(event.clientY-box.top-(box.height-1080*scale)/2)/scale,s=model.getState(),r=YayaHomeLayout.rooms[s.room];
-  const points=[];for(const d of r.doors){const p=YayaHomeArt.project(d.wall==='z0'?d.offset:0,d.wall==='x0'?d.offset:0,1.3,r);points.push({p,key:'room:'+d.to,radius:65});}
-  const map={bed:'sleep',bookshelf:'read',desk:'desk',wardrobe:'wardrobe',sink:'wash',sofa:'sofa','dining-table':'eat',window:'window',bedside:'lamp'};
-  for(const o of r.furniture){const key=map[o.id]||map[o.kind];if(!key||(!r.activities.includes(key)&&key!=='lamp'))continue;points.push({p:YayaHomeArt.project(o.x+o.w/2,o.z+o.d/2,(o.elevation||0)+o.h*.65,r),key,radius:o.kind==='bed'?110:65});}
-  for(const [key,item]of Object.entries(s.items))if(item.room===s.room&&item.owner==='shelf')points.unshift({p:YayaHomeModel.project(item.anchor,r),key:key==='book'?'read':'teddy',radius:35});
-  const hit=points.find(v=>Math.hypot(x-v.p.x,y-v.p.y)<v.radius);if(hit)request(hit.key);
- });
  window.addEventListener('error',event=>{loading.hidden=false;loading.textContent='资源未能加载：'+event.message;});
 })();

@@ -2,7 +2,7 @@
 // the live room state, and room requests always go through the home controller.
 (() => {
   'use strict';
-  const $=id=>document.getElementById(id),catalog=window.YayaCatalog,layout=window.YayaHomeLayout;
+  const $=id=>document.getElementById(id),catalog=window.YayaCatalog,layout=window.YayaHomeLayout,interactions=window.YayaHomeInteractions;
   const frame=$('home-frame'),video=$('preview-video'),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   const state={tab:'life',room:'bedroom',ready:false,auto:!reduced,playing:!reduced,emotion:'idle',action:'eat',emotionFilter:'all',actionFilter:'all',label:'芽芽正在准备',pendingRoom:null,lastHome:null};
   const queued=[];
@@ -10,16 +10,19 @@
   const roomShort={bedroom:'芽芽卧室',ensuite:'芽芽独卫',guestroom:'伙伴卧室',bathroom:'预留独卫',living:'客厅',kitchen:'餐厨一体'};
   const roomIcons={bedroom:'🛏',ensuite:'🫧',guestroom:'🧸',bathroom:'🚿',living:'🛋',kitchen:'🍳'};
   const roomSub={bedroom:'休息与阅读',ensuite:'卧室内进入',guestroom:'留给下一位伙伴',bathroom:'伙伴卧室内进入',living:'全家的连接处',kitchen:'吃饭与喝水'};
-  const actions={sleep:['🌙','上床睡一会儿','走到床边，上床躺好，拉被子入睡。'],read:['📖','拿绘本来读','走到书柜拿书，读完合上并归位。'],teddy:['🧸','抱抱小熊','接住小熊，抱一会儿，再放回原处。'],desk:['✎','到书桌坐坐','走到椅子旁，坐好看看桌上的绘本。'],window:['☁','去窗前看看','走到窗边，看看外面的云和树。'],wardrobe:['♧','看看衣柜','走到衣柜前，看看自己的衣物。'],lamp:['☀','开关床头灯','走到床头柜旁，伸手开关灯。'],wander:['👣','慢慢散个步','沿家具之间的空地走一走。'],wash:['🫧','洗洗小手','到低洗手台，伸手接水、搓洗。'],mirror:['◉','照照镜子','走到镜子前，看看自己。'],sofa:['🛋','在沙发歇歇','走到沙发边，坐一小会儿。'],stretch:['🙆','伸个懒腰','在空地站稳，伸懒腰，打个哈欠。'],wave:['👋','挥手打招呼','看向你，伸出小手挥一挥。'],eat:['🥄','坐好吃饭','走到餐椅旁坐下，用自己的小手吃饭。'],drink:['💧','坐好喝水','到餐桌旁，拿杯子喝一口，再放回。']};
+  const actions={sleep:['🌙','上床睡一会儿','走到床边，钻进铺好的被子里躺下休息。'],read:['📖','拿绘本来读','走到书柜拿书，读完合上并归位。'],teddy:['🧸','抱抱小熊','接住小熊，抱一会儿，再放回原处。'],desk:['✎','到书桌坐坐','走到椅子旁，坐好看看桌上的绘本。'],window:['☁','去窗前看看','走到窗边，看看外面的云和树。'],wardrobe:['♧','看看衣柜','走到衣柜前，看看自己的衣物。'],lamp:['☀','开关床头灯','走到床头柜旁，伸手开关灯。'],wander:['👣','慢慢散个步','沿家具之间的空地走一走。'],wash:['🫧','洗洗小手','到低洗手台，伸手接水、搓洗。'],mirror:['◉','照照镜子','走到镜子前，看看自己。'],sofa:['🛋','在沙发歇歇','走到沙发边，坐一小会儿。'],stretch:['🙆','伸个懒腰','在空地站稳，伸懒腰，打个哈欠。'],wave:['👋','挥手打招呼','看向你，伸出小手挥一挥。'],eat:['🥄','坐好吃饭','走到餐椅旁坐下，用自己的小手吃饭。'],drink:['💧','坐好喝水','到餐桌旁，拿杯子喝一口，再放回。']};
   const descriptions={bedroom:'床头贴墙，床尾朝向活动区；书桌、低书柜和衣柜各自靠墙。窗边有自然光，顶灯、床头灯与空调位置固定。两扇门分别通向客厅和自己的卫浴。',ensuite:'洗手台靠墙，镜子和毛巾就在手边。淋浴、坐便器分区，中间留出通道；入口只连接芽芽卧室。',guestroom:'给未来伙伴准备同尺度的小床、书桌与衣柜，用蓝色软装区分。拥有独立卫浴；芽芽可以来看看，伙伴的床保留给它的主人。',bathroom:'与伙伴卧室直接相连的独立卫浴，包含低洗手台、镜子、淋浴、毛巾和坐便器，不通客厅。',living:'沙发与书柜靠墙，茶几放在沙发前；周围可以绕行。三扇门连接两间卧室和餐厨，门前保持畅通。',kitchen:'冰箱、水槽、备餐台与灶台沿墙排列。餐桌与两张餐椅成组摆放，芽芽先走到自己的椅子旁坐好，再吃饭喝水。'};
   const context={bedroom:'床头靠墙 · 书桌采光 · 柜子贴墙 · 中央活动区',ensuite:'卧室独立入口 · 低洗手台 · 干湿分区',guestroom:'伙伴的专属卧室 · 小床与书桌 · 独立卫浴',bathroom:'伙伴卧室独立入口 · 洗漱与淋浴',living:'靠墙沙发 · 中央茶几 · 门前通路',kitchen:'沿墙操作台 · 餐桌椅成组 · 留出厨房通道'};
-  const pendingLabel=key=>typeof key==='string'&&key.startsWith('room:')?`去${roomNames[key.slice(5)]||'下个房间'}`:actions[key]?.[1]||roomNames[key]||'继续下一件事';
+  const objectList=room=>interactions?.list(room)||[];
+  const objectCommand=key=>objectList(state.room).find(item=>item.command===key);
+  const pendingLabel=key=>typeof key==='string'&&key.startsWith('room:')?`去${roomNames[key.slice(5)]||'下个房间'}`:typeof key==='string'&&key.startsWith('goto:')?'走到选中的空地':objectCommand(key)?.label||actions[key]?.[1]||roomNames[key]||'继续下一件事';
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const available=room=>layout.rooms[room]?.activities||['wander'];
   function post(command,value){frame.contentWindow?.postMessage({type:'yaya-home-command',command,value},'*');}
-  function send(command,value){if(!state.ready&&command!=='getState')queued.push([command,value]);else post(command,value);}
-  function setRoom(room){if(!layout.rooms[room])return false;state.pendingRoom=room;send('setRoom',room);updateRoomButtons();$('queue-note').hidden=false;$('queue-note').textContent=`接下来去${roomNames[room]}。芽芽会先完成手上的事，再沿门口走过去。`;return true;}
-  function request(key){if(!available(state.room).includes(key))return false;send('request',key);$('queue-note').hidden=false;$('queue-note').textContent=`已安排：${actions[key]?.[1]||key}。先把手里的物品放稳，再继续。`;return true;}
+  function send(command,value){if(!state.ready&&command!=='getState'){const old=queued.findIndex(entry=>entry[0]===command);if(old>=0)queued.splice(old,1);queued.push([command,value]);}else post(command,value);}
+  function duplicate(key){const behavior=objectCommand(key)?.alias||key;return state.lastHome?.pending===key||state.lastHome?.action===key||state.lastHome?.action&&state.lastHome?.behavior===behavior;}
+  function setRoom(room){if(!layout.rooms[room]||room===state.room&&!state.pendingRoom||duplicate('room:'+room))return false;state.pendingRoom=room;send('setRoom',room);updateRoomButtons();return true;}
+  function request(key){if(!available(state.room).includes(key)&&!objectCommand(key))return false;if(duplicate(key))return false;send('request',key);return true;}
   function roomButtons(){
     $('room-grid').innerHTML=layout.roomOrder.map(key=>`<button type="button" class="room-button" data-room="${key}" aria-pressed="${key===state.room}" aria-label="去${roomNames[key]}"><span class="room-icon" aria-hidden="true">${roomIcons[key]}</span><span><strong>${roomShort[key]}</strong><small>${roomSub[key]}</small></span></button>`).join('');
     $('room-grid').addEventListener('click',event=>{const button=event.target.closest('[data-room]');if(button)setRoom(button.dataset.room);});
@@ -28,16 +31,22 @@
   function renderActivities(){
     const list=available(state.room);$('room-action-count').textContent=`${list.length} 项活动`;
     $('room-actions').innerHTML=list.map(key=>`<button type="button" class="activity-button" data-room-action="${key}" title="${esc(actions[key]?.[2]||'')}" aria-pressed="false"><span class="activity-icon" aria-hidden="true">${actions[key]?.[0]||'🌱'}</span><span>${actions[key]?.[1]||key}</span></button>`).join('');
+    const objects=objectList(state.room);$('room-object-count').textContent=`${objects.length} 件`;
+    $('room-objects').innerHTML=objects.map(item=>`<button type="button" class="object-button" data-object="${esc(item.id)}" data-object-command="${esc(item.command)}" aria-pressed="false" title="${esc(item.description)}"><span>${esc(item.objectLabel||layout.getFurniture(state.room,item.targetId)?.label||({remote:'遥控器',wateringCan:'小浇水壶',book:'绘本',teddy:'小熊',cup:'小水杯'})[item.kind]||item.label)}</span><small>${esc(item.label)}</small></button>`).join('');
     $('room-title').textContent=roomNames[state.room];$('room-context').textContent=context[state.room];$('room-design').textContent=descriptions[state.room];updateRoomButtons();
   }
   $('room-actions').addEventListener('click',event=>{const button=event.target.closest('[data-room-action]');if(button)request(button.dataset.roomAction);});
+  $('room-objects').addEventListener('click',event=>{const button=event.target.closest('[data-object-command]');if(button)request(button.dataset.objectCommand);});
+  $('room-objects').addEventListener('pointerover',event=>{const button=event.target.closest('[data-object]');if(button)post('highlight',button.dataset.object);});
+  $('room-objects').addEventListener('pointerleave',()=>post('highlight',null));
+  $('room-objects').addEventListener('focusin',event=>{const button=event.target.closest('[data-object]');if(button)post('highlight',button.dataset.object);});
+  $('room-objects').addEventListener('focusout',()=>post('highlight',null));
   function updateHome(snapshot){
     state.lastHome=snapshot;
     const room=typeof snapshot.room==='string'?snapshot.room:snapshot.room?.id;
     if(room&&layout.rooms[room]&&room!==state.room){state.room=room;renderActivities();}
     const travelTarget=[snapshot.pending,snapshot.action].find(key=>typeof key==='string'&&key.startsWith('room:'))?.slice(5);
-    if(travelTarget&&layout.rooms[travelTarget]&&travelTarget!==state.room)state.pendingRoom=travelTarget;
-    if(state.pendingRoom===state.room)state.pendingRoom=null;
+    state.pendingRoom=travelTarget&&layout.rooms[travelTarget]&&travelTarget!==state.room?travelTarget:null;
     if(typeof snapshot.auto==='boolean')state.auto=snapshot.auto;
     if(typeof snapshot.playing==='boolean')state.playing=snapshot.playing;
     if(snapshot.ready&&!state.ready){state.ready=true;$('scene-loading').hidden=true;for(const [command,value]of queued.splice(0))post(command,value);}
@@ -49,9 +58,11 @@
     $('queue-note').hidden=!snapshot.pending&&!state.pendingRoom;
     if(snapshot.pending)$('queue-note').textContent=`接下来：${pendingLabel(snapshot.pending)}。先完成当前的取放或起身。`;
     if(state.pendingRoom)$('queue-note').textContent=`正在前往${roomNames[state.pendingRoom]}，沿途经过${(layout.roomPath(state.room,state.pendingRoom)||[]).map(r=>roomShort[r]).join(' → ')}。`;
-    const action=snapshot.action||snapshot.activity;document.querySelectorAll('[data-room-action]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.roomAction===action)));updateRoomButtons();
+    const action=snapshot.action||snapshot.activity;document.querySelectorAll('[data-room-action]').forEach(button=>{const active=button.dataset.roomAction===action||action&&button.dataset.roomAction===snapshot.behavior;button.setAttribute('aria-pressed',String(!!active));button.disabled=active||button.dataset.roomAction===snapshot.pending;});
+    document.querySelectorAll('[data-object-command]').forEach(button=>{const active=button.dataset.objectCommand===action||action&&(objectCommand(button.dataset.objectCommand)?.alias||button.dataset.objectCommand)===snapshot.behavior,pending=button.dataset.objectCommand===snapshot.pending;button.setAttribute('aria-pressed',String(!!active));button.classList.toggle('is-pending',pending);button.disabled=active||pending;});updateRoomButtons();
+    if(snapshot.error){$('queue-note').hidden=false;$('queue-note').textContent=snapshot.label||'芽芽暂时走不到那里，请选择另一处空地。';}
   }
-  window.addEventListener('message',event=>{if(event.source!==frame.contentWindow||event.data?.type!=='yaya-home-state')return;updateHome(event.data.state||{});});
+  window.addEventListener('message',event=>{if(event.source!==frame.contentWindow)return;if(event.data?.type==='yaya-home-state')updateHome(event.data.state||{});if(event.data?.type==='yaya-home-result'&&!event.data.ok){state.pendingRoom=null;updateRoomButtons();if(!event.data.duplicate){$('queue-note').hidden=false;$('queue-note').textContent=event.data.message||'这里暂时不能安排，试试其他物品。';}}});
   frame.addEventListener('load',()=>post('getState'));
   $('auto-toggle').addEventListener('click',()=>{state.auto=!state.auto;$('auto-toggle').setAttribute('aria-checked',String(state.auto));send('setAuto',state.auto);});
   $('play-pause').addEventListener('click',()=>{state.playing=!state.playing;$('play-pause').textContent=state.playing?'Ⅱ':'▶';send(state.playing?'play':'pause');});
@@ -71,6 +82,7 @@
   }
   function selectTab(tab){
     if(!['life','emotion','action','shape'].includes(tab))return false;state.tab=tab;
+    post('highlight',null);
     document.querySelectorAll('[data-tab]').forEach(button=>{const selected=button.dataset.tab===tab;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;});
     document.querySelectorAll('.tab-panel').forEach(panel=>panel.hidden=panel.id!==`panel-${tab}`);
     $('preview-dock').hidden=!['emotion','action'].includes(tab);document.querySelector('.panel-scroll').scrollTop=0;
@@ -103,7 +115,7 @@
   function inventory(kind='room'){
     const titles={room:'房间活动',emotion:'表情与状态',action:'基础动作与待补充'};
     let rows='';
-    if(kind==='room')rows=layout.roomOrder.flatMap(room=>available(room).map(key=>`<tr><td>${roomShort[room]}</td><td>${actions[key]?.[1]||key}</td><td>${actions[key]?.[2]||''}</td></tr>`)).join('');
+    if(kind==='room')rows=layout.roomOrder.flatMap(room=>objectList(room).map(item=>`<tr><td>${roomShort[room]}</td><td>${esc(item.label)}</td><td>${esc(item.description)}</td></tr>`)).join('');
     if(kind==='emotion')rows=catalog.emotions.map(item=>`<tr><td><button data-inventory-preview="emotion:${item.key}">${esc(item.label)}</button></td><td>${esc(catalog.emotionGroups.find(g=>g.key===item.category)?.label||'')}</td><td>${esc(item.cues.join(' · '))}</td></tr>`).join('');
     if(kind==='action')rows=catalog.actions.filter(item=>item.inMenu||!item.implemented).map(item=>{
       const connected={read:{props:['低书柜','绘本','地毯'],beats:['走近书柜拿书','带到地毯坐下','打开、翻页、合书','放回书柜']},wash:{props:['低洗手台','水龙头'],beats:['走到洗手台','伸手接水','搓洗小手','收回双手']}}[item.key];

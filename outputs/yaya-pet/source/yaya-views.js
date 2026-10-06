@@ -115,7 +115,7 @@
       // occlusion. In profile only the near limb draws on the body surface.
       solved.foreground= Math.abs(sn)>.18 ? root[2]>.2 : cs>0 && layer==='front';
       if(key==='hug'&&cs>0)solved.foreground=true;
-      if(projectedTarget)solved.foreground=view.projectedHandsForeground!==false;
+      if(projectedTarget)solved.foreground=typeof view.projectedHandsForeground==='object'?view.projectedHandsForeground[s]!==false:view.projectedHandsForeground!==false;
       return solved;
     });
   }
@@ -162,8 +162,10 @@
         // The same two feet hang just below the chair cushion, instead of
         // leaving a standing pair planted on the floor behind the table.
         const sit=typeof view.seated==='number'?clamp01(view.seated):1;
-        push();translate((foot.p[0]+foot.s*.12*sit)*u,mix(-.24,.18,sit)*u);rotate(foot.s*.10*sit);
-        D.flatEllipse(0,0,mix(1.12-.18*side,1.04,sit)*u,.5*u,cols.shade,C.ink,2.4);pop();return;
+        const forward=(view.seatedForward||0)*Math.sin(yaw)*sit,drop=view.seatedDrop??.18,hang=view.seatedDrop!==undefined,swing=hang?.065*Math.sin(age*2+foot.s)*sit:0;
+        if(hang){D.flatEllipse((foot.p[0]+foot.s*.12*sit+forward)*u,.10*sit*u,.42*u,.46*sit*u,cols.shade,C.ink,2.1);}
+        push();translate((foot.p[0]+foot.s*.12*sit+forward)*u,(mix(-.24,drop,sit)+swing)*u);rotate(foot.s*.10*sit);
+        D.flatEllipse(0,0,mix(1.12-.18*side,hang?.83:1.04,sit)*u,(hang?.56:.5)*u,cols.shade,C.ink,2.4);pop();return;
       }
       const step=locomotion?YayaGait.foot(gait,foot.s,speed):{forward:0,lift:(foot.s<0?p.footL:p.footR)||0,angle:0};
       if(run){step.forward*=1.24;step.lift*=2;step.angle*=1.4;}
@@ -173,6 +175,7 @@
     };
     if(!turnPose&&!view?.hideFeet)for(const foot of feet.filter(f=>!locomotion || f.p[2]<=0)) paintFoot(foot);
     for(const arm of arms.filter(a=>!a.foreground)) D.drawRigArm(u,arm,cols);
+    if(typeof view?.drawBackProps==='function')view.drawBackProps({u,arms,cols,yaw});
     push(); scale(breadth,1); D.flatBody(u,cols); pop();
     if(!turnPose&&!view?.hideFeet)for(const foot of feet.filter(f=>locomotion && f.p[2]>0)) paintFoot(foot);
     // Visibility uses each feature's surface normal: eyes disappear gradually

@@ -26,11 +26,11 @@
     f('plant','plant',8.85,.23,.72,.72,.92,{label:'窗边绿植',approach:{x:8.82,z:1.75}})
   ];
   const bathroomFurniture = (accent) => [
-    f('shower','shower',.16,.18,2.86,2.74,2.66,{wall:'x0',facing:'+x',label:'淋浴区',approach:{x:3.62,z:1.55},color:accent}),
+    f('shower','shower',.16,.18,2.86,2.74,2.66,{wall:'x0',facing:'+x',label:'淋浴区',approach:{x:3.62,z:1.80},color:accent}),
     f('toilet','toilet',.24,5.33,1.46,1.76,1.23,{wall:'x0',facing:'+x',label:'坐便器',approach:{x:2.35,z:6.17}}),
     f('sink','sink',3.57,.15,2.30,1.05,.60,{wall:'z0',facing:'+z',label:'低洗手台',approach:{x:4.816,z:1.675},washYaw:2.13,grip:{x:4.72,z:.675,h:.64},spout:{x:4.72,z:.675,h:.852},washHand:-1}),
     mounted('mirror','mirror','z0',3.75,0,1.88,.06,1.33,1.38,{label:'镜子'}),
-    mounted('towel','towel','x0',0,3.57,.08,1.04,.78,1.18,{label:'小毛巾',approach:{x:1.85,z:4.13}}),
+    mounted('towel','towel','x0',0,3.57,.08,1.04,.78,.78,{label:'小毛巾',approach:{x:1.85,z:4.13}}),
     f('bathmat','rug',3.69,1.43,2.10,1.55,.02,{collision:false,label:'防滑垫',color:accent}),
     f('ceiling-light','ceilingLamp',5.10,4.26,.88,.88,.26,{mounted:true,collision:false,elevation:3.60,label:'防潮顶灯'}),
     mounted('vent','ac','x0',0,6.05,.18,1.21,.38,2.80,{label:'换气扇'})
@@ -75,18 +75,18 @@
       doors:[door('kitchen-living','z0',7.95,'living','living-kitchen','回客厅')],
       furniture:[
         f('fridge','fridge',.17,.22,1.51,1.55,2.81,{wall:'x0',facing:'+x',label:'冰箱',approach:{x:2.35,z:1.02}}),
-        f('sink-counter','sink',.18,2.04,1.34,1.78,1.17,{wall:'x0',facing:'+x',label:'水槽与水杯',approach:{x:2.35,z:2.92},grip:{x:1.36,z:2.92,h:1.18}}),
+        f('sink-counter','sink',.18,2.04,1.34,1.78,1.17,{wall:'x0',facing:'+x',label:'水槽与水杯',approach:{x:2.35,z:2.92},grip:{x:1.24,z:2.92,h:1.18},spout:{x:1.24,z:2.92,h:1.58}}),
         f('prep-counter','counter',.18,3.84,1.34,1.42,1.17,{wall:'x0',facing:'+x',label:'备餐台',approach:{x:2.35,z:4.56}}),
-        f('stove','stove',.18,5.29,1.34,1.68,1.17,{wall:'x0',facing:'+x',label:'灶台',approach:{x:2.35,z:6.09},interactive:false}),
+        f('stove','stove',.18,5.29,1.34,1.68,1.17,{wall:'x0',facing:'+x',label:'小汤锅与灶台',approach:{x:2.35,z:6.09}}),
         f('wall-cabinet','cabinet',.10,2.07,.72,3.12,1.12,{wall:'x0',facing:'+x',mounted:true,collision:false,elevation:1.84,label:'吊柜'}),
-        f('dining-table','diningTable',4.63,4.04,2.55,2.02,1.35,{label:'小餐桌',approach:{x:5.91,z:6.93}}),
+        f('dining-table','diningTable',4.63,4.04,2.55,2.02,1.35,{label:'小餐桌',approach:{x:7.80,z:5.1}}),
         f('dining-chair','chair',5.06,6.25,1.66,1.23,.67,{facing:'-z',seatYaw:2.053765202651458,label:'备用餐椅',approach:{x:7.39,z:6.86},seat:{x:5.89,z:6.87,h:.67}}),
         f('spare-chair','chair',5.06,2.80,1.66,1.23,.40,{facing:'+z',seatYaw:-1.0878274509383352,label:'芽芽的餐椅',approach:{x:7.55,z:3.20},seat:{x:5.89,z:3.60,h:.40}}),
         mounted('window','window','z0',2.78,0,2.82,.06,1.61,1.47,{label:'餐厨窗户',approach:{x:4.31,z:1.70}}),
         f('ceiling-light','ceilingLamp',5.92,4.93,1.01,1.01,.40,{mounted:true,collision:false,elevation:3.58,label:'餐桌吊灯'}),
         f('plant','plant',8.95,.24,.69,.69,.78,{label:'小香草盆',approach:{x:8.65,z:1.64}})
       ],activities:['eat','drink','wander'],anchors:{rest:{x:7.77,z:6.60},meal:{x:5.89,z:3.60,h:.40},bowl:{x:5.60,z:4.15,h:1.36},cup:{x:6.24,z:4.30,h:1.36}},
-      notes:['冰箱、水槽、备餐台、灶台沿墙布置，不占中间过道。','餐桌和餐椅成组，吃饭需要先到自己的椅子旁坐下。','灶台用于交代厨房功能，当前不给芽芽安排直接接触炉火的动作。']}
+      notes:['冰箱、水槽、备餐台、灶台沿墙布置，不占中间过道。','餐桌和餐椅成组，吃饭需要先到自己的椅子旁坐下。','汤锅旁留勺子，芽芽站稳后搅拌；没有明火接触动作。']}
   };
   const connections = [
     {id:'bedroom-living',from:'bedroom',to:'living',fromDoor:'bedroom-living',toDoor:'living-bedroom',planPoint:{x:4.72,z:8}},
@@ -116,6 +116,7 @@
     const r=getRoom(typeof room==='string'?room:room.id),d=typeof entry==='string'?r.doors.find(item=>item.id===entry):entry;
     return d?(d.wall==='x0'?{x:inset,z:d.offset}:{x:d.offset,z:inset}):{...r.spawn};
   }
+  function doorHandle(d,open=0){const theta=Math.max(0,Math.min(1,open))*Math.PI*.46,along=d.offset-d.width/2+.02+(d.width-.04)*.82*Math.cos(theta),depth=-.035-(d.width-.04)*.82*Math.sin(theta);return d.wall==='x0'?{x:depth,z:along,h:1.25}:{x:along,z:depth,h:1.25};}
   function roomPath(from,to){
     if(!rooms[from]||!rooms[to])return [];
     const queue=[[from]],seen=new Set([from]);
@@ -124,5 +125,5 @@
     return [];
   }
   function freeze(v){if(v&&typeof v==='object'&&!Object.isFrozen(v)){Object.values(v).forEach(freeze);Object.freeze(v);}return v;}
-  globalThis.YayaHomeLayout=freeze({version:'1.0.0',rooms,roomList:Object.values(rooms),roomOrder:['bedroom','ensuite','living','kitchen','guestroom','bathroom'],connections,plan:{w:18,d:14},getRoom,getFurniture,doorPoint,roomPath});
+  globalThis.YayaHomeLayout=freeze({version:'1.0.0',rooms,roomList:Object.values(rooms),roomOrder:['bedroom','ensuite','living','kitchen','guestroom','bathroom'],connections,plan:{w:18,d:14},getRoom,getFurniture,doorPoint,doorHandle,roomPath});
 })();
