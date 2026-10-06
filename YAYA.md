@@ -18,11 +18,11 @@
 
 日常动作使用具体道具和身体证据：`eat` 用自己手里的勺子把食物送到嘴边并做咀嚼，`drink` 持杯倾斜，`stretch` 双手向上拉伸，`run` 侧身跑到另一边、停下转身并跑回来，`exercise` 举小哑铃热身，`ball` 配合弹跳球，`dance` 左右摆动并让叶子跟拍。`yaya_run` 循环为 8 秒，其他状态循环为 4 秒。
 
-叶子会随状态参与表演：`sad`/`cry`/`sleepy`/`ko` 向下折，`shy` 向内收，`happy`/`excited`/`surprised` 向上弹起；`wave`、`walk`、`jump` 等动作还会叠加叶子的摆动惯性。方向动作可以用状态对象表达朝向：
+叶子使用圆润边缘、弯曲叶脉和固定根点，不再使用旧的九点多边形。`sad`/`cry`/`sleepy`/`ko` 软垂，`shy` 向内收，好奇时一上一下，开心时向外舒展并扑扇；跑步时顺着速度向后轻摆。形态与动作分别选择，具体 API 和映射见下方“圆叶与动作 API”。
 
 核心情绪优先使用多通道组合：好奇 = 外眉抬起 + 目标注视 + 小笑嘴；咯咯笑 = 弯月笑眼 + 张口笑 + 两次身体弹动；安心 = 放松闭眼 + 吐气下沉；自豪 = 抬头挺胸 + 半睁目光 + 金色高光；难过 = 内眉抬起 + 嘴角下压 + 泪滴 + 身体和叶子下沉。31 个标签仍然保留，但相近状态应先通过脸、姿态和叶子三类线索拉开距离，再添加小符号。
 
-亮色平面版还提供前置手势层：咯咯笑/惊讶会捂嘴，喜欢/认真/气鼓鼓会把小拳头收在胸前，害羞会遮住一只眼，思考会托下巴，困惑会摊手，悄悄观察会挡额头，不喜欢会双手推开并让叶子交叉，小淘气会眨眼吐舌并用手指点脸颊，充满期待会在胸前搓手。所有状态共享左右两只手：平时短臂藏在身体后面，露出完整圆掌；做手势时改变同一只手的目标和层级。手掌半径保持不变，腕部沿肩到手的实际方向伸入圆掌，根端保持开放。道具先于握持手掌绘制，避免额外小手或穿过掌面的勺柄。
+亮色平面版还提供前置手势层：咯咯笑/惊讶会捂嘴，喜欢/认真/气鼓鼓会把小拳头收在胸前，害羞会遮住一只眼，思考会托下巴，困惑会摊手，悄悄观察会挡额头，不喜欢会双手推开并让内扣的叶子轻摇，小淘气会眨眼吐舌并用手指点脸颊，充满期待会在胸前搓手。所有状态共享左右两只手：平时短臂藏在身体后面，露出完整圆掌；做手势时改变同一只手的目标和层级。手掌半径保持不变，腕部沿肩到手的实际方向伸入圆掌，根端保持开放。道具先于握持手掌绘制，避免额外小手或穿过掌面的勺柄。
 
 可以在场景代码中直接调用：
 
@@ -37,7 +37,7 @@ drawYaya(960, 900, 72, t, leftWalk);
 
 ## 共享身体与脚本依赖
 
-在配置、绘制核心和时间线之后，先加载 `src/yaya-body.js`、`src/yaya-rig.js`、`src/yaya-gait.js`，再加载 `src/yaya-pet.js` 和 `src/yaya-views.js`，最后加载场景或实验室。身体、手臂和步态三个模块不依赖 p5，可以单独进行纯几何测试。
+在配置、绘制核心和时间线之后，先加载 `src/yaya-body.js`、`src/yaya-leaves.js`、`src/yaya-rig.js`、`src/yaya-gait.js`，再加载 `src/yaya-pet.js` 和 `src/yaya-views.js`，最后加载场景或实验室。身体、叶子、手臂和步态四个模块不依赖 p5，可以单独进行纯几何测试。
 
 `YayaBody` 固定圆腹、圆底的冬瓜轮廓。身体顶点为 `y=-7`、底点为 `y=0`，最大半宽约 `3.2`；侧面厚度为正面宽度的 `0.86`，不能再为每个视图独立画一个身体。
 
@@ -49,6 +49,39 @@ const { sideRatio, heartY, stripeColor } = YayaBody.constants;
 ```
 
 `outline(u)` 和 `stripes(u)` 返回乘以绘制单位 `u` 的轮廓及两条带状多边形；条纹已经按身体轮廓裁切。`breadth(yaw)` 等于 `hypot(cos(yaw), 0.86*sin(yaw))`，身体和条纹共同应用它。两纹中心高度为 `-1.75/-0.95`、厚度为 `0.40/0.34`，两端略微上扬，填色为 `#F6A533`；爱心基准高度 `heartY=-2.65`。转向时爱心再叠加 `surfaceArc(badgeX/breadth(yaw))`，与横纹沿同一弧线移动，保持间距。`fitEllipseX()` 则把侧眼和腮红的完整椭圆约束在身体内。正背面等宽，背面保留横纹而隐藏爱心。
+
+## 圆叶与动作 API
+
+`YayaLeaves` 把形态与运动拆开，两个叶根固定在身体坐标 `[0,-6.94]`。每片叶子沿弯曲中心线生成两侧轮廓，宽度在尖端圆滑收拢；叶脉采样同一条中心线。叶子整体继承身体变换，运动改变 `rot/bend/fold/length/width/sweep`，不直接平移根部。
+
+- 5 种形态：`natural` 自然圆叶、`upright` 竖起倾听、`spread` 向外舒展、`droop` 软软垂落、`cup` 害羞内扣。
+- 7 种运动选项：`still` 保持姿态、`breathe` 轻轻呼吸、`sway` 左右探看、`alternate` 一上一下、`flap` 开心扑扇、`twitch` 抖两下、`wind` 向后轻摆。其中 `still` 是静止选项；`auto` 是跟随角色的选择规则，不额外计作一种形态或运动。
+
+```js
+const state = getYayaEmotionState('curious', age);
+const leftPose = YayaLeaves.pose(age, state.state, -1, state);
+const leftBlade = YayaLeaves.geometry(-1, leftPose, Math.PI / 2);
+// leftBlade: {outline, vein, root, tip}，均为身体单位；绘制时乘 u。
+const custom = {...state, leafShape:'cup', leafMotion:'alternate'};
+YayaViews.draw(960, 900, 70, age, custom, age, 'front');
+```
+
+`pose(time,key,side,context)` 中 `side` 为 `-1/1`，`context` 可含 `action/mood/leafShape/leafMotion/yaw/gait/speed`。`defaults(key,context)` 返回自动的 `{shape,motion,strength}`；`shapes/motions/root/period` 提供目录与常量。普通叶子运动周期为 4 秒，支持任意时间定位；跑步的风摆使用传入的 `gait/speed`，停止时收住。自动动作优先于情绪的默认值，显式 `leafShape` 和 `leafMotion` 可各自覆盖。
+
+| 状态或动作 | 自动叶子组合 |
+|---|---|
+| 难过、困倦、疲惫、无聊 | 软垂 + 低幅呼吸；想哭时改为轻抖 |
+| 害羞、喜欢、抱抱 | 内扣 + 呼吸；紧张、害怕改为轻抖；不喜欢为内扣 + 轻摇 |
+| 开心、调皮 | 舒展 + 扑扇；咯咯笑为舒展 + 轻抖；期待为舒展 + 一上一下 |
+| 好奇、困惑 | 自然圆叶 + 一上一下；思考为竖起 + 小幅探看 |
+| 惊讶、自豪、认真 | 竖起 + 呼吸；有主意、气恼为竖起 + 轻抖；兴奋、崇拜为竖起 + 扑扇 |
+| 吃饭、喝水 | 自然圆叶 + 低幅呼吸，并轻点叶尖 |
+| 伸懒腰 | 竖起，随拉伸略延长，再收回 |
+| 走路、摇摆、热身、玩球 | 自然圆叶 + 一上一下；跳舞改为扑扇 |
+| 跑步 | 自然圆叶 + 随速度、步相变化的向后轻摆 |
+| 挥手、打招呼；转身、旋转、够一够 | 自然圆叶 + 抖两下；后一组改为左右探看 |
+
+几何先生成完整轮廓，再把轮廓与叶脉一起做 2.5D 压缩和风向倾斜；侧面保留约 38% 的叶宽，避免变成线。内弯处的宽度不超过曲率半径的 82%，防止软垂和风摆混搭时内缘交叉。不要把投影后的回头中心线重新扩宽，否则会出现自交。这里是可控的卡通投影，并非带厚度、碰撞或真实风力的 3D 叶片。
 
 ## 共享手臂与道具 API
 
@@ -111,16 +144,17 @@ node render.mjs --clip --out=out/yaya.mp4
 
 `studio-yaya-pet.html` 是 16 秒的 hello → cuddle → eat → play 展示场景；`outputs/yaya-pet/` 中的离线页面则提供摸摸、喂食、喝水、运动、一起玩、睡觉等按钮。日常动作的 JPG/MP4 可用 `node render-yaya-daily-action-videos.mjs eat drink run exercise stretch ball dance` 重新生成。导出时读取 `LOOPS[name].len`，不要把往返跑截成 4 秒。
 
-`outputs/yaya-pet/rig-lab.html` 是离线实时实验室，提供站好、吃饭、喝水、伸懒腰、往返跑，以及三视图、单独正/侧/背面和跑道。可以暂停、重播、拖动进度条、显示肩点与连接骨架；预览直接调用当前源码，不依赖预渲染 MP4。分发时保留整个 `source/` 目录及其本地 `vendor/`。
+`outputs/yaya-pet/rig-lab.html` 是离线实时实验室，提供站好、吃饭、喝水、伸懒腰、往返跑，以及三视图、单独正/侧/背面和跑道。叶子面板可把 5 种形态与 7 种运动自由混搭，或点“跟随角色”恢复自动配合。可以暂停、重播、拖动进度条、显示肩点与连接骨架；预览直接调用当前源码，不依赖预渲染 MP4。分发时保留整个 `source/` 目录及其本地 `vendor/`。
 
 在仓库根目录运行：
 
 ```bash
 node test-yaya-body.mjs
+node test-yaya-leaves.mjs
 node test-yaya-gait.mjs
 node test-yaya-views.mjs
 node test-yaya-lab.mjs
 node test-yaya-output.mjs
 ```
 
-`test-yaya-body.mjs` 检查共享身体和横纹几何；`test-yaya-gait.mjs` 检查着地后蹬、抬脚前收、左右方向、停步与循环连续性；`test-yaya-views.mjs` 检查肩点、手腕重叠、握点绑定、跑道边界和循环连续性；`test-yaya-lab.mjs` 检查实验室画布、交互与移动布局；`test-yaya-output.mjs` 检查原宠物页面。增加动作后还应查看中间帧：特别是转向时横纹有无越界、侧脸是否仍在身体内，以及两条腿落地后是否向后蹬。其他 agent 的复用步骤及设计经验见 `PET_BUILDING.md`。
+`test-yaya-body.mjs` 检查共享身体和横纹几何；`test-yaya-leaves.mjs` 检查形态、运动与视角组合的根点、轮廓自交、叶脉包含关系、循环与逐帧连续性；`test-yaya-gait.mjs` 检查着地后蹬、抬脚前收、左右方向、停步与循环连续性；`test-yaya-views.mjs` 检查肩点、手腕重叠、握点绑定、跑道边界和循环连续性；`test-yaya-lab.mjs` 检查实验室画布、叶子混搭、交互与移动布局；`test-yaya-output.mjs` 检查原宠物页面。增加动作后还应查看中间帧：特别是转向时横纹有无越界、侧脸是否仍在身体内、叶尖有无翻折交叉，以及两条腿落地后是否向后蹬。其他 agent 的复用步骤及设计经验见 `PET_BUILDING.md`。

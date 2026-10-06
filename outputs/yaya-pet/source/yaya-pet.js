@@ -104,41 +104,24 @@
     // round-bottom winter melon, shared by front, profile and rear.
     return YayaBody.outline(u);
   }
-  function leaf(u,side,drift) {
-    const s=side<0?-1:1;
-    return [[0,0],[s*.6,-.3],[s*1.55,-1.1],[s*2.5,-2.15],[s*2.75,-3.15],
-      [s*2.25,-3.85],[s*1.15,-3.9],[s*.25,-3.3],[0,-2]].map(([x,y])=>[x*u+drift,y*u]);
+  function leafPose(age,key,side,action='',options={}) {
+    return YayaLeaves.pose(age,key,side,{...options,action});
   }
-  // The leaves are a second expression channel: they fold down for sadness,
-  // turn inward for shyness, and spring up with a happy surprise.
-  function leafPose(age,key,side,action='') {
-    const wave=Math.sin(age*TAU*1.55+(side>0?1.1:0));
-    let rot=side*.1, drift=side*.02*wave, sx=1, sy=1, dy=0;
-    if(key==='sad'){rot+=side*1.05;drift-=side*.18;sx=.92;sy=.88;}
-    else if(key==='cry'){rot+=side*1.25;drift-=side*.2;sx=.9;sy=.82;}
-    else if(key==='sleepy'){rot+=side*.72;drift-=side*.1;sx=.95;sy=.91;}
-    else if(key==='ko'){rot+=side*.9;drift-=side*.15;sx=.92;sy=.86;}
-    else if(key==='shy'){rot-=side*.34;drift-=side*.14;sx=.96;sy=.95;}
-    else if(key==='love'){rot+=side*.22;drift-=side*.06;}
-    else if(key==='happy'){rot+=side*.14+side*.09*wave;sy=1.04;}
-    else if(key==='excited'||key==='surprised'||key==='starstruck'){rot+=side*.04+side*.16*wave;sy=1.07;dy=-.05*Math.abs(Math.sin(age*TAU));}
-    else if(key==='curious'||key==='thinking'||key==='confused'){rot-=side*.12;drift+=side*.04;}
-    else if(key==='angry'||key==='furious'){rot-=side*.25;sy=1.02;}
-    else if(key==='disgusted'){rot-=side*.78;drift-=side*.05;sx=.98;sy=.95;}
-    else if(key==='scared'){rot-=side*.42;drift+=side*.08*wave;}
-    else if(key==='dizzy'){rot+=side*(.4+.12*Math.sin(age*TAU*1.7));}
-    if(action==='wave') rot+=side*.1*wave;
-    if(action==='walk'||action==='sway') drift-=side*.08*Math.sin(age*TAU/2);
-    if(action==='jump'||action==='celebrate'){rot+=side*.08*wave;sy*=1.05;}
-    if(action==='spin') rot+=side*.25*Math.sin(age*TAU/2);
-    if(action==='reach') rot+=side*.16;
-    if(action==='drink') {rot+=side*.04*wave;drift-=side*.035;}
-    if(action==='run') {rot+=side*.13*wave;drift-=side*.12*Math.sin(age*TAU/1.1);sy*=1.04;}
-    if(action==='exercise') {rot+=side*.18*wave;drift-=side*.09*Math.sin(age*TAU/1.25);sy*=1.06;}
-    if(action==='stretch') {rot-=side*.18;sy*=1.06;dy-=.08*Math.abs(Math.sin(age*TAU/2));}
-    if(action==='ball') {rot+=side*.1*wave;drift+=side*.06*Math.sin(age*TAU*1.4);}
-    if(action==='dance') {rot+=side*.16*wave;drift+=side*.09*Math.sin(age*TAU/1.2);sy*=1.05;}
-    return {rot,drift,sx,sy,dy};
+  function drawLeaves(u,age,key,S={},view={},paper=false) {
+    const yaw=typeof view==='number'?view:(view?.yaw||0);
+    for(const side of (Math.sin(yaw)>=0?[1,-1]:[-1,1])) {
+      const lp=leafPose(age,key,side,S.action,{...S,...view});
+      const geometry=YayaLeaves.geometry(side,lp,yaw);
+      const points=geometry.outline.map(([x,y])=>[x*u,y*u]);
+      const vein=geometry.vein.map(([x,y])=>[x*u,y*u]);
+      if(paper) {
+        paint(points,{wash:YC.leafLight,fill:YC.leaf,fillOp:130,bleed:.08,tex:.7,ink:YC.ink,sw:.9,curv:0});
+        inkLine(vein,.72,YC.leafShade,'inkfine',0);
+      } else {
+        flatPoly(points,YC.leaf,YC.ink,3);
+        flatLine(vein,YC.leafShade,1.7);
+      }
+    }
   }
   function blink(t,phase) {
     const q=frac((t+phase)/3.15);
@@ -442,7 +425,11 @@
     face.mouth=q.mouthOpen>.25?(key==='eat'?'open':'o'):q.chew>.25?'puff':'smile';
     return {...S,face};
   }
-  function flatLeaf(u,side,drift,lp={}) { push(); translate(0,-6.9*u+(lp.dy||0)*u); rotate(lp.rot||0); scale(lp.sx||1,lp.sy||1); flatPoly(leaf(u,side,drift),YC.leaf,YC.ink,3); flatLine([[0,0],[side<0?-2.15*u:2.15*u,-2.65*u]],YC.leafShade,2); pop(); }
+  function flatLeaf(u,side,drift,lp=YayaLeaves.pose(0,'idle',side)) {
+    const g=YayaLeaves.geometry(side,lp);
+    flatPoly(g.outline.map(([x,y])=>[x*u,y*u]),YC.leaf,YC.ink,3);
+    flatLine(g.vein.map(([x,y])=>[x*u,y*u]),YC.leafShade,1.7);
+  }
   function flatFace(u,t,S) {
     const e=S.face||S, key=S.state||'idle', kinds=Array.isArray(e.eyes)?e.eyes:e.eyes==='wink'?['happy','wink']:[e.eyes||'normal',e.eyes||'normal'];
     const cheekCol=mixCol(moodColors(e).body,YC.blush,clamp(e.blush??.22));
@@ -624,8 +611,7 @@
     const input=typeof state==='string'?getYayaEmotionState(state,age):state||getYayaEmotionState('idle',age), key=input.state||'idle', S=actionFace(input,key,age), p=pose(age,S), bob=p.dy*u, dx=(p.dx||0)*u, cols=moodColors(S.face||S), arms=YayaRig.poseArms(key,age,S,p);
     push(); flatEllipse(x+dx,y+.05*u,3.9*u,.55*u,'rgba(48,80,100,.22)',null,0); pop();
     push(); translate(x+dx,y+bob); rotate(p.rot||0); scale(1+(p.sq||0)*.45,1-(p.sq||0));
-    const lpL=leafPose(age,key,-1,S.action), lpR=leafPose(age,key,1,S.action);
-    flatLeaf(u,-1,lpL.drift*u,lpL); flatLeaf(u,1,lpR.drift*u,lpR);
+    drawLeaves(u,age,key,S);
     flatFoot(u,-1,p.footL*u,cols); flatFoot(u,1,p.footR*u,cols);
     drawRigLayer(u,arms,'back',cols);
     flatBody(u,cols);
@@ -644,13 +630,7 @@
     boilSeed('yaya-shadow'); paint(ellPts(x+dx,y+.05*u,3.9*u*(1-.1*p.dy),.55*u,28,.04*u),
       {fill:YC.ink,fillOp:45,bleed:.25,tex:.3,ink:null});
     push(); translate(x+dx,y+bob); rotate(p.rot); scale(1+p.sq*.45,1-p.sq);
-    const lpL=leafPose(age,key,-1,S.action), lpR=leafPose(age,key,1,S.action);
-    push(); translate(0,-6.9*u+lpL.dy*u); rotate(lpL.rot); scale(lpL.sx,lpL.sy);
-    paint(leaf(u,-1,lpL.drift*u),{wash:YC.leafLight,fill:YC.leaf,fillOp:130,bleed:.08,tex:.7,ink:YC.ink,sw:.9,curv:.35});
-    inkLine([[0,0],[-2.15*u,-2.65*u]],.72,YC.leafShade,'inkfine',.5); pop();
-    push(); translate(0,-6.9*u+lpR.dy*u); rotate(lpR.rot); scale(lpR.sx,lpR.sy);
-    paint(leaf(u,1,lpR.drift*u),{wash:YC.leafLight,fill:YC.leaf,fillOp:130,bleed:.08,tex:.7,ink:YC.ink,sw:.9,curv:.35});
-    inkLine([[0,0],[2.15*u,-2.65*u]],.72,YC.leafShade,'inkfine',.5); pop();
+    drawLeaves(u,age,key,S,{},true);
     foot(u,-1,p.footL*u+.03*u*Math.sin(age*2.1)); foot(u,1,p.footR*u+.03*u*Math.sin(age*2.1+1.4));
     drawRigLayer(u,arms,'back',cols,true);
     paint(pear(u),{wash:cols.body,fill:cols.light,fillOp:95,bleed:.09,tex:.65,ink:YC.ink,sw:1.05,curv:.35});
@@ -715,7 +695,7 @@
     cur.emoteAge=age;
     return cur;
   }
-  window.YayaDrawing={flatPoly,flatLine,flatEllipse,flatLeaf,flatHeart,flatFace,flatFoot,flatBody,pear,pose,leafPose,moodColors,palette:YC,drawRigArm,drawRigProps,drawRigLayer,actionFace};
+  window.YayaDrawing={drawLeaves,flatPoly,flatLine,flatEllipse,flatLeaf,flatHeart,flatFace,flatFoot,flatBody,pear,pose,leafPose,moodColors,palette:YC,drawRigArm,drawRigProps,drawRigLayer,actionFace};
   window.drawYaya=drawYaya; window.yayaStage=yayaStage; window.YAYA_STYLE=YAYA_STYLE;
   window.getYayaEmotionState=getYayaEmotionState; window.normalizePetState=normalizePetState;
   window.yayaFeel=yayaFeel; window.yayaEmotions=yayaEmotions; window.yayaAction=yayaAction;

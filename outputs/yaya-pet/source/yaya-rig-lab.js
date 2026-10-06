@@ -4,6 +4,8 @@
   'use strict';
   const names = {idle:'站好',eat:'吃饭',drink:'喝水',stretch:'伸懒腰',run:'往返小跑'};
   const viewNames = {sheet:'三视图',front:'正面',side:'侧面',back:'背面',travel:'往返跑道'};
+  const leafShapes = {auto:'跟随角色',natural:'自然圆叶',upright:'竖起倾听',spread:'向外舒展',droop:'软软垂落',cup:'害羞内扣'};
+  const leafMotions = {auto:'跟随角色',still:'保持姿态',breathe:'轻轻呼吸',sway:'左右探看',alternate:'一上一下',flap:'开心扑扇',twitch:'抖两下',wind:'向后轻摆'};
   const descriptions = {
     idle:'先看同一个芽芽的三个角度。点选动作，可以同时对照手臂与身体的关系。',
     eat:'小勺跟着自己的手掌移动：拿起、送到嘴边、放回。暂停看看勺柄与手掌的接触。',
@@ -12,7 +14,7 @@
     run:'芽芽侧身跑向另一边，减速转身，再跑回来。切换视角也能查看原地跑姿。'
   };
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const state = {action:'idle',view:'sheet',time:0,playing:!reducedMotion,debug:false,ready:false};
+  const state = {action:'idle',view:'sheet',leafShape:'auto',leafMotion:'auto',time:0,playing:!reducedMotion,debug:false,ready:false};
   let pending = null, busy = false, lastClock = 0, lastPaint = 0, initialized = false, renderPromise=Promise.resolve();
   const $ = id => document.getElementById(id);
   const duration = () => state.action === 'run' ? 8 : 4;
@@ -37,13 +39,14 @@
     backgroundScene(t);
     if (!window.YayaViews) return;
     const age = ((t % duration()) + duration()) % duration();
+    const character = {...getYayaEmotionState(state.view==='travel'?'run':state.action,age),leafShape:state.leafShape,leafMotion:state.leafMotion};
     if (state.view === 'sheet') {
-      ['front','side','back'].forEach((view,i) => YayaViews.draw(330+i*630,870,50,t,state.action,age,view,state.debug));
+      ['front','side','back'].forEach((view,i) => YayaViews.draw(330+i*630,870,50,t,character,age,view,state.debug));
     } else if (state.view === 'travel') {
       const travel = YayaViews.travel(t);
-      YayaViews.draw(960+travel.x*550,900,60,t,'run',age,{yaw:travel.yaw,gait:travel.gait,speed:travel.speed},state.debug);
+      YayaViews.draw(960+travel.x*550,900,60,t,character,age,{yaw:travel.yaw,gait:travel.gait,speed:travel.speed},state.debug);
     } else {
-      YayaViews.draw(960,900,70,t,state.action,age,state.view,state.debug);
+      YayaViews.draw(960,900,70,t,character,age,state.view,state.debug);
     }
   }
   drawLab.len = 8;
@@ -56,6 +59,9 @@
   function updateUi() {
     document.querySelectorAll('[data-lab-action]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.labAction===state.action)));
     document.querySelectorAll('[data-lab-view]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.labView===state.view)));
+    document.querySelectorAll('[data-leaf-shape]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.leafShape===state.leafShape)));
+    document.querySelectorAll('[data-leaf-motion]').forEach(button => button.setAttribute('aria-pressed',String(button.dataset.leafMotion===state.leafMotion)));
+    $('leaf-selection').textContent=state.leafShape==='auto'&&state.leafMotion==='auto'?'叶子正在跟随角色，自动配合当前动作。':`当前组合：${leafShapes[state.leafShape]} · ${leafMotions[state.leafMotion]}`;
     $('play-toggle').setAttribute('aria-pressed',String(!state.playing));
     $('play-toggle').textContent=state.playing?'Ⅱ 暂停':'▶ 播放';
     $('scrub').max=String(duration());
@@ -103,6 +109,20 @@
     if(view==='travel'){state.action='run';state.time=0;}
     updateUi(); requestFrame();
   }
+  function setLeafShape(shape) {
+    if (!(shape in leafShapes)) return;
+    state.leafShape=shape;
+    updateUi(); return requestFrame();
+  }
+  function setLeafMotion(motion) {
+    if (!(motion in leafMotions)) return;
+    state.leafMotion=motion;
+    updateUi(); return requestFrame();
+  }
+  function resetLeaves() {
+    state.leafShape='auto'; state.leafMotion='auto';
+    updateUi(); return requestFrame();
+  }
   function tick(now) {
     if (!lastClock)lastClock=now;
     const dt=Math.min(.1,(now-lastClock)/1000); lastClock=now;
@@ -119,6 +139,9 @@
     if(initialized)return; initialized=true;
     document.querySelectorAll('[data-lab-action]').forEach(button=>button.addEventListener('click',()=>setAction(button.dataset.labAction)));
     document.querySelectorAll('[data-lab-view]').forEach(button=>button.addEventListener('click',()=>setView(button.dataset.labView)));
+    document.querySelectorAll('[data-leaf-shape]').forEach(button=>button.addEventListener('click',()=>setLeafShape(button.dataset.leafShape)));
+    document.querySelectorAll('[data-leaf-motion]').forEach(button=>button.addEventListener('click',()=>setLeafMotion(button.dataset.leafMotion)));
+    $('reset-leaves').addEventListener('click',resetLeaves);
     $('play-toggle').addEventListener('click',()=>{state.playing=!state.playing;updateUi();requestFrame();});
     $('restart').addEventListener('click',()=>{state.time=0;updateUi();requestFrame();});
     $('scrub').addEventListener('input',()=>{state.playing=false;state.time=Number($('scrub').value);updateUi();requestFrame();});
@@ -128,7 +151,7 @@
 
   window.yayaLab = {
     getState:()=>({...state,duration:duration()}),
-    setAction,setView,
+    setAction,setView,setLeafShape,setLeafMotion,resetLeaves,
     setTime:async time=>{state.playing=false;state.time=Math.max(0,Math.min(duration(),Number(time)||0));updateUi();await requestFrame();},
     setDebug:value=>{state.debug=Boolean(value);updateUi();return requestFrame();},
     pause:()=>{state.playing=false;updateUi();},

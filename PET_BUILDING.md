@@ -71,6 +71,27 @@ const PALETTE = {
 
 相近情绪必须改变不同通道，而不是只换颜色。例如“安心”和“自豪”都可以有笑容，但安心的重心向下、自豪的胸口向上；“好奇”和“担心”都可以看向一侧，但好奇的眉眼打开，担心的嘴角和身体应该收紧。
 
+### 叶子像耳朵一样表达，但根点和体积需要约束
+
+`src/yaya-leaves.js` 提供纯几何的 `YayaLeaves`。圆叶沿中心线生成轮廓，叶尖用圆滑宽度收拢，叶脉使用同一条中心线。两个叶根始终为身体坐标 `[0,-6.94]`；身体运动会带着整对叶子走，叶片自身则改变旋转、弯曲、折垂和长度。旧的九点多边形加整片转动只能改变朝向，直叶脉也不会跟随弯折；任意增加 `drift` 还会把根部挪出头顶。
+
+形态和运动分成两个选择：5 种形态 `natural/upright/spread/droop/cup`，分别对应自然圆叶、竖起、舒展、软垂、内扣；7 种运动选项 `still/breathe/sway/alternate/flap/twitch/wind`，分别对应保持、呼吸、探看、一上一下、扑扇、抖两下、向后轻摆。`still` 是静止选项，`auto` 是自动映射规则，不额外计数。实验室允许两组混搭，因此新增情绪通常只需挑选组合和强度。
+
+自动映射要有区别：难过软垂、害羞内扣、好奇一上一下、开心舒展扑扇、思考竖起后小幅探看、惊讶竖起、咯咯笑小幅抖两下。吃饭和喝水使用安静的呼吸并点动叶尖；伸懒腰随身体略延长；走路与热身左右交替；跑步采用向后轻摆，并从跑道读取 `gait/speed`，停下来时收住。动作的默认组合覆盖情绪默认组合，显式选择再覆盖自动值。完整映射见 `YayaLeaves.defaults()` 和 `YAYA.md`。
+
+```js
+const state = getYayaEmotionState('curious', age);
+const pose = YayaLeaves.pose(age, state.state, -1, state);
+const blade = YayaLeaves.geometry(-1, pose, yaw);
+// blade: {outline, vein, root, tip}，全部使用身体单位。
+const custom = {...state, leafShape:'cup', leafMotion:'alternate'};
+YayaViews.draw(960, 900, 70, age, custom, age, 'front');
+```
+
+`pose(time,key,side,context)` 接收 `action/mood/leafShape/leafMotion/gait/speed`，返回 `shape/motion/rot/bend/fold/length/width/sweep`。普通运动的 `period` 为 4 秒，时间计算可定位、可重复；跑步风摆跟随传入步相。`shapes/motions/root/period` 都可供外部程序读取。
+
+软垂叶在侧面最容易失败。先生成完整轮廓与叶脉，再一起做 2.5D 压缩及风向倾斜；不要投影中心线后再扩宽，否则回头弯会变成自交。侧面保留约 38% 叶宽；内弯宽度限制在曲率半径的 82% 内。验证要覆盖形态 × 运动 × 时间 × 朝向，既检查根点不动，也检查轮廓自交、叶脉是否留在叶片内，以及相邻帧有没有突然跳变。该方法保持卡通轮廓可读，不等同于真实 3D 叶片或物理风模拟。
+
 ## 4. 手部和胳膊的正确建模
 
 手部是本项目中最容易出错的部分。当前由独立纯几何模块 `src/yaya-rig.js` 提供 `YayaRig`，平面和纸质正面绘制器共享这一份结果。
@@ -144,21 +165,21 @@ happy: {
 3. 只有确实需要时才新增一个绘制原语；
 4. 把新状态加入情绪列表和预览生成器。
 
-状态对象应同时保存 `state`、`mood`、`face`、`pose`、`action`、`direction` 和 `age`，让场景、预览和测试使用同一份数据。
+状态对象应同时保存 `state`、`mood`、`face`、`pose`、`action`、`direction` 和 `age`，让场景、预览和测试使用同一份数据。需要独立控制叶子时再加 `leafShape`、`leafMotion`，不要重建整只角色。
 
 ## 7. 给其他 agent 的推荐工作流
 
-1. **先读文件**：`ANIMATION_GUIDE.md`、`YAYA.md`、`PET_BUILDING.md` 和当前角色代码。脚本依赖顺序是配置/绘制核心/时间线 → `yaya-body.js`、`yaya-rig.js`、`yaya-gait.js` → `yaya-pet.js` → `yaya-views.js` → 场景或实验室。
+1. **先读文件**：`ANIMATION_GUIDE.md`、`YAYA.md`、`PET_BUILDING.md` 和当前角色代码。脚本依赖顺序是配置/绘制核心/时间线 → `yaya-body.js`、`yaya-leaves.js`、`yaya-rig.js`、`yaya-gait.js` → `yaya-pet.js` → `yaya-views.js` → 场景或实验室。
 2. **先做情绪表**：为每个状态写“眼睛、嘴、身体、叶子、手、符号”的证据，不要直接改代码。
 3. **先画静态 contact sheet**：一次生成所有情绪 JPG，检查相邻状态是否容易混淆。
 4. **再做动画**：给每个状态加预备、主动作和回弹，动作幅度先小后大。
 5. **优先修结构**：先修身体、手臂锚点、遮挡和轮廓。新手势只设置掌心目标、角度、手势线和层级；新道具从解算后的手部握点派生。
-6. **逐帧检查**：用 `outputs/yaya-pet/rig-lab.html` 对照正面、侧面、背面。它离线实时绘制，提供站好、吃饭、喝水、伸懒腰、往返跑，支持暂停、重播、拖动进度和显示肩点骨架。至少检查抬手最高点、送入口阶段和每个转身前后。
+6. **逐帧检查**：用 `outputs/yaya-pet/rig-lab.html` 对照正面、侧面、背面。它离线实时绘制，提供站好、吃饭、喝水、伸懒腰、往返跑，支持暂停、重播、拖动进度、显示肩点骨架和叶子形态/运动混搭。至少检查抬手最高点、送入口阶段、软垂叶尖与每个转身前后。
 7. **跑完整验证**：运行几何、实验室和原页面测试；确认 31 种情绪、17 种运动循环、19 个页面动作按钮，检查 `yaya_run` 为 8 秒、其他循环为 4 秒，以及 MP4 和源码副本一致。
 
 一个适合交给 agent 的任务描述是：
 
-> 读取 `PET_BUILDING.md`、`YAYA.md`，以及 `src/yaya-body.js`、`src/yaya-rig.js`、`src/yaya-gait.js`、`src/yaya-views.js`。保持芽芽的共享轮廓、两道贯通横纹、固定肩点和圆掌体积不变，通过掌心目标和同一握点扩展动作。先说明脸、身体、叶子、手和道具如何共同表达，再在实时实验室检查三视图和中间帧。最后运行 `node test-yaya-body.mjs`、`node test-yaya-gait.mjs`、`node test-yaya-views.mjs`、`node test-yaya-lab.mjs`、`node test-yaya-output.mjs`，重新渲染受影响的素材。
+> 读取 `PET_BUILDING.md`、`YAYA.md`，以及 `src/yaya-body.js`、`src/yaya-leaves.js`、`src/yaya-rig.js`、`src/yaya-gait.js`、`src/yaya-views.js`。保持芽芽的共享轮廓、两道贯通横纹、固定叶根与肩点和圆掌体积不变，通过叶子形态/运动组合、掌心目标和同一握点扩展动作。先说明脸、身体、叶子、手和道具如何共同表达，再在实时实验室检查三视图和中间帧。最后运行 `node test-yaya-body.mjs`、`node test-yaya-leaves.mjs`、`node test-yaya-gait.mjs`、`node test-yaya-views.mjs`、`node test-yaya-lab.mjs`、`node test-yaya-output.mjs`，重新渲染受影响的素材。
 
 换成其他宠物时，应先重新确定该角色的肩点、掌心半径、臂宽、最大活动距离和侧面厚度。可以复用“固定根点 → 解算掌心 → 重叠手腕 → 道具握点 → 遮挡分层”的流程；芽芽的具体坐标不能直接视为所有角色的通用骨骼。
 
@@ -171,6 +192,7 @@ node render-yaya-action-previews.mjs
 node render-yaya-preview-videos.mjs
 node render.mjs --clip --out=out/yaya-demo.mp4
 node test-yaya-body.mjs
+node test-yaya-leaves.mjs
 node test-yaya-gait.mjs
 node test-yaya-views.mjs
 node test-yaya-lab.mjs
@@ -181,6 +203,7 @@ node test-yaya-output.mjs
 
 - `src/yaya-pet.js`：角色、情绪数据、手势和动画逻辑。
 - `src/yaya-body.js`：纯几何冬瓜轮廓、两道贯通横纹、侧面厚度与爱心高度。
+- `src/yaya-leaves.js`：共享根点、圆叶中心线、形态/运动组合、情绪映射与无自交投影。
 - `src/yaya-rig.js`：不依赖绘图库的双臂、腕部重叠和道具握点解算。
 - `src/yaya-gait.js`：不依赖绘图库的后蹬、抬脚前收与脚尖角度。
 - `src/yaya-views.js`：2.5D 三视图、投影和 8 秒往返路径。
@@ -193,6 +216,7 @@ node test-yaya-output.mjs
 - `render-yaya-preview-videos.mjs`：情绪和动作 MP4 预览。
 - `test-yaya-output.mjs`：页面状态、数量和交互回归测试。
 - `test-yaya-body.mjs`：共享轮廓、侧面宽度和条纹几何测试。
+- `test-yaya-leaves.mjs`：叶根、叶脉、形态/运动/朝向组合的自交检查、逐帧与循环连续性。
 - `test-yaya-gait.mjs`：着地后蹬、抬脚前收、左右朝向、停步与循环连续性测试。
 - `test-yaya-views.mjs`：腕部连接、固定肩点、道具绑定、路径边界与循环闭合测试。
 - `test-yaya-lab.mjs`：离线实验室加载、视图切换、播放控制、画布变化和移动布局测试。
@@ -212,6 +236,7 @@ node test-yaya-output.mjs
 - 每条腿着地时向后蹬，离地时向前收；左右跑的脚步方向都正确。
 - 往返跑在转身时停住脚步，8 秒结尾与开头的位置、朝向和步态连续。
 - 好奇、咯咯笑、安心、自豪、难过、惊讶、害羞、思考彼此可区分。
-- 叶子参与情绪表达，sad/cry 向下，shy 向内，happy/excited 向上。
+- 叶缘和尖端圆滑，叶脉随中心线弯曲；前侧背共用根点，没有折叠自交或脱离头顶。
+- 叶子参与情绪表达，sad/cry 软垂，shy 内扣，curious 一上一下，happy 舒展扑扇；跑步风摆在停步时收住。
 - 静态图和 MP4 使用同一份源码，不能出现页面显示旧图、视频显示新图的版本漂移。
 - 页面启动后 `ready === true`，情绪数量为 31，动作循环数量为 17，页面动作按钮数量为 19。

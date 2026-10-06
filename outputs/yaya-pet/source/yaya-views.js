@@ -116,13 +116,7 @@
     const breadth=YayaBody.breadth(yaw);
     D.flatEllipse(x,y+.18*u,3.7*u*breadth,.43*u,'rgba(48,80,100,.18)',null,0);
     push(); translate(x,y+bob*u); rotate(lean); scale(1+(p.sq||0)*.25,1-(p.sq||0)*.45);
-    // Leaves turn around a shared stem, with different depth and a small fan
-    // visible in profile. Both always connect to the same top-of-head origin.
-    for(const s of (sn>=0?[1,-1]:[-1,1])) {
-      const lp=run?{rot:s*.1+s*.08*Math.sin(gait)*speed,drift:s*.04*Math.sin(gait)*speed,sx:1,sy:1+.025*Math.sin(gait*2)*speed,dy:0}:D.leafPose(age,key,s,S.action);
-      push(); translate(s*.13*sn*u,0); scale(Math.max(.24,Math.abs(cs)) + (s<0?.16:.03)*side,1);
-      D.flatLeaf(u,s,lp.drift*u,{...lp,rot:lp.rot-sn*.12}); pop();
-    }
+    D.drawLeaves(u,age,key,S,{yaw,gait,speed});
     const arms=makeArms(D,R,key,age,S,p,yaw,run,gait,speed);
     // Feet are attached to the same body volume; near/far order changes with yaw.
     const feet=[-1,1].map(s=>({s,p:project(s*1.35,-.24,.1,yaw)})).sort((a,b)=>a.p[2]-b.p[2]);

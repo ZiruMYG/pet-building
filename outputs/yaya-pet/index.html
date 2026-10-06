@@ -265,7 +265,7 @@
 
     <section id="rig-lab" class="rig-lab-panel" data-testid="rig-lab-panel" aria-label="芽芽三视图与动作实验室">
       <div class="rig-lab-heading"><h2>三视图与动作实验室</h2><a href="rig-lab.html" target="_blank" rel="noopener">单独打开 ↗</a></div>
-      <p class="rig-lab-intro">一起看正面、侧面和背面。试试吃饭、伸懒腰和往返小跑，也可以暂停，仔细看手臂怎么动。</p>
+      <p class="rig-lab-intro">一起看正面、侧面和背面。试试吃饭、伸懒腰和往返小跑，再把叶子的形态与动作自由搭配；也可以暂停、拖动进度仔细看。</p>
       <iframe class="rig-lab-frame" data-testid="rig-lab-frame" src="rig-lab.html?embed" title="芽芽三视图与动作实验室" loading="eager"></iframe>
     </section>
 
@@ -390,7 +390,7 @@
       let selectedAction = 'eat';
       let selectedCategory = 'care';
       let selectedDirection = 1;
-      const assetVersion = 'melon-v3-20261006';
+      const assetVersion = 'leaves-v4-20261006';
       function playPreview(video, media, path, poster) {
         video.poster = poster; video.src = `${path}?v=${assetVersion}`; video.load();
         media.classList.remove('video-failed');

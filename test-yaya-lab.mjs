@@ -21,6 +21,10 @@ try {
   assert.equal(initial.state.view,'sheet');
   assert.equal(await page.$$eval('[data-lab-action]',buttons=>buttons.length),5);
   assert.equal(await page.$$eval('[data-lab-view]',buttons=>buttons.length),5);
+  assert.equal(initial.state.leafShape,'auto');
+  assert.equal(initial.state.leafMotion,'auto');
+  assert.equal(await page.$$eval('[data-leaf-shape]',buttons=>buttons.length),6);
+  assert.equal(await page.$$eval('[data-leaf-motion]',buttons=>buttons.length),8);
   const changed=async previous=>page.waitForFunction(image=>document.querySelector('#out').toDataURL()!==image,{timeout:10000},previous);
 
   for(const action of ['eat','drink','stretch']) {
@@ -69,6 +73,52 @@ try {
   await page.click('#restart');
   assert.equal((await snapshot()).state.time,0);
 
+  // A paused, fixed body pose isolates leaf changes from ordinary body animation.
+  await page.evaluate(async()=>{
+    window.yayaLab.setAction('idle');
+    window.yayaLab.setView('front');
+    await window.yayaLab.setTime(.63);
+    await window.yayaLab.setLeafShape('natural');
+    await window.yayaLab.setLeafMotion('still');
+  });
+  const natural=await snapshot();
+  const shapeImages=new Set([natural.image]);
+  for(const shape of ['upright','spread','droop','cup']) {
+    const before=await snapshot();
+    await page.click(`[data-leaf-shape="${shape}"]`);
+    await changed(before.image);
+    const current=await snapshot();
+    assert.equal(current.state.leafShape,shape);
+    assert.equal(current.state.playing,false);
+    assert.equal(current.state.time,.63,'shape changes do not reset the paused timeline');
+    assert.equal(await page.$eval(`[data-leaf-shape="${shape}"]`,button=>button.getAttribute('aria-pressed')),'true');
+    shapeImages.add(current.image);
+  }
+  assert.equal(shapeImages.size,5,'five manual leaf shapes produce distinct paused drawings');
+  await page.evaluate(()=>window.yayaLab.setLeafShape('natural'));
+  const still=await snapshot();
+  await page.click('[data-leaf-motion="alternate"]');
+  await changed(still.image);
+  assert.equal((await snapshot()).state.leafMotion,'alternate');
+  for(const motion of ['breathe','sway','flap','twitch','wind','still','auto']) {
+    await page.click(`[data-leaf-motion="${motion}"]`);
+    const current=await snapshot();
+    assert.equal(current.state.leafMotion,motion);
+    assert.equal(current.state.playing,false);
+    assert.equal(current.state.time,.63,'motion changes preserve the paused timeline');
+    assert.equal(await page.$eval(`[data-leaf-motion="${motion}"]`,button=>button.getAttribute('aria-pressed')),'true');
+  }
+  await page.evaluate(async()=>{
+    await window.yayaLab.setLeafShape('spread');
+    await window.yayaLab.setLeafMotion('flap');
+    await window.yayaLab.setTime(1.31);
+  });
+  assert.equal((await snapshot()).state.leafShape,'spread','scrubbing retains the chosen leaf shape');
+  assert.equal((await snapshot()).state.leafMotion,'flap','scrubbing retains the chosen leaf motion');
+  await page.click('#reset-leaves');
+  assert.equal((await snapshot()).state.leafShape,'auto');
+  assert.equal((await snapshot()).state.leafMotion,'auto');
+
   // A reviewable screenshot preserves the fixed shoulders and raised wrists.
   await page.click('[data-lab-action="stretch"]');
   await page.click('[data-lab-view="sheet"]');
@@ -81,9 +131,16 @@ try {
   await page.setViewport({width:390,height:844,deviceScaleFactor:1});
   const mobile=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:window.innerWidth}));
   assert.ok(mobile.scroll<=mobile.width+1,'mobile layout has no horizontal overflow');
+  await page.click('.leaf-jump');
+  await page.click('[data-leaf-shape="droop"]');
+  await page.click('[data-leaf-motion="sway"]');
+  assert.equal((await snapshot()).state.leafShape,'droop','mobile shape controls are reachable');
+  assert.equal((await snapshot()).state.leafMotion,'sway','mobile motion controls are reachable');
+  await page.evaluate(()=>window.yayaLab.setTime(.63));
+  await page.screenshot({path:resolve('out/rig-lab-leaves-mobile-qa.png'),fullPage:true});
   assert.deepEqual(errors,[],'no script errors');
   assert.deepEqual(failed,[],'all offline dependencies load');
-  console.log(JSON.stringify({ok:true,target,actions:5,views:5,screenshot:resolve('out/rig-lab-qa.png'),mobileWidth:mobile.width}));
+  console.log(JSON.stringify({ok:true,target,actions:5,views:5,leafShapes:6,leafMotions:8,screenshot:resolve('out/rig-lab-qa.png'),mobileScreenshot:resolve('out/rig-lab-leaves-mobile-qa.png'),mobileWidth:mobile.width}));
 } finally {
   await browser.close();
 }

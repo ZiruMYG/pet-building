@@ -23,6 +23,7 @@
     .toolbar-label { font-size:13px; font-weight:800; color:var(--soft); margin-right:3px; }
     .view-button { padding:7px 13px; min-height:40px; font-size:13px; border-color:#c8e5ec; }
     .view-button[aria-pressed="true"] { background:#e0f6ff; border-color:#5cabc9; color:#245d76; }
+    .leaf-jump { display:inline-flex; align-items:center; min-height:40px; padding:7px 13px; border:2px solid #c5e8de; border-radius:14px; background:#e6f7dd; color:#276640; font-size:13px; font-weight:750; text-decoration:none; }
     .action-button .icon { margin-right:5px; }
     .stage { position:relative; overflow:hidden; border:2px solid #b5ded5; background:#f6fcff; border-radius:24px; box-shadow:0 5px 0 #dfeee7; }
     #out { display:block; width:100%; height:auto; aspect-ratio:16/9; }
@@ -43,6 +44,19 @@
     .debug-control input { width:18px; height:18px; accent-color:var(--green); }
     .legend { margin-top:8px; color:#427685; font-size:12px; }
     .legend[hidden] { display:none; }
+    .leaf-lab { margin-top:22px; padding:18px; background:#fff; border:2px solid #c5e8de; border-radius:20px; }
+    .leaf-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:4px; }
+    .leaf-heading h2 { margin:0; font-size:18px; }
+    .leaf-heading button { min-height:38px; padding:6px 11px; font-size:12px; }
+    .leaf-hint { margin:0 0 14px; color:var(--soft); font-size:13px; }
+    .leaf-group { margin:0; padding:0; border:0; min-width:0; }
+    .leaf-group + .leaf-group { margin-top:15px; }
+    .leaf-group legend { padding:0; margin-bottom:7px; font-size:13px; color:var(--soft); font-weight:800; }
+    .leaf-options { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
+    .leaf-options.shapes { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .leaf-options button { min-width:0; padding:9px 7px; font-size:13px; }
+    .leaf-options button[aria-pressed="true"] { border-color:#309767; background:#dff6db; color:#235f3b; }
+    .leaf-selection { margin:13px 0 0; color:#28724e; font-size:12px; }
     .embed main { padding:16px; }
     .embed .heading { display:none; }
     @media(max-width:680px) {
@@ -63,6 +77,10 @@
       #tt { min-width:72px; text-align:right; }
       .bottom-row { display:block; }
       .debug-control { margin-top:8px; }
+      .leaf-lab { margin-top:17px; padding:13px; }
+      .leaf-heading h2 { font-size:16px; }
+      .leaf-heading { gap:8px; }
+      .leaf-options,.leaf-options.shapes { grid-template-columns:repeat(2,minmax(0,1fr)); }
     }
   </style>
   <script>if(new URLSearchParams(location.search).has('embed'))document.documentElement.classList.add('embed');</script>
@@ -90,6 +108,7 @@
       <button class="view-button" data-lab-view="side" aria-pressed="false">侧面</button>
       <button class="view-button" data-lab-view="back" aria-pressed="false">背面</button>
       <button class="view-button" data-lab-view="travel" aria-pressed="false">往返跑道</button>
+      <a class="leaf-jump" href="#leaf-lab-title">🌿 调整叶子 ↓</a>
     </div>
     <div class="stage" data-testid="rig-stage">
       <canvas id="out" width="1920" height="1080" role="img" aria-label="芽芽的正面、侧面、背面三视图"></canvas>
@@ -108,6 +127,35 @@
       <label class="debug-control"><input id="show-rig" type="checkbox">显示骨架与肩点</label>
     </div>
     <p class="legend" id="rig-legend" hidden>肩点固定在身体两侧；连线显示手掌与手臂的连接。拖动进度条可以检查动作中间帧。</p>
+    <section class="leaf-lab" aria-labelledby="leaf-lab-title">
+      <div class="leaf-heading"><h2 id="leaf-lab-title">🌿 叶子形态与动作</h2><button type="button" id="reset-leaves">恢复跟随</button></div>
+      <p class="leaf-hint">像一对柔软的小耳朵。可以单独搭配姿态和动作，也可以跟随芽芽；暂停后仍能切换、拖动进度查看。</p>
+      <fieldset class="leaf-group">
+        <legend>叶子是什么姿态</legend>
+        <div class="leaf-options shapes">
+          <button type="button" data-leaf-shape="auto" aria-pressed="true">跟随角色</button>
+          <button type="button" data-leaf-shape="natural" aria-pressed="false">自然圆叶</button>
+          <button type="button" data-leaf-shape="upright" aria-pressed="false">竖起倾听</button>
+          <button type="button" data-leaf-shape="spread" aria-pressed="false">向外舒展</button>
+          <button type="button" data-leaf-shape="droop" aria-pressed="false">软软垂落</button>
+          <button type="button" data-leaf-shape="cup" aria-pressed="false">害羞内扣</button>
+        </div>
+      </fieldset>
+      <fieldset class="leaf-group">
+        <legend>叶子怎么动</legend>
+        <div class="leaf-options">
+          <button type="button" data-leaf-motion="auto" aria-pressed="true">跟随角色</button>
+          <button type="button" data-leaf-motion="still" aria-pressed="false">保持姿态</button>
+          <button type="button" data-leaf-motion="breathe" aria-pressed="false">轻轻呼吸</button>
+          <button type="button" data-leaf-motion="sway" aria-pressed="false">左右探看</button>
+          <button type="button" data-leaf-motion="alternate" aria-pressed="false">一上一下</button>
+          <button type="button" data-leaf-motion="flap" aria-pressed="false">开心扑扇</button>
+          <button type="button" data-leaf-motion="twitch" aria-pressed="false">抖两下</button>
+          <button type="button" data-leaf-motion="wind" aria-pressed="false">向后轻摆</button>
+        </div>
+      </fieldset>
+      <p class="leaf-selection" id="leaf-selection" aria-live="polite">叶子正在跟随角色，自动配合当前动作。</p>
+    </section>
   </main>
   <script src="source/config-yaya-pet.js"></script>
   <script src="source/core.js"></script>
@@ -115,6 +163,7 @@
   <script src="source/yaya-rig.js"></script>
   <script src="source/yaya-body.js"></script>
   <script src="source/yaya-gait.js"></script>
+  <script src="source/yaya-leaves.js"></script>
   <script src="source/yaya-pet.js"></script>
   <script src="source/yaya-views.js"></script>
   <script src="source/yaya-rig-lab.js"></script>
