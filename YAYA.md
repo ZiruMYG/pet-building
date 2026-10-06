@@ -1,6 +1,6 @@
 # 芽芽（Yaya）电子宠物原型
 
-芽芽是一只适合学龄前孩子的原创电子宠物：奶油黄的圆身体、薄荷绿嫩叶、珊瑚色腮红，以及会发光的心形状态徽章。角色代码独立于原项目的 Clawd 角色，但继续使用 ClaudeAnimationBase 的 p5.js、p5.brush、时间线和渲染器。
+芽芽是一只适合学龄前孩子的原创电子宠物：奶油黄的短胖冬瓜身体、薄荷绿嫩叶、珊瑚色腮红、胸口爱心，以及贯通前侧背的两道橙色下腹横纹。角色代码独立于原项目的 Clawd 角色，但继续使用 ClaudeAnimationBase 的 p5.js、p5.brush、时间线和渲染器。
 
 如果要让其他 agent 学习完整的方法论，请先阅读仓库根目录的 [PET_BUILDING.md](PET_BUILDING.md)；本文件聚焦芽芽的具体状态和 API。
 
@@ -35,6 +35,21 @@ const leftWalk = yayaAction('walk', -1, t);
 drawYaya(960, 900, 72, t, leftWalk);
 ```
 
+## 共享身体与脚本依赖
+
+在配置、绘制核心和时间线之后，先加载 `src/yaya-body.js`、`src/yaya-rig.js`、`src/yaya-gait.js`，再加载 `src/yaya-pet.js` 和 `src/yaya-views.js`，最后加载场景或实验室。身体、手臂和步态三个模块不依赖 p5，可以单独进行纯几何测试。
+
+`YayaBody` 固定圆腹、圆底的冬瓜轮廓。身体顶点为 `y=-7`、底点为 `y=0`，最大半宽约 `3.2`；侧面厚度为正面宽度的 `0.86`，不能再为每个视图独立画一个身体。
+
+```js
+const outline = YayaBody.outline(u);
+const bands = YayaBody.stripes(u);
+const widthScale = YayaBody.breadth(yaw);
+const { sideRatio, heartY, stripeColor } = YayaBody.constants;
+```
+
+`outline(u)` 和 `stripes(u)` 返回乘以绘制单位 `u` 的轮廓及两条带状多边形；条纹已经按身体轮廓裁切。`breadth(yaw)` 等于 `hypot(cos(yaw), 0.86*sin(yaw))`，身体和条纹共同应用它。两纹中心高度为 `-1.75/-0.95`、厚度为 `0.40/0.34`，两端略微上扬，填色为 `#F6A533`；爱心基准高度 `heartY=-2.65`。转向时爱心再叠加 `surfaceArc(badgeX/breadth(yaw))`，与横纹沿同一弧线移动，保持间距。`fitEllipseX()` 则把侧眼和腮红的完整椭圆约束在身体内。正背面等宽，背面保留横纹而隐藏爱心。
+
 ## 共享手臂与道具 API
 
 先加载 `src/yaya-rig.js`，再加载 `src/yaya-pet.js`。`YayaRig` 是纯几何模块，不需要 p5 就能测试：
@@ -63,9 +78,17 @@ const travel = YayaViews.travel(t);
 YayaViews.draw(960 + travel.x * 550, 900, 60, t, 'run', t, travel);
 ```
 
-`yaw` 单位是弧度：0 正面、π/2 向右、π 背面、3π/2 向左。`project(x,y,z,yaw)` 返回投影坐标和深度。侧面宽度约为正面的 72%，五官随朝向收起，背面没有五官和胸口爱心；手臂根据深度和身体的遮挡分层。
+`yaw` 单位是弧度：0 正面、π/2 向右、π 背面、3π/2 向左。`project(x,y,z,yaw)` 返回投影坐标和深度。侧面宽度由 `YayaBody` 保持为正面的约 86%，五官随朝向收起；背面没有五官和胸口爱心，但两道下腹横纹贯通保留。手臂根据深度和身体的遮挡分层。
 
 `travel(t)` 返回 `{x,yaw,gait,speed,phase,period}`。8 秒内依次执行向右跑 3 秒、停住转身 1 秒、向左跑 3 秒、停住转回来 1 秒。步态跟随行进距离，转身时脚步不会继续循环。路径 `x` 在 `[-1,1]`，场景负责把它映射到舞台位置。
+
+`YayaGait.foot(gait, side, speed)` 返回局部的 `{forward,lift,angle}`，其中 `side` 为 `-1/1`，正前方朝向鼻子，`speed` 被限制到 `[0,1]`。一个周期中，脚先着地由前向后后蹬，再抬起由后向前收回；左右腿错开半个周期。绘制器将 `forward` 和 `angle` 乘 `sin(yaw)`，因此朝左与朝右共用同一套正确步序。停步时三项都归零。此处还没有世界坐标的脚掌锁地，不能据此声称完全无滑步。
+
+```js
+const foot = YayaGait.foot(travel.gait, -1, travel.speed);
+const screenStride = foot.forward * Math.sin(travel.yaw);
+const screenToeAngle = foot.angle * Math.sin(travel.yaw);
+```
 
 这是明亮平面风格的 2.5D 视图，不是带网格、透视、光照和物理碰撞的完整 3D 模型。侧背面表情经过简化，勺杯只在接近正面时绘制；不能把正面全部情绪的支持范围等同于任意角度。
 
@@ -93,9 +116,11 @@ node render.mjs --clip --out=out/yaya.mp4
 在仓库根目录运行：
 
 ```bash
+node test-yaya-body.mjs
+node test-yaya-gait.mjs
 node test-yaya-views.mjs
 node test-yaya-lab.mjs
 node test-yaya-output.mjs
 ```
 
-第一个测试检查肩点、手腕重叠、握点绑定、跑道边界和循环连续性；第二个检查实验室画布、交互与移动布局；第三个检查原宠物页面。增加动作后还应检查中间帧，而不只看首帧或海报图。其他 agent 的复用步骤及设计经验见 `PET_BUILDING.md`。
+`test-yaya-body.mjs` 检查共享身体和横纹几何；`test-yaya-gait.mjs` 检查着地后蹬、抬脚前收、左右方向、停步与循环连续性；`test-yaya-views.mjs` 检查肩点、手腕重叠、握点绑定、跑道边界和循环连续性；`test-yaya-lab.mjs` 检查实验室画布、交互与移动布局；`test-yaya-output.mjs` 检查原宠物页面。增加动作后还应查看中间帧：特别是转向时横纹有无越界、侧脸是否仍在身体内，以及两条腿落地后是否向后蹬。其他 agent 的复用步骤及设计经验见 `PET_BUILDING.md`。

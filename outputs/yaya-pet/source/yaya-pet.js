@@ -1,4 +1,4 @@
-// 芽芽 / Yaya: an original pear-shaped electronic pet, independent of Clawd.
+// 芽芽 / Yaya: an original round winter-melon pet, independent of Clawd.
 (() => {
   const YAYA_STYLE = (typeof PROJECT !== 'undefined' && PROJECT.yayaStyle) || 'bright';
   const PALETTE = YAYA_STYLE === 'paper' ? {
@@ -100,11 +100,9 @@
   }
 
   function pear(u) {
-    const q=[ [0,-7],[-.8,-6.9],[-1.8,-6.55],[-2.5,-5.7],[-2.85,-4.6],
-      [-3.15,-3.3],[-3.2,-2],[-3,-1],[-2.35,-.35],[-1.3,-.08],[0,0],
-      [1.3,-.08],[2.35,-.35],[3,-1],[3.2,-2],[3.15,-3.3],
-      [2.85,-4.6],[2.5,-5.7],[1.8,-6.55],[.8,-6.9] ];
-    return through(q.map(([x,y])=>[x*u,y*u]),5);
+    // Legacy API name retained for callers; the shape is now the approved
+    // round-bottom winter melon, shared by front, profile and rear.
+    return YayaBody.outline(u);
   }
   function leaf(u,side,drift) {
     const s=side<0?-1:1;
@@ -231,11 +229,12 @@
     if(['sad','cry'].includes(key)) { line([[-2.15,-6.3],[-1.45,-6.1]],.58,.35); line([[1.45,-6.1],[2.15,-6.3]],.58,.35); }
   }
   function badge(u,shine) {
-    if(shine>.02) glow(0,-2*u,1.2*u,'#FFC66B',.2*shine);
-    paint(heartPts(0,-2.05*u,.48*u,24),{wash:YC.heart,fill:'#FFB07D',fillOp:75,tex:.45,ink:YC.ink,sw:.55});
+    const cy=YayaBody.constants.heartY*u;
+    if(shine>.02) glow(0,cy,1.2*u,'#FFC66B',.2*shine);
+    paint(heartPts(0,cy,.48*u,24),{wash:YC.heart,fill:'#FFB07D',fillOp:75,tex:.45,ink:YC.ink,sw:.55});
     for(let i=0;i<8;i++){ const a=i*TAU/8+Math.PI/8;
-      inkLine([[Math.cos(a)*.78*u,-2.05*u+Math.sin(a)*.78*u],
-        [Math.cos(a)*1.05*u,-2.05*u+Math.sin(a)*1.05*u]],.55,'#E8AA38','inkfine',.35); }
+      inkLine([[Math.cos(a)*.78*u,cy+Math.sin(a)*.78*u],
+        [Math.cos(a)*1.05*u,cy+Math.sin(a)*1.05*u]],.55,'#E8AA38','inkfine',.35); }
   }
   function pose(age,state) {
     const S=typeof state==='string'?getYayaEmotionState(state,age):state||getYayaEmotionState('idle',age);
@@ -340,6 +339,12 @@
     push(); fill(fillCol); if(strokeCol){stroke(strokeCol);strokeWeight(sw);} else noStroke(); ellipse(cx,cy,rx*2,ry*2); pop();
   }
   function flatHeart(cx,cy,r,fillCol=YC.heart,sw=2) { flatPoly(heartPts(cx,cy,r,28),fillCol,YC.ink,sw); }
+  function flatBody(u,cols) {
+    const contour=pear(u);
+    flatPoly(contour,cols.light,null,0);
+    for(const band of YayaBody.stripes(u)) flatPoly(band,YayaBody.constants.stripeColor,null,0);
+    flatLine([...contour,contour[0]],YC.ink,3.5);
+  }
   function flatStar(cx,cy,r,fillCol='#FFD45A',sw=2) { flatPoly(starPts(cx,cy,r,.42,5,-Math.PI/2),fillCol,YC.ink,sw); }
   // The flat renderer still uses the same pose vocabulary as the textured
   // renderer. Keeping these helpers small makes arm/foot motion readable at
@@ -623,8 +628,8 @@
     flatLeaf(u,-1,lpL.drift*u,lpL); flatLeaf(u,1,lpR.drift*u,lpR);
     flatFoot(u,-1,p.footL*u,cols); flatFoot(u,1,p.footR*u,cols);
     drawRigLayer(u,arms,'back',cols);
-    flatPoly(pear(u),cols.light,YC.ink,3.5);
-    flatHeart(0,-2.05*u,.48*u,'#FFB07D',2); flatFace(u,age,S);
+    flatBody(u,cols);
+    flatHeart(0,YayaBody.constants.heartY*u,.48*u,'#FFB07D',2); flatFace(u,age,S);
     drawRigLayer(u,arms,'front',cols,false,{arm:true,palm:false});
     drawRigProps(u,key,age,arms,cols);
     drawRigLayer(u,arms,'front',cols,false,{arm:false,palm:true});
@@ -649,6 +654,7 @@
     foot(u,-1,p.footL*u+.03*u*Math.sin(age*2.1)); foot(u,1,p.footR*u+.03*u*Math.sin(age*2.1+1.4));
     drawRigLayer(u,arms,'back',cols,true);
     paint(pear(u),{wash:cols.body,fill:cols.light,fillOp:95,bleed:.09,tex:.65,ink:YC.ink,sw:1.05,curv:.35});
+    for(const band of YayaBody.stripes(u)) paint(band,{fill:YayaBody.constants.stripeColor,fillOp:95,ink:null,curv:0});
     badge(u,(key==='cuddle'||key==='comforted'||key==='love')?.8:0); face(u,age,S);
     drawRigLayer(u,arms,'front',cols,true,{arm:true,palm:false});
     drawRigProps(u,key,age,arms,cols,true);
@@ -709,7 +715,7 @@
     cur.emoteAge=age;
     return cur;
   }
-  window.YayaDrawing={flatPoly,flatLine,flatEllipse,flatLeaf,flatHeart,flatFace,flatFoot,pear,pose,leafPose,moodColors,palette:YC,drawRigArm,drawRigProps,drawRigLayer,actionFace};
+  window.YayaDrawing={flatPoly,flatLine,flatEllipse,flatLeaf,flatHeart,flatFace,flatFoot,flatBody,pear,pose,leafPose,moodColors,palette:YC,drawRigArm,drawRigProps,drawRigLayer,actionFace};
   window.drawYaya=drawYaya; window.yayaStage=yayaStage; window.YAYA_STYLE=YAYA_STYLE;
   window.getYayaEmotionState=getYayaEmotionState; window.normalizePetState=normalizePetState;
   window.yayaFeel=yayaFeel; window.yayaEmotions=yayaEmotions; window.yayaAction=yayaAction;

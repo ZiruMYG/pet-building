@@ -37,12 +37,13 @@
   }
   function drawTurnedFace(D,u,S,age,yaw,cols) {
     const c=Math.cos(yaw),s=Math.sin(yaw),C=D.palette,e=S.face||S;
-    if(Math.abs(s)<.0001 && c>0) {D.flatFace(u,age,S);D.flatHeart(0,-2.05*u,.48*u,'#FFB07D',2);return;}
+    if(Math.abs(s)<.0001 && c>0) {D.flatFace(u,age,S);D.flatHeart(0,YayaBody.constants.heartY*u,.48*u,'#FFB07D',2);return;}
     const kinds=Array.isArray(e.eyes)?e.eyes:[e.eyes,e.eyes];
     for(const side of [-1,1]) {
       const visibility=smooth((c*.82-side*s*.58+.08)/.5);
       if(visibility<.005) continue;
-      const eye=project(side*1.55,-5.15,1.35,yaw), w=(.57-.13*Math.abs(s))*visibility;
+      const eye=project(side*1.55,-5.15,1.63,yaw), w=(.57-.13*Math.abs(s))*visibility;
+      eye[0]=YayaBody.fitEllipseX(eye[0],eye[1],w,.9,yaw);
       const kind=kinds[side<0?0:1];
       push();translate(eye[0]*u,eye[1]*u);
       if(['happy','laugh','relieved','closed','sleepy'].includes(kind)) {
@@ -56,16 +57,20 @@
         D.flatEllipse(-.14*visibility*u,-.28*u,.12*visibility*u,.18*u,'#FFFFFF',null,0);
       }
       pop();
-      const cheek=project(side*2.28,-3.93,1.3,yaw);
+      const cheek=project(side*2.28,-3.93,1.68,yaw);
+      cheek[0]=YayaBody.fitEllipseX(cheek[0],cheek[1],.64*visibility,.43,yaw);
       D.flatEllipse(cheek[0]*u,cheek[1]*u,.64*visibility*u,.43*u,mixCol(cols.body,C.blush,e.blush??.22),null,0);
     }
     const mouthVisibility=smooth((c+.13)/.45);
     if(mouthVisibility>.001) {
-      const mx=2.04*s*u,my=-3.58*u,mw=(.5*Math.max(.13,c))*u;
+      const mx=2.55*s*u,my=-3.58*u,mw=(.5*Math.max(.13,c))*u;
       if(['open','O','laugh'].includes(e.mouth)) D.flatEllipse(mx,my,mw,.36*mouthVisibility*u,C.ink,null,0);
       else D.flatLine([[mx-mw,my],[mx,my+.2*mouthVisibility*u],[mx+mw,my-.02*u]],C.ink,2.5);
     }
-    if(c>.02) {push();translate(2.12*s*u,-2.05*u);scale(c,1);D.flatHeart(0,0,.48*u,'#FFB07D',2);pop();}
+    if(c>.02) {
+      const bx=2.65*s,by=YayaBody.constants.heartY+YayaBody.surfaceArc(bx/YayaBody.breadth(yaw));
+      push();translate(bx*u,by*u);scale(c,1);D.flatHeart(0,0,.48*u,'#FFB07D',2);pop();
+    }
   }
   function makeArms(D,R,key,age,S,p,yaw,run,gait,speed) {
     const original=R.poseArms(key,age,S,p), sn=Math.sin(yaw), cs=Math.cos(yaw);
@@ -76,7 +81,7 @@
       let z=.45;
       if(arm.layer==='front') z=1.3;
       if(run) {
-        const step=Math.sin(gait+(s<0?0:Math.PI));
+        const step=-Math.cos(gait+(s<0?0:Math.PI));
         // A short pendulum sweeps fore/aft in profile. Hand volume is retained.
         target=[s*3.1,-3.24-.23*Math.abs(step)*speed];
         z=.45+step*.83*speed;
@@ -107,8 +112,8 @@
     if(run) p.sq=.025*Math.sin(gait*2)*speed;
     const bob=run?-.18*Math.abs(Math.sin(gait))*speed:p.dy||0;
     const lean=run?sn*.065*speed:p.rot||0;
-    // The side silhouette stays full (72% frontal width), not paper-thin.
-    const breadth=Math.sqrt(cs*cs+.72*.72*sn*sn);
+    // Full winter-melon profile: shared volume is 86% as deep as it is wide.
+    const breadth=YayaBody.breadth(yaw);
     D.flatEllipse(x,y+.18*u,3.7*u*breadth,.43*u,'rgba(48,80,100,.18)',null,0);
     push(); translate(x,y+bob*u); rotate(lean); scale(1+(p.sq||0)*.25,1-(p.sq||0)*.45);
     // Leaves turn around a shared stem, with different depth and a small fan
@@ -122,15 +127,14 @@
     // Feet are attached to the same body volume; near/far order changes with yaw.
     const feet=[-1,1].map(s=>({s,p:project(s*1.35,-.24,.1,yaw)})).sort((a,b)=>a.p[2]-b.p[2]);
     const paintFoot=foot=>{
-      const phase=gait+(foot.s<0?0:Math.PI);
-      const stride=run?Math.cos(phase)*1.05*speed*sn:0;
-      const lift=run?Math.max(0,Math.sin(phase))*.48*speed:(foot.s<0?p.footL:p.footR)||0;
-      push(); translate((foot.p[0]+stride)*u,((run?.12:-.24)-lift)*u); rotate(run?Math.sin(phase)*.24*speed:0);
+      const step=run?YayaGait.foot(gait,foot.s,speed):{forward:0,lift:(foot.s<0?p.footL:p.footR)||0,angle:0};
+      const stride=step.forward*sn,lift=step.lift;
+      push(); translate((foot.p[0]+stride)*u,((run?.12:-.24)-lift)*u); rotate(step.angle*sn);
       D.flatEllipse(0,0,(1.12-.18*side)*u,.5*u,foot.p[2]<-.1?'#D99928':cols.shade,C.ink,2.4); pop();
     };
     for(const foot of feet.filter(f=>!run || f.p[2]<=0)) paintFoot(foot);
     for(const arm of arms.filter(a=>!a.foreground)) D.drawRigArm(u,arm,cols);
-    push(); scale(breadth,1); D.flatPoly(D.pear(u),cols.light,C.ink,3.5); pop();
+    push(); scale(breadth,1); D.flatBody(u,cols); pop();
     for(const foot of feet.filter(f=>run && f.p[2]>0)) paintFoot(foot);
     // Visibility uses each feature's surface normal: eyes disappear gradually
     // behind the contour, never popping between a two-eye and one-eye sprite.

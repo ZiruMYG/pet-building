@@ -9,7 +9,9 @@
 - 一起玩：小跳和挥手
 - 睡觉：循环入睡，点击按钮可叫醒
 
-同目录的 `yaya-demo.mp4` 是 16 秒展示片，`assets/yaya-reference.png` 是角色设定图，`source/` 保存了基于 ClaudeAnimationBase 的角色和场景源码。
+同目录的 `yaya-demo.mp4` 是 16 秒展示片，`assets/yaya-reference.png` 是早期角色设定图，`assets/yaya-winter-melon-reference.png` 是本次确认的冬瓜轮廓与横纹参考。`source/` 保存了基于 ClaudeAnimationBase 的角色和场景源码。
+
+当前角色使用短胖、圆底的冬瓜轮廓，侧面保留正面约 86% 的宽度。下腹两道橙色横纹贯通正面、侧面和背面，胸口爱心位于条纹上方；背影也能保留稳定的识别特征。
 
 页面会把 31 种情绪全部列成按钮，点击后播放对应的 4 秒循环动画，静态表情图作为加载失败时的后备。叶子也参与情绪：难过、想哭、困倦时向下折，害羞时向脸颊内收，开心和惊讶时弹起。
 
@@ -21,15 +23,21 @@
 
 打开同目录的 `rig-lab.html`，可实时查看站好、吃饭、喝水、伸懒腰和往返跑。视角包括三视图并排、正面、侧面、背面及往返跑道；支持暂停、重播、拖动进度和显示肩点骨架。它直接绘制当前角色源码，不依赖 MP4，离线分发时需要保留完整 `source/` 和 `source/vendor/`。
 
-跑道依次向右跑 3 秒、停下转身 1 秒、向左跑 3 秒、停下转回来 1 秒；停止行进时步态也停止。正面、侧面和背面共用角色形状和手臂。此处是 2.5D 转向，侧面保留体积、背面隐藏五官；尚不是带网格、透视和物理碰撞的完整 3D 角色，侧背面的表情有所简化，勺杯只在接近正面时显示。
+跑道依次向右跑 3 秒、停下转身 1 秒、向左跑 3 秒、停下转回来 1 秒；停止行进时步态也停止。每条腿先着地向后蹬，再抬脚向前收，向左和向右跑使用同一套局部步序。正面、侧面和背面共用角色形状、横纹和手臂。此处是 2.5D 转向，侧面保留体积、背面隐藏五官；尚不是带网格、透视和物理碰撞的完整 3D 角色，侧背面的表情有所简化，勺杯只在接近正面时显示，也尚未实现世界坐标的脚掌锁地。
 
 ## 给其他 agent 的接入说明
+
+加载配置、绘制核心和时间线后，先加载 `source/yaya-body.js`、`source/yaya-rig.js`、`source/yaya-gait.js`，再加载 `source/yaya-pet.js`、`source/yaya-views.js`，最后加载场景或实验室。前三个模块都是可以脱离浏览器测试的纯几何代码。
+
+`source/yaya-body.js` 提供 `YayaBody.outline(u)`、`stripes(u)`、`breadth(yaw)` 和 `constants`。轮廓和已裁切的两条横纹共用身体单位与投影；侧宽比例为 `0.86`、爱心基准高度为 `-2.65`、条纹色为 `#F6A533`。两纹中心高度为 `-1.75/-0.95`，厚度为 `0.40/0.34`。转向时爱心跟随相同表面弧线，保持与条纹的间距；`fitEllipseX()` 约束完整侧眼和腮红，不让椭圆外缘突出身体。新增视角应复用这些数据，不能另外复制一套背面条纹。
 
 `source/yaya-rig.js` 提供 `YayaRig.solveArm()`、`poseArms()`、`propPose()` 和 `pointAt()`。它固定肩点 `±2.28,-3.93`、掌半径 `0.64`、最大肩掌距离 `2.05`，通过腕角与掌圆重叠保证连接，再从解算后的握点生成道具。新增动作应修改手掌目标，不能增加第二套侧手或独立道具轨迹。
 
 `source/yaya-views.js` 提供 `YayaViews.draw()`、`project()` 和 `travel()`。角度为弧度：0 正面、π/2 右侧、π 背面、3π/2 左侧；`travel(t)` 返回 8 秒路径的 `x/yaw/gait/speed/phase/period`。详细调用示例见 `source/YAYA.md`，完整经验见仓库根目录 `PET_BUILDING.md`。
 
-在完整仓库根目录运行 `node test-yaya-views.mjs`、`node test-yaya-lab.mjs`、`node test-yaya-output.mjs`，分别验证几何连接、实验室交互和原页面。视觉验收还需要拖动查看抬手、送勺到嘴边和转身的中间帧。
+`source/yaya-gait.js` 提供 `YayaGait.foot(gait, side, speed)`，返回 `{forward,lift,angle}`。局部正前方朝向鼻子；绘制时前后位移和脚尖角度一起乘 `sin(yaw)`。着地阶段向后运动，离地阶段向前运动，不能将两阶段颠倒，否则会看起来倒着跑。
+
+在完整仓库根目录运行 `node test-yaya-body.mjs`、`node test-yaya-gait.mjs`、`node test-yaya-views.mjs`、`node test-yaya-lab.mjs`、`node test-yaya-output.mjs`，分别验证身体条纹、脚步方向、几何连接、实验室交互和原页面。视觉验收还需要拖动查看抬手、送勺到嘴边和转身的中间帧，确认侧脸与条纹不越出轮廓。
 
 页面提供可供后续接入的 API：
 
