@@ -88,9 +88,11 @@ for(const t of [.84,2.24]) {
 const betweenNods=drawing.pose(1.5,state('nod',1.5));
 assert.equal(betweenNods.rot,0,'nod rests without lateral tilt');
 assert.equal(betweenNods.sq,0,'nod resets upright between beats');
-// A grounded turn must also keep relaxed hands down by the flanks. Test the
-// entire step cycle and exaggerated legacy lift inputs so a future pose-layer
-// change cannot accidentally bring back the shoulder-height T-pose.
+// Turning relaxes the short everyday arms by changing angle only. Lowering a
+// Cartesian target used to lengthen them by 50%, changing the character's
+// proportions. Check against idle throughout each cycle, including legacy
+// lift inputs that must not override this compact resting pose.
+const idleReach=rig.poseArms('idle',0,state('idle',0),{})[0].reach;
 for(const key of ['turn','spin']) {
   const duration=context.YayaActions.duration(key);
   for(let frame=0;frame<=duration*120;frame++) {
@@ -98,8 +100,10 @@ for(const key of ['turn','spin']) {
     const arms=rig.poseArms(key,t,S,{left:2.5,right:-2.5});
     for(const arm of arms) {
       const outward=(arm.palm[0]-arm.shoulder[0])*arm.side;
-      assert.ok(arm.palm[1]-arm.shoulder[1]>1.70,`${key}: hand must hang below its shoulder`);
-      assert.ok(outward>.65&&outward<.77,`${key}: relaxed hand stays close to its flank`);
+      approx(arm.reach,idleReach);
+      const drop=arm.palm[1]-arm.shoulder[1];
+      assert.ok(drop>.5&&drop<.7,`${key}: hand angles slightly down without becoming a long hanging arm`);
+      assert.ok(outward>1.0&&outward<1.3,`${key}: full resting palm remains visible beside the body`);
       assert.equal(arm.layer,'front',`${key}: near resting hand stays visible against the flank`);
       assert.equal(arm.clamped,false,`${key}: relaxed arm should not strain at full reach`);
     }

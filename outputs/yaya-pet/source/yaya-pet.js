@@ -669,7 +669,7 @@
       background(YC.paper); push(); noStroke(); fill('#EAF7FF'); ellipse(960,230,1440,720); fill('#B8F0E1'); ellipse(960,960,2360,470); pop();
       for(let i=0;i<13;i++){const gx=170+hash(i*4.1)*1580, gy=850+hash(i*6.7)*170; flatEllipse(gx,gy,28+hash(i)*23,9+hash(i+2)*7,YC.leafLight,null,0);}
       flatLine([[160,830],[180,770],[218,745]],YC.leafShade,3); flatLine([[1760,840],[1738,770],[1702,748]],YC.leafShade,3);
-      if(['sleep','stretch','walk','run','spin','celebrate','wave','hug','reach','turn','nod'].includes(normalizePetState(state)) && window.YayaViews) {
+      if(['eat','drink','sleep','stretch','walk','run','spin','celebrate','wave','hug','reach','turn','nod'].includes(normalizePetState(state)) && window.YayaViews) {
         YayaViews.perform(960,900,70,t,state,age); return;
       }
       drawYaya(960,900,72,t,state,age); return;

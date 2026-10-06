@@ -2,7 +2,7 @@
 // same rig for both paint styles, and props use the solved hand sockets.
 (() => {
   const TAU = Math.PI * 2;
-  const constants = Object.freeze({ shoulderX:2.28, shoulderY:-3.93, palmRadius:.64, armHalfWidth:.36, maxReach:2.05 });
+  const constants = Object.freeze({ shoulderX:2.28, shoulderY:-3.93, palmRadius:.64, armHalfWidth:.36, restReach:1.27, maxReach:2.05 });
   const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n));
   const smooth=(n)=>{const t=clamp(n);return t*t*(3-2*t);};
   const ramp=(t,a,b)=>smooth((t-a)/(b-a));
@@ -55,7 +55,7 @@
       // Default palms remain full-size outside the pear, with the short upper
       // arm hidden behind the body. Lift changes location around the root.
       const theta=.2-.56*lift;
-      return solveArm({side,target:[side*(2.28+1.27*Math.cos(theta)),-3.93+1.27*Math.sin(theta)],angle:side*.1,layer:'back'});
+      return solveArm({side,target:[side*(constants.shoulderX+constants.restReach*Math.cos(theta)),constants.shoulderY+constants.restReach*Math.sin(theta)],angle:side*.1,layer:'back'});
     });
     const set=(side,x,y,angle=0,gesture='')=>{
       arms[side<0?0:1]=solveArm({side,target:[x,y],angle,gesture,layer:'front'});
@@ -89,12 +89,15 @@
       else set(s,s*2.6,-3.3,s*.12);
     }
     else if(key==='turn'||key==='spin') {
-      // Turning keeps relaxed arms by the lower flanks. Shoulder-height
-      // default palms read as a T-pose even when the feet are stepping well.
-      // A tiny counter-swing follows the planted-foot clock, never the old
-      // left/right lift values. Full palms and fixed shoulder roots remain.
+      // Relax the direction, not the arm length: the same short everyday
+      // limb tilts slightly down around its fixed shoulder. Keeping a polar
+      // radius prevents a lower hand target from silently growing the arm.
+      // Only a small angular counter-swing follows the planted-foot clock.
       const swing=globalThis.YayaTurns?.sample(key,age).armSwing||0;
-      for(const s of [-1,1]) set(s,s*3.00+swing*.18,-2.16+s*swing*.07,s*.08);
+      for(const s of [-1,1]) {
+        const angle=.48+s*swing*.15;
+        set(s,s*(constants.shoulderX+constants.restReach*Math.cos(angle)),constants.shoulderY+constants.restReach*Math.sin(angle),s*.08);
+      }
     }
     else if(key==='exercise') for(const s of [-1,1]) {const lift=.5-.5*Math.cos(a*2);set(s,s*(3.05-.1*lift),-4.15-1.12*lift,s*.12,'grip');}
     else if(key==='dance') for(const s of [-1,1]) {const lift=.5+.5*Math.sin(a*2+s*Math.PI/2);set(s,s*(2.9+.1*lift),-3.48-1.92*lift,s*.2,'fingers');}

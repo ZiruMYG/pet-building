@@ -76,11 +76,11 @@
       else D.flatLine([[mx-mw,my],[mx,my+.2*mouthVisibility*u],[mx+mw,my-.02*u]],C.ink,2.5);
     }
   }
-  function makeArms(D,R,key,age,S,p,yaw,run,gait,speed) {
+  function makeArms(D,R,key,age,S,p,yaw,run,gait,speed,view={}) {
     const original=R.poseArms(key,age,S,p), sn=Math.sin(yaw), cs=Math.cos(yaw);
     return original.map(arm=>{
       const s=arm.side;
-      let target=arm.palm;
+      let target=view.armTargets?.[s]||arm.palm;
       const root=project(s*2.28,-3.93,.45,yaw);
       let z=.45;
       if(arm.layer==='front') z=1.3;
@@ -102,12 +102,13 @@
         pt=[s<0?1.25+.12*squeeze:2.80-.12*squeeze,-3.05-.09*squeeze,1];
         if(sn<0)pt[0]*=-1;
       }
-      const solved=R.solveArm({side:s,target:pt.slice(0,2),shoulder:root.slice(0,2),angle:arm.angle,gesture:arm.gesture,layer:arm.layer});
+      const layer=view.armTargets?.[s]?'front':arm.layer;
+      const solved=R.solveArm({side:s,target:pt.slice(0,2),shoulder:root.slice(0,2),angle:arm.angle,gesture:arm.gesture,layer});
       solved.depth=root[2];
       solved.visible= Math.abs(sn)<.08 || root[2]>-.5;
       // From behind both arms sit behind the pear; from front retain gesture
       // occlusion. In profile only the near limb draws on the body surface.
-      solved.foreground= Math.abs(sn)>.18 ? root[2]>.2 : cs>0 && arm.layer==='front';
+      solved.foreground= Math.abs(sn)>.18 ? root[2]>.2 : cs>0 && layer==='front';
       if(key==='hug'&&cs>0)solved.foreground=true;
       return solved;
     });
@@ -147,10 +148,16 @@
     // four-second leaf clock here would snap the blade at the video seam.
     const leafAge=turnPose?age*YayaLeaves.period/turnPose.duration:age;
     D.drawLeaves(u,leafAge,key,S,{yaw:turnPose?.leafYaw??yaw,gait,speed,nod:a.nod});
-    const arms=makeArms(D,R,key,age,S,p,yaw,locomotion,gait,speed);
+    const arms=makeArms(D,R,key,age,S,p,yaw,locomotion,gait,speed,view);
     // Feet are attached to the same body volume; near/far order changes with yaw.
     const feet=[-1,1].map(s=>({s,p:project(s*1.35,-.24,.1,yaw)})).sort((a,b)=>a.p[2]-b.p[2]);
     const paintFoot=foot=>{
+      if(view?.seated) {
+        // The same two feet hang just below the chair cushion, instead of
+        // leaving a standing pair planted on the floor behind the table.
+        push();translate((foot.p[0]+foot.s*.12)*u,.18*u);rotate(foot.s*.10);
+        D.flatEllipse(0,0,1.04*u,.5*u,cols.shade,C.ink,2.4);pop();return;
+      }
       const step=locomotion?YayaGait.foot(gait,foot.s,speed):{forward:0,lift:(foot.s<0?p.footL:p.footR)||0,angle:0};
       if(run){step.forward*=1.24;step.lift*=2;step.angle*=1.4;}
       const stride=step.forward*sn,lift=step.lift;
@@ -169,9 +176,14 @@
       const bx=2.65*sn,by=YayaBody.constants.heartY+YayaBody.surfaceArc(bx/breadth);
       push();translate(bx*u,by*u);scale(cs,1);D.flatHeart(0,0,.48*u,'#FFB07D',2);pop();
     }
+    // Furniture belongs between the torso and the real foreground hands.
+    // A dining table can occlude the belly without erasing the hand or
+    // spawning a second arm on top of the tabletop.
+    if(typeof view?.drawFurniture==='function')view.drawFurniture({u,arms,cols,yaw});
     const forearms=arms.filter(a=>a.foreground);
     for(const arm of forearms) D.drawRigArm(u,arm,cols,false,{arm:true,palm:false});
-    if(D.drawRigProps && cs>.45) D.drawRigProps(u,key,age,arms,cols);
+    if(typeof view?.drawProps==='function')view.drawProps({u,arms,cols,yaw});
+    else if(D.drawRigProps && cs>.45) D.drawRigProps(u,key,age,arms,cols);
     if(window.YayaScenes&&key==='hug'&&cs>0)YayaScenes.drawHeld(u,key,age,arms,cols,{yaw});
     for(const arm of forearms) D.drawRigArm(u,arm,cols,false,{arm:false,palm:true});
     if(debug) {
@@ -195,6 +207,7 @@
     const S=typeof state==='string'?getYayaEmotionState(state,age):state,key=S.action||S.state||'idle';
     const a=window.YayaActions?.sample(key,age)||{yaw:0};
     if(key==='sleep'&&window.YayaScenes)return YayaScenes.drawSleep(x,y,u,t,S,age,debug);
+    if((key==='eat'||key==='drink')&&window.YayaScenes)return YayaScenes.drawMeal(x,y,u,t,S,age,debug);
     if(key==='walk'||key==='run') {
       const route=travel(age,key),size=u*.86,cx=x+route.x*530;
       if(key==='run')speedLines(cx,y,size,age,route);

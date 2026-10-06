@@ -32,7 +32,8 @@ try {
     window.labActionRenders=[];
     window.YayaViews.perform=function(...args){
       const rendered=perform.apply(this,args);
-      window.labActionRenders.push({action:window.yayaLab.getState().action,age:args[5],scene:rendered?.scene,yaw:rendered?.yaw,rotation:rendered?.rotation,faceYaw:rendered?.turnPose?.faceYaw});
+      window.labActionRenders.push({action:window.yayaLab.getState().action,age:args[5],scene:rendered?.scene,yaw:rendered?.yaw,rotation:rendered?.rotation,faceYaw:rendered?.turnPose?.faceYaw,
+        seated:rendered?.seated,chair:rendered?.chair,table:rendered?.table,arms:rendered?.character?.arms.length});
       return rendered;
     };
   });
@@ -55,6 +56,11 @@ try {
     assert.equal(current.state.duration,expectedDuration,`${action} has its full timeline`);
     assert.equal(await page.$eval('#scrub',input=>Number(input.max)),expectedDuration);
     const rendered=await page.evaluate(()=>window.labActionRenders.at(-1));
+    if(action==='eat'||action==='drink') {
+      assert.equal(rendered.scene,'table-meal');
+      assert.ok(rendered.seated&&rendered.chair&&rendered.table,'daily eating and drinking have a chair and table');
+      assert.equal(rendered.arms,2,'meal uses exactly the two real hands');
+    }
     if(action==='sleep') {
       assert.equal(rendered.scene,'bed-supine','sleep must retain the bed scene');
       assert.ok(Math.sin(rendered.rotation)*Math.sin(rendered.yaw)<-.9,'supine face must point toward the ceiling');

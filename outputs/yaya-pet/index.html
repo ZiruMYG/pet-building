@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#eaf7ff">
   <title>芽芽的小花园 · 电子宠物</title>
+  <link rel="stylesheet" href="source/yaya-life.css?v=life-v8-20261006">
   <style>
     :root {
       --cream: #eaf7ff;
@@ -234,7 +235,7 @@
       </div>
     </header>
 
-    <p class="style-note">明亮卡通版：清晰线条、鲜亮色块和大按钮，适合学习机触控。</p>
+    <p class="style-note">芽芽会自己找点小事做，也会停下来回应你。<a href="#life-panel">看看芽芽自己的小日子 ↓</a></p>
 
     <section class="stage-card" aria-label="芽芽的动画舞台">
       <div class="stage" data-testid="pet-stage" role="button" tabindex="0" aria-label="点击和芽芽打招呼">
@@ -260,13 +261,13 @@
     <nav class="section-nav" aria-label="快速查看">
       <button class="section-jump" type="button" data-jump-to="rig-lab">🌱 三视图与动作实验室</button>
       <button class="section-jump" type="button" data-jump-to="action-panel">🧺 日常动作 <b>19</b></button>
-      <button class="section-jump" type="button" data-jump-to="emotion-panel">😊 全部情绪 <b>31</b></button>
+      <button class="section-jump" type="button" data-jump-to="emotion-panel">😊 表情与状态 <b>31</b></button>
     </nav>
 
     <section id="rig-lab" class="rig-lab-panel" data-testid="rig-lab-panel" aria-label="芽芽三视图与动作实验室">
       <div class="rig-lab-heading"><h2>三视图与动作实验室</h2><a href="rig-lab.html" target="_blank" rel="noopener">单独打开 ↗</a></div>
-      <p class="rig-lab-intro">14 个动作可以直接点选：仰卧睡觉、打哈欠、快跑、转圈和抱泰迪熊。先看完整演示，再切换正面、侧面和背面；暂停后还能拖动进度、调整叶子。</p>
-      <iframe class="rig-lab-frame" data-testid="rig-lab-frame" src="rig-lab.html?embed&v=actions-v7-20261006" title="芽芽动作演示、三视图与叶子实验室" loading="eager"></iframe>
+      <p class="rig-lab-intro">14 个动作可以直接点选：桌边吃喝、仰卧睡觉、打哈欠、快跑、转圈和抱泰迪熊。先看完整演示，再切换视角检查。<a href="#life-panel">🌿 看芽芽自主生活 ↑</a> · <a href="#action-catalog">查看动作与场景表 ↓</a></p>
+      <iframe class="rig-lab-frame" data-testid="rig-lab-frame" src="rig-lab.html?embed&v=life-v8-20261006" title="芽芽动作演示、三视图与叶子实验室" loading="eager"></iframe>
     </section>
 
     <section id="emotion-panel" class="emotion-panel" aria-label="芽芽的 31 种情绪">
@@ -292,7 +293,7 @@
         <div>
           <span class="action-active-note" data-testid="action-active-note">已选择：吃饭</span>
           <h3 data-testid="action-preview-title">吃饭 · eat</h3>
-          <p data-testid="action-preview-description">拿起小勺一口一口吃饭，吃完满足地点点头。</p>
+          <p data-testid="action-preview-description">坐在桌旁，用自己的短手拿勺子吃饭。</p>
           <div class="direction-row" aria-label="动作方向">
             <button class="direction-button" type="button" data-direction="-1" aria-pressed="false">← 朝左</button>
             <button class="direction-button" type="button" data-direction="1" aria-pressed="true">朝右 →</button>
@@ -301,10 +302,12 @@
       </div>
     </section>
 
-    <details class="details"><summary>给大人的小说明</summary><p>这是一个离线演示：芽芽的画面来自预渲染动画，不是真正悬浮在桌面上的宠物。页面不收集信息，也没有倒计时或数值。</p></details>
+    <details class="details"><summary>给大人的小说明</summary><p>这是离线电子宠物原型。自主活动按当前精力和兴趣选择小段生活过程，画面由程序绘制后预渲染播放。关闭页面后不会积累饥饿或惩罚；页面不收集信息。完整的走到家具旁、坐下和离场衔接仍在动作表中标明待补。</p></details>
     <footer>芽芽电子宠物 · 明亮卡通版学习机原型</footer>
   </main>
 
+  <script src="source/yaya-catalog.js"></script>
+  <script src="source/yaya-life.js"></script>
   <script>
     (() => {
       'use strict';
@@ -365,10 +368,10 @@
       const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const emotions = [
         ['idle','平静','安安静静地陪在你身边。'], ['curious','好奇','发现新东西，抬起眉毛看一看。'], ['happy','开心','眼睛弯弯，心里亮亮的。'], ['excited','兴奋','忍不住蹦起来分享快乐。'], ['laugh','咯咯笑','一只手捂住嘴，眼睛弯成月牙，轻轻抖两下。'], ['love','喜欢','双手握成小拳头收在胸前，真的好喜欢。'], ['shy','害羞','一只手遮住眼睛，脸颊红红地偷偷看。'], ['proud','自豪','我自己做到了，抬头挺起胸口。'], ['relieved','安心','事情过去了，放松下来呼一口气。'], ['sad','难过','眉心抬起、嘴角向下，眼泪慢慢掉下来。'], ['cry','想哭','眼泪在眼睛里打转。'], ['angry','闹别扭','哼，转过身抱住手臂，不理你一小会儿。'], ['furious','气鼓鼓','腮帮鼓起来，额头的小青筋跳一下。'], ['scared','小紧张','遇到新事情时先靠近你。'], ['surprised','惊讶','眼睛睁大，双手赶紧捂住嘴。'], ['confused','困惑','歪着脑袋，手一摊，大大的问号冒出来。'], ['thinking','思考','手托下巴，头顶的三个点一个一个出现。'], ['idea','有主意','小灯泡反复冒出来，想到好办法。'], ['determined','认真','一只小拳头收在胸前，准备稳稳地试一试。'], ['sleepy','困倦','眼皮慢慢变重，准备睡觉。'], ['bored','有点无聊','安静等一个新的小游戏。'], ['nervous','紧张','小手轻轻动一动给自己打气。'], ['suspicious','悄悄观察','抬手挡住额头，侧着眼睛悄悄看。'], ['disgusted','不喜欢','摇摇头，双手推开，头上的叶子交叉起来。'], ['dizzy','晕乎乎','小星星在头顶转圈圈。'], ['cool','酷酷的','摆一个轻松又自信的姿势。'], ['starstruck','闪闪着迷','看到喜欢的东西，眼睛发光。'], ['ko','睡着啦','进入软绵绵的小梦乡。'], ['playful','调皮','眨眨眼，准备和你玩。'], ['mischief','小淘气','眨眼吐舌，手指点点脸颊，藏着一点小淘气。'], ['hopeful','充满期待','两只手搓一搓，抬起头等一个好消息。']]
-        .map(([key,label,description]) => ({key,label,description}));
+        .map(([key,label,description]) => window.YayaCatalog?.getEmotion(key) || ({key,label,description}));
       const actions = [
-        ['eat','吃饭','拿起小勺一口一口吃饭，吃完满足地点点头。','care','🍚'],
-        ['drink','喝水','举起小杯子咕噜咕噜喝水，喝完擦擦嘴。','care','💧'],
+        ['eat','吃饭','坐在椅子上，面前是餐桌和饭碗；自己的短手拿小勺，取食、送到嘴边、咀嚼。','care','🍚'],
+        ['drink','喝水','坐在桌边，用自己的圆手举杯喝水，再慢慢放低杯子。','care','💧'],
         ['sleep','睡觉','头枕着枕头仰卧，脸朝上，侧脸露在被子外，轻轻呼吸。','care','🌙'],
         ['stretch','伸懒腰','双手向上舒展，张大嘴打个哈欠，再慢慢放松。','care','🙆'],
         ['run','小跑','身体前倾、脚步加快，一蹬一跃地往返跑，身后带着跑动线。','exercise','🏃'],
@@ -378,7 +381,7 @@
         ['jump','跳高','身体向上弹起，落地时有柔软的回弹。','exercise','⬆️'],
         ['walk','走一走','侧着身慢慢走，小脚交替着地，走到另一边再转身回来。','exercise','🚶'],
         ['sway','摇摆','身体左右摇一摇，叶子带着一点惯性。','exercise','↔️'],
-        ['spin','转圈圈','双手自然垂下，交替迈小步转一整圈，五官跟着身体稳稳地转。','exercise','🌀'],
+        ['spin','转圈圈','短胳膊保持日常长度，略微朝下，交替迈小步转一整圈，五官跟着身体稳稳地转。','exercise','🌀'],
         ['stomp','跺脚','小脚有节奏地落地，表达认真和决心。','exercise','👣'],
         ['celebrate','庆祝','先蹲一蹲，伸开双手高高跳起，在最高处兴奋地笑出来。','exercise','🎉'],
         ['wave','挥挥手','一只短胳膊向外伸开，小手来回挥三下，和你打招呼。','interaction','👋'],
@@ -387,10 +390,18 @@
         ['turn','转身','双手放松垂下，换脚、迈小步转向侧面，停一下后转回来看你。','interaction','↩️'],
         ['nod','点点头','脸向前下方低一低，再抬起来，叶子跟着轻轻点两下。','interaction','🙂']
       ].map(([key,label,description,category,icon]) => ({key,label,description,category,icon}));
+      for (const action of actions) {
+        clips[action.key] = ['eat','sleep'].includes(action.key) ? `assets/${action.key}.mp4` : `assets/actions/${action.key}.mp4`;
+        labels[action.key] = `芽芽正在${action.label}`;
+      }
+      for (const emotion of emotions) {
+        clips[`emotion:${emotion.key}`] = `assets/emotions/${emotion.key}.mp4`;
+        labels[`emotion:${emotion.key}`] = emotion.description;
+      }
       let selectedAction = 'eat';
       let selectedCategory = 'care';
       let selectedDirection = 1;
-      const assetVersion = 'actions-v7-20261006';
+      const assetVersion = 'life-v8-20261006';
       function playPreview(video, media, path, poster) {
         video.poster = poster; video.src = `${path}?v=${assetVersion}`; video.load();
         media.classList.remove('video-failed');
@@ -517,27 +528,34 @@
         switching = true;
         const next = 1 - active;
         const nextVideo = layers[next];
-        nextVideo.loop = nextClip === 'sleep';
+        nextVideo.loop = opts.loop ?? (nextClip === 'sleep' || nextClip === 'idle');
         nextVideo.src = pathFor(nextClip);
         nextVideo.poster = 'assets/poster.png';
         try { nextVideo.currentTime = 0; } catch (_) {}
         const canPlay = await waitForCanPlay(nextVideo, token);
-        if (!canPlay || token !== switchToken) { switching = false; if (!canPlay) { setStatus('动画资源还没准备好，请检查 assets 文件夹', 'error'); } return false; }
+        if (token !== switchToken) return false;
+        if (!canPlay) { switching = false; setStatus('动画资源还没准备好，请检查 assets 文件夹', 'error'); return false; }
         try { nextVideo.currentTime = 0; } catch (_) {}
-        if (!pausedByUser) await playLayer(nextVideo);
+        if (!pausedByUser && !document.hidden) await playLayer(nextVideo);
+        if (token !== switchToken) return false;
         if (reducedMotion) { layers[active].pause(); setLayerClasses(next); } else { setLayerClasses(next); }
         layers[active].pause(); active = next; clip = nextClip; switching = false;
         if (nextClip === 'sleep') { sleeping = true; setStatus(labels.sleep, 'sleep'); sleepLabel.textContent = '叫醒'; }
         else { sleeping = false; setStatus(labels[nextClip] || labels.idle); sleepLabel.textContent = '睡觉'; }
         if (!opts.silent) chirp(nextClip === 'sleep' ? 'sleep' : nextClip === 'play' ? 'play' : 'soft');
+        if (opts.label) setStatus(opts.label,nextClip==='sleep'?'sleep':'ready');
         if (nextClip !== 'sleep' && nextClip !== 'idle') {
-          nextVideo.onended = () => { if (!sleeping && nextVideo === layers[active] && !pausedByUser) switchClip('idle', { silent: true }); };
+          nextVideo.onended = () => {
+            if(nextVideo!==layers[active])return;
+            window.dispatchEvent(new CustomEvent('yaya:clip-end',{detail:{clip:nextClip,managed:Boolean(opts.managed)}}));
+            if (!opts.managed && !sleeping && !pausedByUser) switchClip('idle', { silent: true });
+          };
         } else nextVideo.onended = null;
         return true;
       }
       async function interact(action) {
-        if (switching && action !== 'sleep') return;
         if (pausedByUser) return;
+        window.dispatchEvent(new CustomEvent('yaya:interaction',{detail:{action}}));
         if (action === 'sleep') {
           if (sleeping) { await switchClip('idle'); }
           else { await switchClip('sleep'); }
@@ -554,7 +572,7 @@
         if (ok && ready) setStatus(labels[clip]);
       }
       function preloadAll() {
-        const names = Object.keys(clips);
+        const names = ['idle','cuddle','eat','play','sleep','hello','drink','exercise'];
         let loaded = 0, failed = 0, preloadFinished = false;
         names.forEach(name => {
           const pre = document.createElement('video'); pre.preload = 'metadata'; pre.muted = true; pre.src = pathFor(name); pre.style.display = 'none';
@@ -582,21 +600,28 @@
         audioEnabled = !audioEnabled; soundButton.setAttribute('aria-pressed', String(audioEnabled)); soundButton.setAttribute('aria-label', audioEnabled ? '关闭轻柔音效' : '打开轻柔音效');
         soundWave.style.display = audioEnabled ? '' : 'none'; if (audioEnabled) { ensureAudio(); chirp('soft'); }
       });
+      document.addEventListener('visibilitychange',()=>{
+        if(document.hidden)layers[active].pause();
+        else if(!pausedByUser)playLayer(layers[active]);
+      });
       layers[0].src = clips.idle;
-      layers[0].loop = false;
+      layers[0].loop = true;
       layers[0].addEventListener('error', () => { if (!ready) setStatus('找不到芽芽的动画，请检查 assets 文件夹', 'error'); });
       preloadAll();
       window.yayaPet = {
         interact: action => interact(action),
         pause: () => { if (!pausedByUser) pauseButton.click(); },
         resume: () => { if (pausedByUser) pauseButton.click(); },
-        getState: () => ({ clip, sleeping, paused: pausedByUser, audioEnabled, ready, reducedMotion }),
+        getState: () => ({ clip, sleeping, paused: pausedByUser, audioEnabled, ready, reducedMotion, switching,
+          playing:!layers[active].paused&&!layers[active].ended&&layers[active].readyState>=2 }),
+        playClip: (key,options={})=>switchClip(key,options),
         assets: { ...clips },
         emotions: emotions.map(item => item.key), selectEmotion,
         actions: actions.map(item => item.key), selectAction
       };
     })();
   </script>
+  <script src="source/yaya-page-life.js"></script>
 </body>
 </html>
 

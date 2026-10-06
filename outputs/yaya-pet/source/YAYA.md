@@ -8,6 +8,14 @@
 
 ## 情绪和动作
 
+分类与完整动作表见 [docs/YAYA_LIFE_CATALOG.md](docs/YAYA_LIFE_CATALOG.md)。主页面把 31 个状态分成 7 组，支持逐组过滤，同时保留“全部”。吃饭、喝水由 `YayaScenes.drawMeal()` 绘制桌椅场景；主视频和实验室使用同一入口。
+
+自主生活由 `src/yaya-life.js` 提供，与绘图解耦：`create({random,needs,enabled,wait})` 返回 `tick(dt,{blocked})`、`begin(planKey)`、`interrupt(label)`、`setEnabled(value)`、`satisfy(action)`、`getState()`。`tick` 返回要播放的步骤或 `null`，一个步骤执行结束才结算需求变化。9 个计划定义于 `YayaLife.plans`；`hunger/thirst/fatigue/boredom` 是内部需求，数值越高需求越强，不是新的绘图 key。
+
+页面适配器 `src/yaya-page-life.js` 用同一主舞台播放这些步骤，空档有 9–18 秒安静陪伴、闲暇行为有 100 秒冷却。首次进入约 10 秒后开始；用户照料优先并取消原队列，手动睡觉一直持续到叫醒。自动睡眠为 24 秒演示，睡醒伸懒腰。暂停、后台、资源未就绪时不推进；没有离线需求累积。减少动态效果偏好默认关闭自主活动。`window.yayaLife` 提供 `getState/setEnabled/next/filterEmotions` 供集成验证。
+
+普通短臂的肩到掌心距离是 `1.27u`，`turn/spin` 只旋转这个向量；不再用下移目标来意外拉长胳膊。道具和伸展手势仍受 `maxReach:2.05` 约束。
+
 角色状态由 `src/yaya-pet.js` 的数据驱动：
 
 - 情绪：`idle`、`curious`、`happy`、`excited`、`laugh`、`love`、`shy`、`proud`、`relieved`、`sad`、`cry`、`angry`、`furious`、`scared`、`surprised`、`confused`、`thinking`、`idea`、`determined`、`sleepy`、`bored`、`nervous`、`suspicious`、`disgusted`、`dizzy`、`cool`、`starstruck`、`ko`、`playful`、`mischief`、`hopeful`
