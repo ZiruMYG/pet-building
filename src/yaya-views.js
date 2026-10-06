@@ -35,7 +35,10 @@
   }
   function drawTurnedFace(D,u,S,age,yaw,cols,bodyYaw=yaw) {
     const c=Math.cos(yaw),s=Math.sin(yaw),C=D.palette,e=S.face||S;
-    if(Math.abs(s)<.0001 && c>0) {D.flatFace(u,age,S);return;}
+    // Keep a turning face on one continuous projection, including exact
+    // front view; swapping to another eye drawing can make its size jump.
+    const rigidTurn=['turn','spin'].includes(S.action||S.state);
+    if(Math.abs(s)<.0001 && c>0 && !rigidTurn) {D.flatFace(u,age,S);return;}
     const kinds=Array.isArray(e.eyes)?e.eyes:[e.eyes,e.eyes];
     for(const side of [-1,1]) {
       const visibility=smooth((c*.82-side*s*.58+.08)/.5);
@@ -45,7 +48,10 @@
       const kind=kinds[side<0?0:1];
       push();translate(eye[0]*u,eye[1]*u);
       if(['happy','laugh','relieved','closed','sleepy'].includes(kind)) {
-        D.flatLine([[-w*u,.06*u],[0,(kind==='relieved'?.26:-.22)*u],[w*u,.06*u]],C.ink,2.6);
+        if(S.sleeping) {
+          const lid=Array.from({length:17},(_,i)=>{const a=i/8-1;return [a*w*u,(.06+.16*(1-a*a))*u];});
+          D.flatLine(lid,C.ink,2.6);
+        } else D.flatLine([[-w*u,.06*u],[0,(kind==='relieved'?.26:-.22)*u],[w*u,.06*u]],C.ink,2.6);
       } else if(['wide','look','curious'].includes(kind)) {
         D.flatEllipse(0,0,w*u,.88*u,C.paper,C.ink,2.3);
         const gaze=s*.1+Math.max(-1,Math.min(1,e.lookX||0))*.20;
@@ -115,9 +121,7 @@
     S=D.actionFace(S,key,age);
     const p=D.pose(age,S), cols=D.moodColors(S.face||S), C=D.palette,turnPose=view?.turnPose;
     if(turnPose) {
-      p.left=.35+turnPose.armSwing;p.right=.35-turnPose.armSwing;
       p.dy=turnPose.bob;p.rot=turnPose.lean;p.sq=turnPose.squash;
-      S={...S,face:{...S.face,eyes:'look',lookX:Math.max(-1,Math.min(1,(turnPose.faceYaw-yaw)*4))}};
     }
     const run=key==='run',locomotion=run||key==='walk',gait=view?.gait ?? age*TAU*(run?2.6:1.35),speed=view?.speed ?? 1;
     const a=window.YayaActions?.sample(key,age)||{nod:0,energy:0,jump:0};
@@ -160,8 +164,8 @@
     // Visibility uses each feature's surface normal: eyes disappear gradually
     // behind the contour, never popping between a two-eye and one-eye sprite.
     push();translate(0,(-4.5+.50*a.nod)*u);scale(1-.025*a.nod,1-.18*a.nod);translate(0,4.5*u);
-    drawTurnedFace(D,u,S,age,turnPose?.faceYaw??yaw,cols,yaw);pop();
-    if(cs>.02) {
+    drawTurnedFace(D,u,S,age,yaw,cols,yaw);pop();
+    if(cs>.02&&!S.sleeping) {
       const bx=2.65*sn,by=YayaBody.constants.heartY+YayaBody.surfaceArc(bx/breadth);
       push();translate(bx*u,by*u);scale(cs,1);D.flatHeart(0,0,.48*u,'#FFB07D',2);pop();
     }

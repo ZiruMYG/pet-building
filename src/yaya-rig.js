@@ -85,8 +85,16 @@
       set(s,s*mix(3.4,1.39,k),mix(-3.85,-3.32,k),-s*.26,'grip');
     }
     else if(key==='sleep') for(const s of [-1,1]) {
-      if(S.sleeping)set(s,s<0?-2.7:2.25,s<0?-3.9:-4.1,s*.12);
+      if(S.sleeping)set(s,s*2.65,-2.55,s*.12);
       else set(s,s*2.6,-3.3,s*.12);
+    }
+    else if(key==='turn'||key==='spin') {
+      // Turning keeps relaxed arms by the lower flanks. Shoulder-height
+      // default palms read as a T-pose even when the feet are stepping well.
+      // A tiny counter-swing follows the planted-foot clock, never the old
+      // left/right lift values. Full palms and fixed shoulder roots remain.
+      const swing=globalThis.YayaTurns?.sample(key,age).armSwing||0;
+      for(const s of [-1,1]) set(s,s*3.00+swing*.18,-2.16+s*swing*.07,s*.08);
     }
     else if(key==='exercise') for(const s of [-1,1]) {const lift=.5-.5*Math.cos(a*2);set(s,s*(3.05-.1*lift),-4.15-1.12*lift,s*.12,'grip');}
     else if(key==='dance') for(const s of [-1,1]) {const lift=.5+.5*Math.sin(a*2+s*Math.PI/2);set(s,s*(2.9+.1*lift),-3.48-1.92*lift,s*.2,'fingers');}

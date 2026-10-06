@@ -43,7 +43,7 @@
       if(t>=step.end) {angles[step.side]=step.footYaw;yaw=step.bodyYaw;continue;}
       if(t>=step.start) {
         active=step;stepIndex=i;progress=(t-step.start)/(step.end-step.start);oldYaw=yaw;
-        // The lifted foot and gaze lead. The weight-bearing body follows a
+        // The lifted foot leads. The weight-bearing body follows a
         // little later and eases to rest before the new foot is fully loaded.
         yaw+=(step.bodyYaw-yaw)*ease((progress-.12)/.79);
       }
@@ -51,7 +51,7 @@
     }
 
     const feet=[foot(-1,angles[-1]),foot(1,angles[1])];
-    let bob=0,lean=0,squash=0,armSwing=0,faceOffset=0,leafOffset=0;
+    let bob=0,lean=0,squash=0,armSwing=0,leafOffset=0;
     let phase=t<steps[0].start?'anticipate':t>=steps.at(-1).end?'settle':'hold';
     if(active) {
       phase='step';
@@ -65,17 +65,14 @@
       bob=-.075*a;
       squash=.013*Math.sin(TAU*q)*a;
       armSwing=active.side*.22*a;
-      faceOffset=direction*.17*envelope(q,0,.16,.65,1);
       leafOffset=-direction*.105*a;
     } else if(phase==='anticipate') {
       const q=t/steps[0].start;
-      faceOffset=.18*arc(q);
       leafOffset=-.055*arc(q);
       yaw=-.035*arc(q);
       squash=.018*arc(q);
     } else if(action==='turn'&&t>1.53&&t<2.5) {
-      // Look back just before the return step, while both feet stay planted.
-      faceOffset=-.14*envelope(t,2.16,2.29,2.37,2.5);
+      // Soft leaves can prepare for the return while the planted body rests.
       leafOffset=.045*envelope(t,2.2,2.32,2.38,2.5);
     }
 
@@ -88,7 +85,8 @@
     }
     bodyZ-=GROUND_Z;
     return {
-      duration:length,t,yaw,faceYaw:yaw+faceOffset,leafYaw:yaw+leafOffset,
+      // Facial features belong to the rigid body. Only soft leaves lag.
+      duration:length,t,yaw,faceYaw:yaw,leafYaw:yaw+leafOffset,
       bodyX,bodyZ,bob,lean,squash,armSwing,feet,
       turning:phase==='step'||phase==='anticipate',phase,stepIndex,progress,
     };

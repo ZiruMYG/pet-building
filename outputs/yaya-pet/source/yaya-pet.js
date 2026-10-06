@@ -431,7 +431,10 @@
     } else if(key==='sleep') {face.eyes='relieved';face.mouth='small';face.closed=1;}
     else if(key==='hug') {face.eyes='relieved';face.mouth='smile';face.blush=.6;}
     else if(key==='nod'&&a) {face.eyes=a.nod>.7?'relieved':'normal';face.mouth='smile';face.lookY=0;}
-    else if(['wave','reach','walk','run','turn','spin'].includes(key)) {face.eyes=key==='run'?'happy':'normal';face.mouth=key==='run'?'open':'smile';face.lookY=0;}
+    else if(['wave','reach','walk','run','turn','spin'].includes(key)) {
+      face.eyes=key==='run'?'happy':'normal';face.mouth=key==='run'?'open':'smile';face.lookY=0;
+      if(key==='turn'||key==='spin')face.lookX=0;
+    }
     else return S;
     return {...S,face};
   }

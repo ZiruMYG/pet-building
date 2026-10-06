@@ -16,7 +16,7 @@
 - 日常动作：`drink`、`run`、`exercise`、`stretch`、`ball`、`dance`
 - 交互别名：`feed` → `eat`、`touch` → `cuddle`、`nap` → `sleep`、`think` → `thinking`、`water`/`hydrate` → `drink`、`jog` → `run`、`football` → `ball`
 
-日常动作使用具体道具和身体证据：`eat` 用自己手里的勺子把食物送到嘴边并做咀嚼，`drink` 持杯倾斜，`sleep` 放松横躺在地面上，`stretch` 双手向上拉伸并张大嘴打哈欠，`run` 比 `walk` 更快且有腾空和身后速度线，`hug` 斜侧身抱泰迪熊。`exercise` 举小哑铃热身，`ball` 配合弹跳球，`dance` 左右摆动并让叶子跟拍。周期由 `YayaActions.duration()` 统一定义：`yaya_run`/`yaya_spin` 为 6 秒，`yaya_walk`/`yaya_sleep` 为 8 秒，其他状态为 4 秒。
+日常动作使用具体道具和身体证据：`eat` 用自己手里的勺子把食物送到嘴边并做咀嚼，`drink` 持杯倾斜，`sleep` 仰卧在床上，枕着枕头、脸朝上，侧脸露在被子外，`stretch` 双手向上拉伸并张大嘴打哈欠，`run` 比 `walk` 更快且有腾空和身后速度线，`hug` 斜侧身抱泰迪熊。`exercise` 举小哑铃热身，`ball` 配合弹跳球，`dance` 左右摆动并让叶子跟拍。周期由 `YayaActions.duration()` 统一定义：`yaya_run`/`yaya_spin` 为 6 秒，`yaya_walk`/`yaya_sleep` 为 8 秒，其他状态为 4 秒。
 
 叶子使用圆润边缘、弯曲叶脉和固定根点，不再使用旧的九点多边形。`sad`/`cry`/`sleepy`/`ko` 软垂，`shy` 向内收，好奇时一上一下，开心时向外舒展并扑扇；跑步时顺着速度向后轻摆。形态与动作分别选择，具体 API 和映射见下方“圆叶与动作 API”。
 
@@ -32,7 +32,7 @@ const emotion = getYayaEmotionState('happy', t);
 const acted = yayaEmotions(t, [[0, 'sleepy'], [0.8, 'surprised'], [1.2, 'happy']]);
 drawYaya(960, 900, 72, t, acted);
 YayaViews.perform(960, 900, 70, t, 'walk', t); // 完整往返走路
-YayaViews.perform(960, 900, 70, t, 'sleep', t); // 轻轻呼吸的横躺姿势
+YayaViews.perform(960, 900, 70, t, 'sleep', t); // 枕着枕头仰卧，被子轻轻起伏
 ```
 
 ## 共享身体与脚本依赖
@@ -109,16 +109,16 @@ const socketPoint = YayaRig.pointAt(arm, 0.2, 0);
 
 | 动作 | 时间与主要输出 | 完整演示 |
 |---|---|---|
-| `sleep` | 8 秒，呼吸内部周期 4 秒 | 横躺、闭眼，身体轻轻起伏并贴着地面 |
+| `sleep` | 8 秒，呼吸内部周期 4 秒 | 仰卧在床上，脸朝上，枕头支撑头部，被子外露出侧脸，轻轻呼吸 |
 | `stretch` | 4 秒，`lift/yawn` 同步；约 1.22–2.16 秒明显打哈欠 | 双手抬高，闭眼张大嘴，再放松 |
 | `walk` | 8 秒 | 每段走 3 秒、转身 1 秒 |
 | `run` | 6 秒 | 每段跑 2.3 秒、转身 0.7 秒，更快步频、前倾、腾空与跑动线 |
-| `spin` | 6 秒，分步转动，完整朝向变化为 2π | 目光先走、交替抬脚落脚，重心跟着支撑脚移动 |
+| `spin` | 6 秒，分步转动，完整朝向变化为 2π | 交替抬脚落脚，重心跟着支撑脚移动，五官与身体同转，双手自然下垂 |
 | `celebrate` | 4 秒；1.06 秒起跳，1.78 秒高点约 1.65 身体单位，2.50 秒落地 | 蓄力蹲下、双手伸开跳高、高点欢呼、落地缓冲 |
 | `wave` | 4 秒；0.65–3.20 秒内三次挥动 | 胳膊向外抬起，绕肩点挥手 |
 | `hug` | 4 秒，`reach` 控制轻轻收紧 | 约 1.15 弧度斜侧面抱泰迪熊 |
 | `reach` | 4 秒，`reach` 先增大、保持、再归零 | 肩到掌心由约 1.27 伸至 2.02 |
-| `turn` | 4 秒，正面 → π/2 → 正面 | 先看、换重心、迈步转侧面，停留后迈步返回 |
+| `turn` | 4 秒，正面 → π/2 → 正面 | 换重心、迈步转侧面，停留后迈步返回，五官和身体朝向一致 |
 | `nod` | 4 秒，约 0.84/2.24 秒为两次点头低点 | 脸下移并压缩、叶子下弯；没有左右倾斜 |
 
 ```js
@@ -128,17 +128,19 @@ YayaViews.perform(960, 900, 70, t, 'hug', t);
 YayaViews.perform(960, 900, 70, t, 'spin', t);
 ```
 
-`YayaViews.perform(x,y,u,t,state,age,debug)` 是完整动作入口：睡觉委托 `YayaScenes.drawSleep()`，走跑使用往返路径，小跑附加速度线，抱熊使用斜侧面，转身和转圈读取 `YayaTurns.sample()` 的分步姿态。其余动作正面演示。直接用 `draw()` 固定视角只用于结构检查，不会自动切到横躺姿势或执行踏步转向。
+`YayaViews.perform(x,y,u,t,state,age,debug)` 是完整动作入口：睡觉委托 `YayaScenes.drawSleep()`，走跑使用往返路径，小跑附加速度线，抱熊使用斜侧面，转身和转圈读取 `YayaTurns.sample()` 的分步姿态。其余动作正面演示。直接用 `draw()` 固定视角只用于结构检查，不会自动切到床上的仰卧场景或执行踏步转向。
 
-`YayaScenes.drawSleep(x,y,u,t,state,age,debug)` 把同一份 `YayaViews.draw()` 绘制的身体转成横躺姿势，不增加床、枕头或被子。每帧从旋转后的身体轮廓求最低点，再调整高度；呼吸改变挤压时，身体仍贴着地面。闭眼、放松的手脚与轻轻合拢的叶子共同表达睡觉。`drawHeld(u,key,age,arms,cols,view)` 在胳膊之后、真实手掌之前画泰迪熊；`heldCenter(arms)` 取解算后双掌的中点并向上偏移 0.25 个身体单位。所有动作仍保留两个固定肩点、两枚圆掌和最大肩掌距离，不增加备用手。
+`YayaScenes.drawSleep(x,y,u,t,state,age,debug)` 把同一份角色几何转成床上的仰卧姿势：背朝床垫、脸朝天花板，观看者从床侧看见露在被子外的侧脸。床、枕头和被子保留；枕头支撑头部，被子覆盖下半身并轻轻呼吸。应检查脸朝向和床面之间的关系，不能只把正面站姿旋转 90 度当作仰卧。`drawHeld(u,key,age,arms,cols,view)` 在胳膊之后、真实手掌之前画泰迪熊；`heldCenter(arms)` 取解算后双掌的中点并向上偏移 0.25 个身体单位。所有动作仍保留两个固定肩点、两枚圆掌和最大肩掌距离，不增加备用手。
 
 ## 踏步转向 API
 
 `YayaTurns.sample('turn' | 'spin', age)` 返回 `{duration,t,yaw,faceYaw,leafYaw,bodyX,bodyZ,bob,lean,squash,armSwing,feet,turning,phase,stepIndex,progress}`。`feet` 含两只脚，每只为 `{side,x,z,lift,yaw,contact}`，坐标使用身体单位，但属于固定地面；支撑阶段的脚不能继续乘上身体的 `yaw`。
 
-`turn` 在约 0.38–1.53 秒用两步转到侧面，随后停留，2.50–3.65 秒用两步返回；总周期 4 秒。`spin` 在约 0.44–5.16 秒交替迈六步，三组开步与跟步完成一圈，最后回稳；总周期 6 秒。每步先让目光指向目标，再让身体跟上，叶子略晚回稳。脚抬起时沿弧线移动，另一只脚的地面位置与朝向保持不变，身体重心偏向这只支撑脚。
+`turn` 在约 0.38–1.53 秒用两步转到侧面，随后停留，2.50–3.65 秒用两步返回；总周期 4 秒。`spin` 在约 0.44–5.16 秒交替迈六步，三组开步与跟步完成一圈，最后回稳；总周期 6 秒。五官直接跟随身体朝向，`faceYaw === yaw`，不额外摆动或滞后；双手放松下垂，仅随迈步小幅摆动，叶子略晚回稳。脚抬起时沿弧线移动，另一只脚的地面位置与朝向保持不变，身体重心偏向这只支撑脚。
 
-`YayaViews.perform()` 把采样结果放入 `view.turnPose`，在身体变换外绘制地面脚步，再分别应用身体、脸和叶子的朝向。转圈将叶片内部采样时间缩放为 `age * 4 / 6`，使原来的 4 秒叶片摆动与 6 秒转圈一起闭合。这套约束只用于独立 `turn`/`spin`；往返走跑沿用 `travel()` 和 `YayaGait`，不要混淆二者的脚掌约束范围。
+`YayaViews.perform()` 把采样结果放入 `view.turnPose`，在身体变换外绘制地面脚步。身体与五官共用同一个朝向，只有叶子保留稍晚回稳的跟随变化；不要把叶子的惯性应用到眼睛、眉毛和嘴上。转圈将叶片内部采样时间缩放为 `age * 4 / 6`，使原来的 4 秒叶片摆动与 6 秒转圈一起闭合。这套约束只用于独立 `turn`/`spin`；往返走跑沿用 `travel()` 和 `YayaGait`，不要混淆二者的脚掌约束范围。
+
+`turn`/`spin` 在正面 0 度也沿用同一套连续五官投影，不切换到单独的 `flatFace()`，避免两套绘法之间的眼睛尺寸或位置跳变。
 
 ```js
 const turning = YayaTurns.sample('turn', 0.7);
@@ -189,7 +191,7 @@ node render.mjs --clip --out=out/yaya.mp4
 
 `studio-yaya-pet.html` 是 16 秒的 hello → cuddle → eat → play 展示场景；`outputs/yaya-pet/` 中的离线页面则提供摸摸、喂食、喝水、运动、一起玩、睡觉等按钮。日常动作的 JPG/MP4 可用 `node render-yaya-daily-action-videos.mjs eat drink run exercise stretch ball dance` 重新生成。导出时读取 `LOOPS[name].len`，不要把往返跑截成 4 秒。
 
-`outputs/yaya-pet/rig-lab.html` 是离线实时实验室，有 14 个按钮：站好、吃饭、喝水、睡觉、伸懒腰、走路、小跑、转圈、庆祝、挥手、抱熊、伸手、转身、点头。6 个视角选项包括默认“动作演示”、三视图、正面、侧面、背面和跑道。点选动作自动回到“动作演示”，保证横躺睡姿与踏步转圈可见；手动选择固定视角用于检查连接。跑道会保留当前走路/跑步选择，其他动作切入跑道时改为小跑。
+`outputs/yaya-pet/rig-lab.html` 是离线实时实验室，有 14 个按钮：站好、吃饭、喝水、睡觉、伸懒腰、走路、小跑、转圈、庆祝、挥手、抱熊、伸手、转身、点头。6 个视角选项包括默认“动作演示”、三视图、正面、侧面、背面和跑道。点选动作自动回到“动作演示”，保证仰卧睡姿与踏步转圈可见；手动选择固定视角用于检查连接。跑道会保留当前走路/跑步选择，其他动作切入跑道时改为小跑。
 
 叶子面板可把 5 种形态与 7 种运动自由混搭，或点“跟随角色”恢复自动配合。可以暂停、重播、拖动进度条、显示肩点与连接骨架；预览直接调用当前源码，不依赖预渲染 MP4。`window.yayaLab` 提供 `setAction/setView/setTime/pause/play/getState` 及叶子控制方法。分发时保留整个 `source/` 目录及其本地 `vendor/`。
 

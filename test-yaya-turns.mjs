@@ -16,14 +16,14 @@ let count=0;
 for(const key of ['turn','spin']) {
   const duration=T.duration(key),plan=T.plans[key];
   assert.equal(duration,key==='spin'?6:4);
-  let peakLift=0,peakLead=0,peakLag=0;
+  let peakLift=0,peakLag=0;
   for(let n=0;n<duration*600;n++) {
     const t=n/600,q=T.sample(key,t);count++;
     finiteTree(q);
     assert.equal(q.feet.length,2);
     assert.ok(q.feet.some(f=>f.contact),'a turning step must retain support');
     assert.ok(Math.abs(q.lean)<=.050001);
-    peakLead=Math.max(peakLead,Math.abs(q.faceYaw-q.yaw));
+    close(q.faceYaw,q.yaw,1e-12); // The face has no independent spring or yaw.
     peakLag=Math.max(peakLag,Math.abs(q.leafYaw-q.yaw));
     for(const f of q.feet) {
       assert.ok(f.lift>=0&&f.lift<=.400001);
@@ -36,7 +36,7 @@ for(const key of ['turn','spin']) {
     assert.ok(q.bodyX>=minX-1e-8&&q.bodyX<=maxX+1e-8);
     assert.ok(q.bodyZ+.1>=minZ-1e-8&&q.bodyZ+.1<=maxZ+1e-8);
   }
-  assert.ok(peakLift>.39&&peakLead>.16&&peakLag>.10);
+  assert.ok(peakLift>.39&&peakLag>.10);
 
   for(const step of plan) {
     const before=T.sample(key,step.start),after=T.sample(key,step.end);
@@ -73,4 +73,4 @@ close(T.sample('turn',1.7).yaw,Math.PI/2);
 close(T.sample('turn',2.1).yaw,Math.PI/2);
 close(T.sample('spin',1.18).yaw,T.sample('spin',1.22).yaw);
 assert.ok(T.sample('spin',.8).yaw>T.sample('spin',.65).yaw+.15);
-console.log(`Yaya turns: ${count} frames; planted contacts, swing clearance, loop and gaze/leaf timing passed.`);
+console.log(`Yaya turns: ${count} frames; planted contacts, rigid face attachment, swing clearance, loop and leaf timing passed.`);

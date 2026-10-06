@@ -30,7 +30,11 @@ try {
   await page.evaluate(()=>{
     const perform=window.YayaViews.perform;
     window.labActionRenders=[];
-    window.YayaViews.perform=function(...args){window.labActionRenders.push({action:window.yayaLab.getState().action,age:args[5]});return perform.apply(this,args);};
+    window.YayaViews.perform=function(...args){
+      const rendered=perform.apply(this,args);
+      window.labActionRenders.push({action:window.yayaLab.getState().action,age:args[5],scene:rendered?.scene,yaw:rendered?.yaw,rotation:rendered?.rotation,faceYaw:rendered?.turnPose?.faceYaw});
+      return rendered;
+    };
   });
   const actions=['eat','drink','sleep','stretch','walk','run','spin','celebrate','wave','hug','reach','turn','nod'];
   const actionImages=new Map();
@@ -50,6 +54,12 @@ try {
     const expectedDuration=['run','spin'].includes(action)?6:['walk','sleep'].includes(action)?8:4;
     assert.equal(current.state.duration,expectedDuration,`${action} has its full timeline`);
     assert.equal(await page.$eval('#scrub',input=>Number(input.max)),expectedDuration);
+    const rendered=await page.evaluate(()=>window.labActionRenders.at(-1));
+    if(action==='sleep') {
+      assert.equal(rendered.scene,'bed-supine','sleep must retain the bed scene');
+      assert.ok(Math.sin(rendered.rotation)*Math.sin(rendered.yaw)<-.9,'supine face must point toward the ceiling');
+    }
+    if(action==='turn'||action==='spin')assert.equal(rendered.faceYaw,rendered.yaw,'face remains attached to the body while turning');
   }
   assert.equal(new Set(actionImages.values()).size,actions.length,'all requested actions draw distinct demonstrations');
   const automaticActions=await page.evaluate(()=>[...new Set(window.labActionRenders.map(frame=>frame.action))]);

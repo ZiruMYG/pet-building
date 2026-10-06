@@ -88,4 +88,26 @@ for(const t of [.84,2.24]) {
 const betweenNods=drawing.pose(1.5,state('nod',1.5));
 assert.equal(betweenNods.rot,0,'nod rests without lateral tilt');
 assert.equal(betweenNods.sq,0,'nod resets upright between beats');
+// A grounded turn must also keep relaxed hands down by the flanks. Test the
+// entire step cycle and exaggerated legacy lift inputs so a future pose-layer
+// change cannot accidentally bring back the shoulder-height T-pose.
+for(const key of ['turn','spin']) {
+  const duration=context.YayaActions.duration(key);
+  for(let frame=0;frame<=duration*120;frame++) {
+    const t=frame/120,S=state(key,t);
+    const arms=rig.poseArms(key,t,S,{left:2.5,right:-2.5});
+    for(const arm of arms) {
+      const outward=(arm.palm[0]-arm.shoulder[0])*arm.side;
+      assert.ok(arm.palm[1]-arm.shoulder[1]>1.70,`${key}: hand must hang below its shoulder`);
+      assert.ok(outward>.65&&outward<.77,`${key}: relaxed hand stays close to its flank`);
+      assert.equal(arm.layer,'front',`${key}: near resting hand stays visible against the flank`);
+      assert.equal(arm.clamped,false,`${key}: relaxed arm should not strain at full reach`);
+    }
+  }
+}
+const sleeping=state('sleep',1.5);
+for(const arm of rig.poseArms('sleep',1.5,{...sleeping,sleeping:true},{})) {
+  assert.ok(arm.palm[1]>-3,'sleeping palms rest below the face under the quilt');
+  assert.equal(arm.clamped,false,'sleeping arms remain relaxed');
+}
 console.log(`Yaya rig PASS: ${allStates.length} states, ${solved} solved arms, reach/overlap/open-root/socket/contact/continuity checks.`);

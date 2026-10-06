@@ -2,7 +2,7 @@
 // No artwork is duplicated here: every panel calls YayaViews.draw with the same time.
 (() => {
   'use strict';
-  const names = {idle:'站好',eat:'吃饭',drink:'喝水',sleep:'躺着睡觉',stretch:'伸懒腰＋哈欠',walk:'走一走',run:'快快小跑',spin:'原地转圈',celebrate:'跳起来庆祝',wave:'挥挥手',hug:'抱泰迪熊',reach:'伸出手',turn:'转向侧面',nod:'点点头'};
+  const names = {idle:'站好',eat:'吃饭',drink:'喝水',sleep:'仰卧睡觉',stretch:'伸懒腰＋哈欠',walk:'走一走',run:'快快小跑',spin:'原地转圈',celebrate:'跳起来庆祝',wave:'挥挥手',hug:'抱泰迪熊',reach:'伸出手',turn:'转向侧面',nod:'点点头'};
   const viewNames = {auto:'动作演示',sheet:'三视图',front:'正面',side:'侧面',back:'背面',travel:'往返跑道'};
   const leafShapes = {auto:'跟随角色',natural:'自然圆叶',upright:'竖起倾听',spread:'向外舒展',droop:'软软垂落',cup:'害羞内扣'};
   const leafMotions = {auto:'跟随角色',still:'保持姿态',breathe:'轻轻呼吸',sway:'左右探看',alternate:'一上一下',flap:'开心扑扇',twitch:'抖两下',wind:'向后轻摆'};
@@ -10,16 +10,16 @@
     idle:'点选动作，看芽芽用手、身体、表情和叶子一起表达。也可以切换视角，暂停查看每个姿势。',
     eat:'小勺跟着自己的手掌移动：拿起、送到嘴边、放回。暂停看看勺柄与手掌的接触。',
     drink:'短胳膊从固定肩点抬起，小杯跟随手掌倾斜，再一起放下。',
-    sleep:'芽芽安静地躺下，闭着眼睛，身体随着呼吸轻轻起伏。',
+    sleep:'芽芽仰卧在床上，头枕着枕头，脸朝天花板；我们看见露在被子外的侧脸，被子随着呼吸轻轻起伏。',
     stretch:'两只手向上伸开，嘴巴张大打一个哈欠，叶子也舒展开，再一起放松。',
     walk:'侧身慢慢走，小脚交替着地；走到另一边，转过身再走回来。',
     run:'加快脚步，身体轻轻向前倾，一蹬一跃地跑起来，身后带着跑动线。',
-    spin:'先看向要转的方向，再交替抬脚、落脚，身体跟着小步转一圈。',
+    spin:'两只手自然垂着，交替抬脚、落脚，身体跟着小步转一圈，五官稳稳地跟随身体。',
     celebrate:'先蹲一蹲，再伸开双手高高跳起；跳到最高处时露出兴奋的表情。',
     wave:'把一只短胳膊向外伸开，小手来回挥三下，清楚地和你打招呼。',
     hug:'芽芽转向侧面，用两只手抱住泰迪熊，轻轻收紧，再放松一点。',
     reach:'从固定肩点向外伸出短胳膊，小圆手跟着向前探，再慢慢收回。',
-    turn:'先看看旁边，换一只脚支撑，迈小步转向侧面；停一下，再转回来看你。',
+    turn:'双手自然垂着，换一只脚支撑，迈小步转向侧面；停一下，再转回来看你。',
     nod:'脸向前下方轻轻低下，再抬起来；叶子跟着点两下头。'
   };
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

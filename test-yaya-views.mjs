@@ -106,9 +106,7 @@ for (const action of actions) {
 let projectedSamples=0;
 function projectedArms(action,t,yaw,route={}) {
  const locomotion=action==='run'||action==='walk';
- const turn=['turn','spin'].includes(action)?T.sample(action,t):null;
- const pose=turn?{left:.35+turn.armSwing,right:.35-turn.armSwing}:{};
- return V.solveArms({},R,action,t,{action},pose,yaw,locomotion,route.gait??t*Math.PI*2,route.speed??1);
+ return V.solveArms({},R,action,t,{action},{},yaw,locomotion,route.gait??t*Math.PI*2,route.speed??1);
 }
 function checkArms(action,arms,yaw) {
  assert.equal(arms.length,2,`${action}: two projected arms`);

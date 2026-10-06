@@ -7,7 +7,7 @@
 - 喝水：手掌带着小杯倾斜，再一起放下
 - 运动：举小哑铃热身
 - 一起玩：小跳和挥手
-- 睡觉：安静地横躺在地面上，闭眼，身体随着呼吸轻轻起伏；点击按钮可叫醒
+- 睡觉：仰卧在床上，头枕着枕头、脸朝天花板，被子外露出侧脸，轻轻呼吸；点击按钮可叫醒
 
 同目录的 `yaya-demo.mp4` 是 16 秒展示片，`assets/yaya-reference.png` 是早期角色设定图，`assets/yaya-winter-melon-reference.png` 是本次确认的冬瓜轮廓与横纹参考。`source/` 保存了基于 ClaudeAnimationBase 的角色和场景源码。
 
@@ -19,7 +19,7 @@
 
 源码还提供了可组合的 31 种情绪循环（包含开心、好奇、害羞、安心、思考、惊讶、困倦、调皮等柔和版本），以及 `hello`、`cuddle`、`eat`、`play`、`sleep` 五个互动动作、11 个方向动作和 6 个日常动作：`drink` 喝水、`run` 小跑、`exercise` 热身操、`stretch` 伸懒腰、`ball` 玩球、`dance` 跳舞。页面共有 19 个动作按钮，并按日常照料、运动玩耍、回应互动分组。`run` 和 `spin` 为 6 秒，`walk` 和 `sleep` 为 8 秒，其他状态为 4 秒。原左右方向按钮仍可镜像预览；实验室的转身使用换重心、交替踏步和分阶段转向。可以在工作室里用 `yaya_love`、`yaya_drink` 或 `yaya_run` 这样的循环名渲染单独状态，具体命令见 `source/YAYA.md`。
 
-这次重做的动作可以直接对照：伸懒腰会张大嘴打哈欠；小跑比走路更快，有腾空和身后跑动线；转圈先看向转动方向，再用小脚交替迈步，经过侧面和背面；庆祝先蹲下再高高跳起，在高点欢笑；挥手和伸手会把短胳膊向外展开；抱抱改为斜侧身抱泰迪熊；转身先看向目标，再迈步转到侧面，停一下后回来；点头让脸和叶子向下俯再抬起，不再左右晃。
+这次重做的动作可以直接对照：伸懒腰会张大嘴打哈欠；小跑比走路更快，有腾空和身后跑动线；转圈用小脚交替迈步，经过侧面和背面，五官随着身体转动，双手自然垂下；庆祝先蹲下再高高跳起，在高点欢笑；挥手和伸手会把短胳膊向外展开；抱抱改为斜侧身抱泰迪熊；转身先换重心，再迈步转到侧面，停一下后回来；点头让脸和叶子向下俯再抬起，不再左右晃。
 
 ## 三视图与动作实验室
 
@@ -33,9 +33,9 @@
 
 加载配置、绘制核心和时间线后，依次加载 `source/yaya-turns.js` → `source/yaya-actions.js` → `source/yaya-rig.js` → `source/yaya-body.js` → `source/yaya-gait.js` → `source/yaya-leaves.js` → `source/yaya-pet.js` → `source/yaya-views.js` → `source/yaya-scenes.js`，最后加载工作室场景或 `source/yaya-rig-lab.js`。动作时钟、身体、叶子、手臂和步态可以脱离浏览器测试。
 
-`source/yaya-turns.js` 提供 `YayaTurns.sample(key,age)`：转身 4 秒，先看目标、两步转侧面、停留，再两步返回；转圈 6 秒，六次交替踏步完成一圈。支撑脚的地面位置与朝向固定，只有抬起的脚移动，身体重心向支撑脚转移；脸先转、身体跟上、叶子稍晚回稳。绘制脚步时不继承身体的旋转和挤压，因此不会整只角色像展示物体一样一起转动。该机制只用于独立的 `turn`/`spin`。
+`source/yaya-turns.js` 提供 `YayaTurns.sample(key,age)`：转身 4 秒，先换重心、两步转侧面、停留，再两步返回；转圈 6 秒，六次交替踏步完成一圈。支撑脚的地面位置与朝向固定，只有抬起的脚移动，身体重心向支撑脚转移；五官与身体共用朝向，双手自然下垂，叶子稍晚回稳。眼睛不增加独立摇晃或惯性。绘制脚步时不继承身体的旋转和挤压，因此不会整只角色像展示物体一样一起转动。该机制只用于独立的 `turn`/`spin`。
 
-`source/yaya-actions.js` 提供 `YayaActions.duration(key)` 和 `sample(key,age)`，统一动作周期及 `jump/crouch/energy/yaw/nod/yawn/reach/wave/lift` 等阶段值。手臂、脸和身体读取同一个时钟，让哈欠配合抬手、庆祝表情出现在跳跃高点。点头使用脸部下移和纵向压缩、叶子下弯来表现俯仰；转身和转圈由 `YayaTurns` 配合朝向、目光、踏步与重心，不能只改变 `yaw` 或用屏幕内左右倾斜代替。
+`source/yaya-actions.js` 提供 `YayaActions.duration(key)` 和 `sample(key,age)`，统一动作周期及 `jump/crouch/energy/yaw/nod/yawn/reach/wave/lift` 等阶段值。手臂、脸和身体读取同一个时钟，让哈欠配合抬手、庆祝表情出现在跳跃高点。点头使用脸部下移和纵向压缩、叶子下弯来表现俯仰；转身和转圈由 `YayaTurns` 配合朝向、踏步与重心，五官稳定跟随身体，不能只改变 `yaw` 或用屏幕内左右倾斜代替。
 
 `source/yaya-body.js` 提供 `YayaBody.outline(u)`、`stripes(u)`、`breadth(yaw)` 和 `constants`。轮廓和已裁切的两条横纹共用身体单位与投影；侧宽比例为 `0.86`、爱心基准高度为 `-2.65`、条纹色为 `#F6A533`。两纹中心高度为 `-1.75/-0.95`，厚度为 `0.40/0.34`。转向时爱心跟随相同表面弧线，保持与条纹的间距；`fitEllipseX()` 约束完整侧眼和腮红，不让椭圆外缘突出身体。新增视角应复用这些数据，不能另外复制一套背面条纹。
 
@@ -50,9 +50,9 @@ YayaViews.draw(960, 900, 70, age, custom, age, 'front');
 
 `source/yaya-rig.js` 提供 `YayaRig.solveArm()`、`poseArms()`、`propPose()` 和 `pointAt()`。它固定肩点 `±2.28,-3.93`、掌半径 `0.64`、最大肩掌距离 `2.05`，通过腕角与掌圆重叠保证连接，再从解算后的握点生成道具。新增动作应修改手掌目标，不能增加第二套侧手或独立道具轨迹。
 
-`source/yaya-views.js` 提供完整动作入口 `YayaViews.perform(x,y,u,t,state,age,debug)`、指定视角的 `draw()`、`project()` 和 `travel(t,key='run')`。角度为弧度：0 正面、π/2 右侧、π 背面、3π/2 左侧；`travel()` 返回走路 8 秒或跑步 6 秒路径的 `x/yaw/gait/speed/phase/period`。`perform()` 自动选择横躺睡姿、往返跑道、抱熊斜侧面或踏步转向；强制固定视角的 `draw()` 用于结构检查。详细调用示例见 `source/YAYA.md`，完整经验见仓库根目录 `PET_BUILDING.md`。
+`source/yaya-views.js` 提供完整动作入口 `YayaViews.perform(x,y,u,t,state,age,debug)`、指定视角的 `draw()`、`project()` 和 `travel(t,key='run')`。角度为弧度：0 正面、π/2 右侧、π 背面、3π/2 左侧；`travel()` 返回走路 8 秒或跑步 6 秒路径的 `x/yaw/gait/speed/phase/period`。`perform()` 自动选择床上的仰卧睡姿、往返跑道、抱熊斜侧面或踏步转向；强制固定视角的 `draw()` 用于结构检查。详细调用示例见 `source/YAYA.md`，完整经验见仓库根目录 `PET_BUILDING.md`。
 
-`source/yaya-scenes.js` 提供 `YayaScenes.drawSleep()` 和 `drawHeld()`。睡觉仍调用同一份角色绘制，把身体放松横躺，按轮廓最低点保持贴地；熊在胳膊之后、掌心之前绘制，中心绑定到解算后双掌的中点。新增道具仍需保留固定肩点、完整圆掌和手腕重叠，不能再添加一套前置手或独立漂浮轨迹。
+`source/yaya-scenes.js` 提供 `YayaScenes.drawSleep()` 和 `drawHeld()`。睡觉使用同一份角色几何，仰卧在床上，脸朝天花板，枕头支撑头部，被子覆盖下半身；观看者从床侧看见被子外的侧脸。熊在胳膊之后、掌心之前绘制，中心绑定到解算后双掌的中点。新增道具仍需保留固定肩点、完整圆掌和手腕重叠，不能再添加一套前置手或独立漂浮轨迹。
 
 `source/yaya-gait.js` 提供 `YayaGait.foot(gait, side, speed)`，返回 `{forward,lift,angle}`。局部正前方朝向鼻子；绘制时前后位移和脚尖角度一起乘 `sin(yaw)`。着地阶段向后运动，离地阶段向前运动，不能将两阶段颠倒，否则会看起来倒着跑。
 
