@@ -15,7 +15,7 @@ try {
   await page.goto(pathToFileURL(resolve('outputs/yaya-pet/rig-lab.html')).href,{waitUntil:'networkidle0'});
   await page.waitForFunction(()=>window.yayaLab?.getState().ready);
   await page.evaluate(()=>window.yayaLab.pause());
-  for(const [name,action,view,time] of [['three-views','idle','sheet',0],['stretch','stretch','front',1.6],['eat','eat','front',1.55],['run-right','run','travel',1.2],['run-back','run','travel',3.5],['run-left','run','travel',5.2],['run-quarter','run','travel',7.66]]) {
+  for(const [name,action,view,time] of [['three-views','idle','sheet',0],['stretch','stretch','front',1.6],['eat','eat','front',1.55],['run-right','run','travel',1.15],['run-back','run','travel',2.65],['run-left','run','travel',4.15],['run-quarter','run','travel',5.82]]) {
     await page.evaluate(async({action,view,time})=>{yayaLab.setAction(action);yayaLab.setView(view);await yayaLab.setTime(time);},{action,view,time});
     const jpg=await page.evaluate(()=>document.querySelector('#out').toDataURL('image/jpeg',.94));
     writeFileSync(resolve(out,name+'.jpg'),Buffer.from(jpg.split(',')[1],'base64'));

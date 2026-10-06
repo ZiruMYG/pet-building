@@ -90,7 +90,7 @@
 <body>
   <main>
     <header class="heading">
-      <div><h1>芽芽 · 三视图与动作实验室</h1><p>看清正面、侧面与背面，再观察每一个动作。</p></div>
+      <div><h1>芽芽 · 三视图与动作实验室</h1><p>先看完整动作，再从正面、侧面和背面仔细观察。</p></div>
       <a class="back-link" href="index.html#rig-lab">返回小花园 ↗</a>
     </header>
     <div class="toolbar" role="group" aria-label="选择动作">
@@ -98,12 +98,22 @@
       <button class="action-button" data-lab-action="idle" aria-pressed="true"><span class="icon" aria-hidden="true">🌱</span>站好</button>
       <button class="action-button" data-lab-action="eat" aria-pressed="false"><span class="icon" aria-hidden="true">🥄</span>吃饭</button>
       <button class="action-button" data-lab-action="drink" aria-pressed="false"><span class="icon" aria-hidden="true">💧</span>喝水</button>
-      <button class="action-button" data-lab-action="stretch" aria-pressed="false"><span class="icon" aria-hidden="true">🙆</span>伸懒腰</button>
-      <button class="action-button" data-lab-action="run" aria-pressed="false"><span class="icon" aria-hidden="true">🏃</span>往返小跑</button>
+      <button class="action-button" data-lab-action="sleep" aria-pressed="false"><span class="icon" aria-hidden="true">🌙</span>躺着睡觉</button>
+      <button class="action-button" data-lab-action="stretch" aria-pressed="false"><span class="icon" aria-hidden="true">🙆</span>伸懒腰＋哈欠</button>
+      <button class="action-button" data-lab-action="walk" aria-pressed="false"><span class="icon" aria-hidden="true">🚶</span>走一走</button>
+      <button class="action-button" data-lab-action="run" aria-pressed="false"><span class="icon" aria-hidden="true">🏃</span>快快小跑</button>
+      <button class="action-button" data-lab-action="spin" aria-pressed="false"><span class="icon" aria-hidden="true">🌀</span>原地转圈</button>
+      <button class="action-button" data-lab-action="celebrate" aria-pressed="false"><span class="icon" aria-hidden="true">🎉</span>跳起来庆祝</button>
+      <button class="action-button" data-lab-action="wave" aria-pressed="false"><span class="icon" aria-hidden="true">👋</span>挥挥手</button>
+      <button class="action-button" data-lab-action="hug" aria-pressed="false"><span class="icon" aria-hidden="true">🧸</span>抱泰迪熊</button>
+      <button class="action-button" data-lab-action="reach" aria-pressed="false"><span class="icon" aria-hidden="true">🤲</span>伸出手</button>
+      <button class="action-button" data-lab-action="turn" aria-pressed="false"><span class="icon" aria-hidden="true">↩️</span>转向侧面</button>
+      <button class="action-button" data-lab-action="nod" aria-pressed="false"><span class="icon" aria-hidden="true">🙂</span>点点头</button>
     </div>
     <div class="toolbar" role="group" aria-label="选择观察视角">
       <span class="toolbar-label">怎么看</span>
-      <button class="view-button" data-lab-view="sheet" aria-pressed="true">三视图一起看</button>
+      <button class="view-button" data-lab-view="auto" aria-pressed="true">动作演示</button>
+      <button class="view-button" data-lab-view="sheet" aria-pressed="false">三视图一起看</button>
       <button class="view-button" data-lab-view="front" aria-pressed="false">正面</button>
       <button class="view-button" data-lab-view="side" aria-pressed="false">侧面</button>
       <button class="view-button" data-lab-view="back" aria-pressed="false">背面</button>
@@ -111,9 +121,9 @@
       <a class="leaf-jump" href="#leaf-lab-title">🌿 调整叶子 ↓</a>
     </div>
     <div class="stage" data-testid="rig-stage">
-      <canvas id="out" width="1920" height="1080" role="img" aria-label="芽芽的正面、侧面、背面三视图"></canvas>
-      <div class="stage-state" id="phase-label">三视图 · 站好</div>
-      <div class="view-labels" id="view-labels"><span>正面</span><span>侧面</span><span>背面</span></div>
+      <canvas id="out" width="1920" height="1080" role="img" aria-label="芽芽站好，动作演示动画预览"></canvas>
+      <div class="stage-state" id="phase-label">动作演示 · 站好</div>
+      <div class="view-labels single" id="view-labels"><span>站好</span></div>
       <div class="loading" id="loading" role="status"><strong>芽芽正在准备…</strong><span>加载本地绘制程序</span></div>
     </div>
     <div class="transport" aria-label="动画播放控制">
@@ -123,7 +133,7 @@
       <output id="tt" for="scrub">0.00 / 4.00s</output>
     </div>
     <div class="bottom-row">
-      <p class="description" id="action-description">先看同一个芽芽的三个角度。点选动作，可以同时对照手臂与身体的关系。</p>
+      <p class="description" id="action-description">点选动作，看芽芽用手、身体、表情和叶子一起表达。也可以切换视角，暂停查看每个姿势。</p>
       <label class="debug-control"><input id="show-rig" type="checkbox">显示骨架与肩点</label>
     </div>
     <p class="legend" id="rig-legend" hidden>肩点固定在身体两侧；连线显示手掌与手臂的连接。拖动进度条可以检查动作中间帧。</p>
@@ -160,12 +170,14 @@
   <script src="source/config-yaya-pet.js"></script>
   <script src="source/core.js"></script>
   <script src="source/timeline.js"></script>
+  <script src="source/yaya-actions.js"></script>
   <script src="source/yaya-rig.js"></script>
   <script src="source/yaya-body.js"></script>
   <script src="source/yaya-gait.js"></script>
   <script src="source/yaya-leaves.js"></script>
   <script src="source/yaya-pet.js"></script>
   <script src="source/yaya-views.js"></script>
+  <script src="source/yaya-scenes.js"></script>
   <script src="source/yaya-rig-lab.js"></script>
 </body>
 </html>

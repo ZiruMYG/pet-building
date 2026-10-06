@@ -49,6 +49,7 @@
 
   function poseArms(key='idle',age=0,S={},p={}) {
     const t=phase(age),a=TAU*t/4,mode=(S.face||S).arms||'';
+    const beat=globalThis.YayaActions?.sample(key,age)||{lift:.5-.5*Math.cos(a),reach:.5-.5*Math.cos(a),wave:Math.sin(a*3),crouch:0,energy:0};
     const arms=[-1,1].map(side=>{
       const lift=side<0 ? (p.left??.35) : (p.right??.35);
       // Default palms remain full-size outside the pear, with the short upper
@@ -62,7 +63,28 @@
     const q=actionCycle(key,t),wave=Math.sin(a*2),pulse=Math.sin(a);
     if(key==='eat') set(-1,mix(-1.8,-1.16,q.lift),mix(-2.85,-3.46,q.lift),mix(.3,-.115,q.lift),'grip');
     else if(key==='drink') set(1,mix(1.85,1.24,q.lift),mix(-2.82,-3.45,q.lift),mix(0,-.5,q.lift),'grip');
-    else if(key==='stretch') for(const s of [-1,1]) set(s,s*(2.62+.14*q.lift),mix(-4.85,-5.72,q.lift),s*.12,'fingers');
+    else if(key==='stretch') for(const s of [-1,1]) set(s,s*mix(3.45,2.83,beat.lift),mix(-3.82,-5.86,beat.lift),s*.12,'fingers');
+    else if(key==='wave'||key==='hello') {
+      const s=S.direction<0?-1:1,k=beat.lift;
+      // Wave the entire short arm around its fixed shoulder. The palm reaches
+      // outside the silhouette; wrist-only wobble is too small to read.
+      const angle=mix(.05,-.65,k)+beat.wave*.26;
+      const radius=mix(1.27,1.95,k);
+      set(s,s*(constants.shoulderX+Math.cos(angle)*radius),constants.shoulderY+Math.sin(angle)*radius,beat.wave*.18,'fingers');
+    }
+    else if(key==='reach') {
+      const s=S.direction<0?-1:1,k=beat.reach;
+      set(s,s*(constants.shoulderX+mix(1.27,2.02,k)),mix(-3.88,-3.96,k),s*.05,'fingers');
+    }
+    else if(key==='celebrate') for(const s of [-1,1]) {
+      const k=beat.lift;
+      set(s,s*(constants.shoulderX+mix(1.22,1.4,k)),constants.shoulderY+mix(.18,-1.36,k)+beat.crouch*.22,s*(-.22+.1*k),'fingers');
+    }
+    else if(key==='hug'||key==='cuddle') for(const s of [-1,1]) {
+      const k=beat.reach;
+      set(s,s*mix(3.4,1.39,k),mix(-3.85,-3.32,k),-s*.26,'grip');
+    }
+    else if(key==='sleep') for(const s of [-1,1]) set(s,s*2.6,-3.3,s*.12);
     else if(key==='exercise') for(const s of [-1,1]) {const lift=.5-.5*Math.cos(a*2);set(s,s*(3.05-.1*lift),-4.15-1.12*lift,s*.12,'grip');}
     else if(key==='dance') for(const s of [-1,1]) {const lift=.5+.5*Math.sin(a*2+s*Math.PI/2);set(s,s*(2.9+.1*lift),-3.48-1.92*lift,s*.2,'fingers');}
     else if(key==='ball') set(1,2.6+.15*wave,-2.6-.2*wave,-.3,'fingers');

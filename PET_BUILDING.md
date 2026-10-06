@@ -126,6 +126,34 @@ const raised = YayaRig.solveArm({side: -1, target: [-2.7, -5.7]});
 
 简单左右指向仍可用 `direction: -1 | 1` 表达。需要看见侧身和背面时，使用 `YayaViews` 的连续转向；镜像一张正面图不能替代转身。
 
+### 先把动作写成可看懂的过程
+
+动作名称必须对应可见的过程。写“庆祝”后只让身体上下抖，或者写“伸手”却只转手腕，观众看不出动词。先确定预备、主动作、高点和结束的证据，再让手、脸、身体和叶子共享这些阶段。`src/yaya-actions.js` 的纯时间模块 `YayaActions.sample(key,age)` 返回 `duration/t/phase/jump/crouch/energy/yaw/nod/yawn/reach/wave/lift`，各绘制层从同一时钟读取，不能各自写不相关的正弦。
+
+本次重点重做的 11 个动作：
+
+| 动作 | 视觉证据与节奏 | 循环 |
+|---|---|---|
+| `sleep` 睡觉 | 侧视小床、枕头和被子；同一只芽芽横躺，脸朝观众，被沿轻微起伏 | 8 秒 |
+| `stretch` 伸懒腰 | 两手抬高，嘴逐渐张大打哈欠，闭眼，再收手放松 | 4 秒 |
+| `walk` 走路 | 小步交替着地，身体仅轻微起伏，侧身慢慢往返 | 8 秒 |
+| `run` 小跑 | 更快步频、更大步幅和抬脚，身体前倾并有腾空起伏，身后出现速度线 | 6 秒 |
+| `spin` 转圈 | 脚下位置不变，`yaw` 从 0 到 2π，经过侧面和背面 | 4 秒 |
+| `celebrate` 庆祝 | 蹲下蓄力 → 跳起伸开双手 → 高点欢笑 → 落地缓冲 | 4 秒 |
+| `wave` 挥手 | 短胳膊先向外抬起，再绕固定肩点来回挥三次，最后收回 | 4 秒 |
+| `hug` 抱抱 | 约 1.15 弧度的斜侧面，两个真实手掌夹住泰迪熊，轻轻收紧 | 4 秒 |
+| `reach` 伸手 | 掌心从默认肩距约 1.27 伸到约 2.02，停留后收回 | 4 秒 |
+| `turn` 转身 | 正面转到侧面，停留，再回到正面 | 4 秒 |
+| `nod` 点头 | 脸向下移动并纵向压缩，身体轻收，叶子同步下弯，再抬起；共两次 | 4 秒 |
+
+庆祝的起跳时刻是 1.06 秒，落地是 2.50 秒；1.78 秒处跳高约 `1.65` 个身体单位，`energy` 在高点达到 1，脸切换为笑眼和欢呼嘴。高度和兴奋程度读同一条曲线，避免落地后才笑。伸懒腰在约 1.22–2.16 秒保持明显哈欠，不能把嘴长期固定成一个小圆点。
+
+转圈需要改变围绕身体竖轴的 `yaw`，改变屏幕内 `rotate()` 只会像歪倒。点头则需要前后俯仰的视觉线索：芽芽没有独立头部，所以当前用五官下移、纵向压缩及叶片弯曲来表现；不再用左右倾斜假装点头。这仍是 2.5D 的可控形变，不是完整颈部骨骼。
+
+睡觉通过 `YayaScenes.drawSleep()` 组合床铺和同一份角色绘制，横躺后脸保持朝外，枕头在身后，被子在下半身前面。抱熊通过 `YayaScenes.drawHeld()` 在两条胳膊之后、两个手掌之前绘制熊，熊的中心绑定在解算后的双掌中点。先解算肩到掌的连接，再从真实掌心放置道具；不能为了抱东西增加第三只手，也不能给道具另写漂浮轨迹。
+
+使用 `YayaViews.perform()` 播放完整动作，它自动选择床铺、跑道、抱熊斜侧面或转向。`YayaViews.draw()` 则固定指定观察视角，适合检查连接；强制 `front` 时看不到转圈的视角变化是预期行为。实验室默认“动作演示”，每次点选动作都恢复该模式，再由使用者主动切换三视图检查。
+
 ### 三视图与往返跑
 
 `src/yaya-views.js` 是明亮平面版的 2.5D 绘制层。`yaw` 用弧度表示：`0` 正面、`Math.PI/2` 朝右侧面、`Math.PI` 背面、`Math.PI*1.5` 朝左侧面。字符串 `front`、`side`、`back`、`left` 对应这些角度。
@@ -134,14 +162,16 @@ const raised = YayaRig.solveArm({side: -1, target: [-2.7, -5.7]});
 
 这是一套用平面形状和深度参数构成的 2.5D 转向，不是完整体积 3D 模型。没有透视相机、网格、光照或物理碰撞；侧背面的表情细节比正面简化，勺杯目前只在接近正面时绘制。三视图可以检查结构，不能据此声称所有情绪和道具已经支持任意角度。
 
-`YayaViews.travel(t)` 返回 `{x,yaw,gait,speed,phase,period}`，其中 `x` 在 `[-1,1]`，`period` 为 8 秒：0–3 秒向右跑，3–4 秒原地转身，4–7 秒向左跑，7–8 秒转回来。行进时平滑加减速，步态取决于累计行进距离；转身时位置和步态停止。循环边界比较 `yaw/gait` 的正弦、余弦，而不是要求累积角度数值相等。`yaya_run` 因此为 8 秒，其他状态循环为 4 秒，导出器应读取每个循环的 `.len`。
+`YayaViews.travel(t,key='run')` 返回 `{x,yaw,gait,speed,phase,period}`，其中 `x` 在 `[-1,1]`。`walk` 为 8 秒：向右走 3 秒、转身 1 秒、向左走 3 秒、转回来 1 秒。`run` 为 6 秒：向右跑 2.3 秒、转身 0.7 秒、向左跑 2.3 秒、转回来 0.7 秒。行进时平滑加减速，步态取决于累计行进距离；转身时位置和步态停止。小跑一趟使用更多步相，并增大抬脚和腾空幅度；速度线只在完整动作演示中绘制，停止时收住。循环边界比较 `yaw/gait` 的正弦、余弦，而不是要求累积角度数值相等。`YayaActions.duration(key)` 是周期来源：`run` 6 秒，`walk`/`sleep` 8 秒，其余 4 秒；导出器读取每个循环的 `.len`。
 
 脚步由独立的 `src/yaya-gait.js` 计算：`YayaGait.foot(gait, side, speed)` 返回身体局部的 `{forward,lift,angle}`，正前方始终朝向鼻子。每条腿先在地面由前向后后蹬，再抬脚从后向前收回；两腿相差半个周期。抬脚弧线使用平方正弦，使落地和离地处的垂直速度连续。向屏幕投影时，前后位移和脚尖角度都乘 `sin(yaw)`，向左跑和向右跑自然使用同一套脚步。旧错误是把离地阶段分配给了向后移动的半周期，看起来像倒着跑；只改变整只宠物的平移方向无法修复它。
 
 这里保证的是局部步态方向、抬脚次序和循环连续性，尚未做世界坐标的脚掌锁地。若以后要求脚掌完全不滑，需要进一步把步幅、步频与舞台实际位移绑定。
 
 ```js
-const travel = YayaViews.travel(t);
+YayaViews.perform(960, 900, 70, t, 'sleep', t);
+YayaViews.perform(960, 900, 70, t, 'spin', t);
+const travel = YayaViews.travel(t, 'run');
 YayaViews.draw(960 + travel.x * 550, 900, 60, t, 'run', t, travel);
 YayaViews.draw(960, 900, 70, t, 'stretch', t, 'side', true);
 ```
@@ -169,17 +199,17 @@ happy: {
 
 ## 7. 给其他 agent 的推荐工作流
 
-1. **先读文件**：`ANIMATION_GUIDE.md`、`YAYA.md`、`PET_BUILDING.md` 和当前角色代码。脚本依赖顺序是配置/绘制核心/时间线 → `yaya-body.js`、`yaya-leaves.js`、`yaya-rig.js`、`yaya-gait.js` → `yaya-pet.js` → `yaya-views.js` → 场景或实验室。
+1. **先读文件**：`ANIMATION_GUIDE.md`、`YAYA.md`、`PET_BUILDING.md` 和当前角色代码。脚本依赖顺序是配置/绘制核心/时间线 → `yaya-actions.js` → `yaya-rig.js` → `yaya-body.js` → `yaya-gait.js` → `yaya-leaves.js` → `yaya-pet.js` → `yaya-views.js` → `yaya-scenes.js` → 工作室场景或实验室。
 2. **先做情绪表**：为每个状态写“眼睛、嘴、身体、叶子、手、符号”的证据，不要直接改代码。
 3. **先画静态 contact sheet**：一次生成所有情绪 JPG，检查相邻状态是否容易混淆。
 4. **再做动画**：给每个状态加预备、主动作和回弹，动作幅度先小后大。
 5. **优先修结构**：先修身体、手臂锚点、遮挡和轮廓。新手势只设置掌心目标、角度、手势线和层级；新道具从解算后的手部握点派生。
-6. **逐帧检查**：用 `outputs/yaya-pet/rig-lab.html` 对照正面、侧面、背面。它离线实时绘制，提供站好、吃饭、喝水、伸懒腰、往返跑，支持暂停、重播、拖动进度、显示肩点骨架和叶子形态/运动混搭。至少检查抬手最高点、送入口阶段、软垂叶尖与每个转身前后。
-7. **跑完整验证**：运行几何、实验室和原页面测试；确认 31 种情绪、17 种运动循环、19 个页面动作按钮，检查 `yaya_run` 为 8 秒、其他循环为 4 秒，以及 MP4 和源码副本一致。
+6. **逐帧检查**：用 `outputs/yaya-pet/rig-lab.html` 先看“动作演示”，再对照正面、侧面、背面。它有 14 个按钮：站好、吃饭、喝水、睡觉、伸懒腰、走路、小跑、转圈、庆祝、挥手、抱熊、伸手、转身、点头，支持暂停、重播、拖动进度、显示肩点骨架和叶子形态/运动混搭。至少检查哈欠最张开、庆祝高点与落地、抱熊握点、送入口阶段、软垂叶尖与每个转身前后。
+7. **跑完整验证**：运行时间、几何、实验室和原页面测试；确认 31 种情绪、17 种运动循环、19 个页面动作按钮及 14 个实验室按钮。周期为小跑 6 秒、走路和睡觉 8 秒、其余 4 秒，MP4 与源码副本必须一致。
 
 一个适合交给 agent 的任务描述是：
 
-> 读取 `PET_BUILDING.md`、`YAYA.md`，以及 `src/yaya-body.js`、`src/yaya-leaves.js`、`src/yaya-rig.js`、`src/yaya-gait.js`、`src/yaya-views.js`。保持芽芽的共享轮廓、两道贯通横纹、固定叶根与肩点和圆掌体积不变，通过叶子形态/运动组合、掌心目标和同一握点扩展动作。先说明脸、身体、叶子、手和道具如何共同表达，再在实时实验室检查三视图和中间帧。最后运行 `node test-yaya-body.mjs`、`node test-yaya-leaves.mjs`、`node test-yaya-gait.mjs`、`node test-yaya-views.mjs`、`node test-yaya-lab.mjs`、`node test-yaya-output.mjs`，重新渲染受影响的素材。
+> 读取 `PET_BUILDING.md`、`YAYA.md`，以及 `src/yaya-actions.js`、`src/yaya-body.js`、`src/yaya-leaves.js`、`src/yaya-rig.js`、`src/yaya-gait.js`、`src/yaya-views.js`、`src/yaya-scenes.js`。保持共享轮廓、贯通横纹、固定叶根与肩点和圆掌体积，通过共享动作阶段、掌心目标和同一握点扩展动作。先说明脸、身体、叶子、手和道具如何表达预备、主动作和恢复，再用 `perform()` 看完整演示，用 `draw()` 检查三视图与中间帧。最后运行 `node test-yaya-actions.mjs`、`node test-yaya-rig.mjs`、`node test-yaya-body.mjs`、`node test-yaya-leaves.mjs`、`node test-yaya-gait.mjs`、`node test-yaya-views.mjs`、`node test-yaya-lab.mjs`、`node test-yaya-output.mjs`，重新渲染受影响的素材。
 
 换成其他宠物时，应先重新确定该角色的肩点、掌心半径、臂宽、最大活动距离和侧面厚度。可以复用“固定根点 → 解算掌心 → 重叠手腕 → 道具握点 → 遮挡分层”的流程；芽芽的具体坐标不能直接视为所有角色的通用骨骼。
 
@@ -191,6 +221,8 @@ node render-yaya-emotion-previews.mjs
 node render-yaya-action-previews.mjs
 node render-yaya-preview-videos.mjs
 node render.mjs --clip --out=out/yaya-demo.mp4
+node test-yaya-actions.mjs
+node test-yaya-rig.mjs
 node test-yaya-body.mjs
 node test-yaya-leaves.mjs
 node test-yaya-gait.mjs
@@ -202,11 +234,13 @@ node test-yaya-output.mjs
 主要文件：
 
 - `src/yaya-pet.js`：角色、情绪数据、手势和动画逻辑。
+- `src/yaya-actions.js`：共享动作阶段、跳高/哈欠/点头/转向等时间曲线和循环时长。
 - `src/yaya-body.js`：纯几何冬瓜轮廓、两道贯通横纹、侧面厚度与爱心高度。
 - `src/yaya-leaves.js`：共享根点、圆叶中心线、形态/运动组合、情绪映射与无自交投影。
 - `src/yaya-rig.js`：不依赖绘图库的双臂、腕部重叠和道具握点解算。
 - `src/yaya-gait.js`：不依赖绘图库的后蹬、抬脚前收与脚尖角度。
-- `src/yaya-views.js`：2.5D 三视图、投影和 8 秒往返路径。
+- `src/yaya-views.js`：2.5D 三视图、完整动作入口 `perform()`、6 秒跑步和 8 秒走路路径。
+- `src/yaya-scenes.js`：小床睡眠场景、绑定双掌的泰迪熊。
 - `src/yaya-rig-lab.js`、`outputs/yaya-pet/rig-lab.html`：共享角色代码的实时检查界面。
 - `src/config-yaya-pet.js`：明亮 flat 模式和画布配置。
 - `studio-yaya-pet.html`：独立预览工作室。
@@ -215,6 +249,8 @@ node test-yaya-output.mjs
 - `render-yaya-daily-action-videos.mjs`：快速重渲染日常动作的 JPG 和 MP4。
 - `render-yaya-preview-videos.mjs`：情绪和动作 MP4 预览。
 - `test-yaya-output.mjs`：页面状态、数量和交互回归测试。
+- `test-yaya-actions.mjs`：动作时间连续性、伸臂距离、挥三次手、哈欠、庆祝高点及落地、两次点头。
+- `test-yaya-rig.mjs`：各状态下固定肩点、掌心体积、最大距离与手腕连接。
 - `test-yaya-body.mjs`：共享轮廓、侧面宽度和条纹几何测试。
 - `test-yaya-leaves.mjs`：叶根、叶脉、形态/运动/朝向组合的自交检查、逐帧与循环连续性。
 - `test-yaya-gait.mjs`：着地后蹬、抬脚前收、左右朝向、停步与循环连续性测试。
@@ -234,9 +270,11 @@ node test-yaya-output.mjs
 - 两道橙纹贯通前侧背，随身体转动，始终留在身体内；不碰爱心，下纹与底部留出空隙。
 - 侧脸在轮廓内，背面没有残留五官和胸口爱心。
 - 每条腿着地时向后蹬，离地时向前收；左右跑的脚步方向都正确。
-- 往返跑在转身时停住脚步，8 秒结尾与开头的位置、朝向和步态连续。
+- 小跑 6 秒、走路 8 秒，转身时停住脚步，结尾与开头的位置、朝向和步态连续；小跑步频、腾空与速度线能和走路区分。
+- 转圈经过侧面和背面；点头是五官俯下再抬起，没有左右摇头；哈欠与抬手、庆祝表情与跳跃高点同步。
+- 睡觉时床、枕头和被子形成明确支撑；抱熊时两只手真实接触，道具不脱离握点。
 - 好奇、咯咯笑、安心、自豪、难过、惊讶、害羞、思考彼此可区分。
 - 叶缘和尖端圆滑，叶脉随中心线弯曲；前侧背共用根点，没有折叠自交或脱离头顶。
 - 叶子参与情绪表达，sad/cry 软垂，shy 内扣，curious 一上一下，happy 舒展扑扇；跑步风摆在停步时收住。
 - 静态图和 MP4 使用同一份源码，不能出现页面显示旧图、视频显示新图的版本漂移。
-- 页面启动后 `ready === true`，情绪数量为 31，动作循环数量为 17，页面动作按钮数量为 19。
+- 页面启动后 `ready === true`，情绪数量为 31，动作循环数量为 17，页面动作按钮数量为 19；实验室为 14 个动作按钮和 6 个视角按钮，默认“动作演示”。

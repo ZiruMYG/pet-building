@@ -23,6 +23,7 @@
     else if(['jump','celebrate','play'].includes(action)){shape='spread';motion='flap';}
     else if(['cuddle','hug'].includes(action)){shape='cup';motion='breathe';}
     else if(['wave','hello'].includes(action)){shape='natural';motion='twitch';}
+    else if(action==='nod'){shape='natural';motion='breathe';strength=.2;}
     else if(['turn','spin','reach'].includes(action)){shape='natural';motion='sway';}
     return {shape,motion,strength};
   }
@@ -66,6 +67,10 @@
     }
     if(context.action==='stretch' && !shapes.includes(context.leafShape) && !motions.includes(context.leafMotion))p.length*=1+.08*(1-Math.cos(q*2))*.5;
     if(['eat','drink'].includes(context.action) && !motions.includes(context.leafMotion))p.fold+=.025*(1-Math.cos(q*2));
+    if(context.action==='nod' && !motions.includes(context.leafMotion)) {
+      const nod=context.nod??globalThis.YayaActions?.sample('nod',time).nod??0;
+      p.length*=1-.18*nod;p.bend+=s*.50*nod;p.rot+=s*.10*nod;
+    }
     return p;
   }
   function geometry(side,p,yaw=0) {

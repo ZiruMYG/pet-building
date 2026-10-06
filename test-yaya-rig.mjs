@@ -6,7 +6,7 @@ import { createContext, runInContext } from 'node:vm';
 // to prove attachment, reach, constant palm size or action/prop timing.
 const context=createContext({ console });
 context.window=context;
-for(const file of ['src/config-yaya-pet.js','src/core.js','src/yaya-rig.js','src/yaya-pet.js']) {
+for(const file of ['src/config-yaya-pet.js','src/core.js','src/yaya-actions.js','src/yaya-rig.js','src/yaya-pet.js']) {
   runInContext(readFileSync(new URL(file,import.meta.url),'utf8'),context,{filename:file});
 }
 const {YayaRig:rig,YayaDrawing:drawing,getYayaEmotionState:state}=context;
@@ -74,4 +74,17 @@ for(const key of ['eat','drink','stretch','exercise','dance']) {
   const S=state(key,0),p=drawing.pose(0,S),first=rig.poseArms(key,0,S,p),last=rig.poseArms(key,4-1e-5,S,p);
   for(let i=0;i<2;i++) assert.ok(distance(first[i].palm,last[i].palm)<1e-4,`${key}: loop seam`);
 }
+// Check the production pose consumer as well as the pure action clock. An
+// otherwise valid beat is useless if the renderer still uses the old wobble.
+const celebration=drawing.pose(1.78,state('celebrate',1.78));
+assert.ok(celebration.dy<-1.5,'celebration renderer must use the high jump at its apex');
+assert.equal(celebration.rot,0,'celebration jumps upward without a sideways wobble');
+for(const t of [.84,2.24]) {
+  const nod=drawing.pose(t,state('nod',t));
+  assert.equal(nod.rot,0,'nod never rotates from side to side');
+  assert.ok(nod.sq>.14&&nod.dy>.04,'nod lowers and compresses on each distinct beat');
+}
+const betweenNods=drawing.pose(1.5,state('nod',1.5));
+assert.equal(betweenNods.rot,0,'nod rests without lateral tilt');
+assert.equal(betweenNods.sq,0,'nod resets upright between beats');
 console.log(`Yaya rig PASS: ${allStates.length} states, ${solved} solved arms, reach/overlap/open-root/socket/contact/continuity checks.`);

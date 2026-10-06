@@ -6,19 +6,17 @@
   const clamp01 = x => Math.max(0, Math.min(1, x));
   const smooth = x => { x = clamp01(x); return x*x*(3-2*x); };
   const mix = (a,b,t) => a+(b-a)*t;
-  const wrap = t => ((t % 8)+8)%8;
-
-  function travel(t) {
-    const q=wrap(t);
-    // Run 3 s, plant both feet and turn 1 s, then repeat back. Position and
-    // velocity meet at each boundary. Gait follows distance, so planted feet
-    // cannot keep cycling when the character has stopped to turn.
+  function travel(t,key='run') {
+    const running=key==='run',period=running?6:8,half=period/2,move=running?2.3:3,turn=half-move;
+    const q=((t%period)+period)%period;
+    // Distance drives both the stride and the turn. Running crosses the same
+    // track faster, with more strides, higher recovery and an airborne phase.
     let x,yaw,distance,speed,phase;
-    if(q<3) { const v=q/3; x=mix(-1,1,smooth(v)); yaw=Math.PI/2; distance=2*smooth(v); speed=4*v*(1-v); phase='向右跑'; }
-    else if(q<4) { x=1; yaw=mix(Math.PI/2,Math.PI*1.5,smooth(q-3)); distance=2; speed=0; phase='转身'; }
-    else if(q<7) { const v=(q-4)/3; x=mix(1,-1,smooth(v)); yaw=Math.PI*1.5; distance=2+2*smooth(v); speed=4*v*(1-v); phase='向左跑'; }
-    else { x=-1; yaw=mix(Math.PI*1.5,Math.PI*2.5,smooth(q-7)); distance=4; speed=0; phase='转回来'; }
-    return {x,yaw,gait:distance*TAU*2,speed,phase,period:8};
+    if(q<move) { const v=q/move; x=mix(-1,1,smooth(v)); yaw=Math.PI/2; distance=2*smooth(v); speed=4*v*(1-v); phase=running?'向右跑':'向右走'; }
+    else if(q<half) { x=1; yaw=mix(Math.PI/2,Math.PI*1.5,smooth((q-move)/turn)); distance=2; speed=0; phase='转身'; }
+    else if(q<half+move) { const v=(q-half)/move; x=mix(1,-1,smooth(v)); yaw=Math.PI*1.5; distance=2+2*smooth(v); speed=4*v*(1-v); phase=running?'向左跑':'向左走'; }
+    else { x=-1; yaw=mix(Math.PI*1.5,Math.PI*2.5,smooth((q-half-move)/turn)); distance=4; speed=0; phase='转回来'; }
+    return {x,yaw,gait:distance*TAU*(running?2:1.5),speed,phase,period};
   }
   function viewAngle(view) {
     if(typeof view==='number') return view;
@@ -37,7 +35,7 @@
   }
   function drawTurnedFace(D,u,S,age,yaw,cols) {
     const c=Math.cos(yaw),s=Math.sin(yaw),C=D.palette,e=S.face||S;
-    if(Math.abs(s)<.0001 && c>0) {D.flatFace(u,age,S);D.flatHeart(0,YayaBody.constants.heartY*u,.48*u,'#FFB07D',2);return;}
+    if(Math.abs(s)<.0001 && c>0) {D.flatFace(u,age,S);return;}
     const kinds=Array.isArray(e.eyes)?e.eyes:[e.eyes,e.eyes];
     for(const side of [-1,1]) {
       const visibility=smooth((c*.82-side*s*.58+.08)/.5);
@@ -64,12 +62,11 @@
     const mouthVisibility=smooth((c+.13)/.45);
     if(mouthVisibility>.001) {
       const mx=2.55*s*u,my=-3.58*u,mw=(.5*Math.max(.13,c))*u;
-      if(['open','O','laugh'].includes(e.mouth)) D.flatEllipse(mx,my,mw,.36*mouthVisibility*u,C.ink,null,0);
+      if(['open','O','o','laugh','cheer','yawn','small'].includes(e.mouth)) {
+        const height=e.mouth==='yawn'?.14+.64*(e.yawn??1):e.mouth==='cheer'?.61:e.mouth==='small'?.10:.36;
+        D.flatEllipse(mx,my,mw*(e.mouth==='small'?.4:1),height*mouthVisibility*u,C.ink,null,0);
+      }
       else D.flatLine([[mx-mw,my],[mx,my+.2*mouthVisibility*u],[mx+mw,my-.02*u]],C.ink,2.5);
-    }
-    if(c>.02) {
-      const bx=2.65*s,by=YayaBody.constants.heartY+YayaBody.surfaceArc(bx/YayaBody.breadth(yaw));
-      push();translate(bx*u,by*u);scale(c,1);D.flatHeart(0,0,.48*u,'#FFB07D',2);pop();
     }
   }
   function makeArms(D,R,key,age,S,p,yaw,run,gait,speed) {
@@ -84,19 +81,27 @@
         const step=-Math.cos(gait+(s<0?0:Math.PI));
         // A short pendulum sweeps fore/aft in profile. Hand volume is retained.
         target=[s*3.1,-3.24-.23*Math.abs(step)*speed];
-        z=.45+step*.83*speed;
+        z=.45+step*(key==='run'?1.25:.67)*speed;
       } else {
         // Front gestures reach around the body's volume, rather than being
         // projected as flat stickers when the torso rotates.
         z+=Math.max(0,3.05-Math.abs(target[0]))*.55;
       }
-      const pt=project(target[0],target[1],z,yaw);
+      let pt=project(target[0],target[1],z,yaw);
+      if(key==='hug') {
+        const a=window.YayaActions?.sample(key,age),squeeze=a?.reach||0;
+        // Palms hold the bear from both sides. The projected shoulder stays
+        // fixed; a short visible band reaches each actual grip point.
+        pt=[s<0?1.25+.12*squeeze:2.80-.12*squeeze,-3.05-.09*squeeze,1];
+        if(sn<0)pt[0]*=-1;
+      }
       const solved=R.solveArm({side:s,target:pt.slice(0,2),shoulder:root.slice(0,2),angle:arm.angle,gesture:arm.gesture,layer:arm.layer});
       solved.depth=root[2];
       solved.visible= Math.abs(sn)<.08 || root[2]>-.5;
       // From behind both arms sit behind the pear; from front retain gesture
       // occlusion. In profile only the near limb draws on the body surface.
       solved.foreground= Math.abs(sn)>.18 ? root[2]>.2 : cs>0 && arm.layer==='front';
+      if(key==='hug'&&cs>0)solved.foreground=true;
       return solved;
     });
   }
@@ -108,34 +113,43 @@
     const key=S.action||S.state||'idle';
     S=D.actionFace(S,key,age);
     const p=D.pose(age,S), cols=D.moodColors(S.face||S), C=D.palette;
-    const run=key==='run', gait=view?.gait ?? age*TAU*2, speed=view?.speed ?? 1;
-    if(run) p.sq=.025*Math.sin(gait*2)*speed;
-    const bob=run?-.18*Math.abs(Math.sin(gait))*speed:p.dy||0;
-    const lean=run?sn*.065*speed:p.rot||0;
+    const run=key==='run',locomotion=run||key==='walk',gait=view?.gait ?? age*TAU*(run?2.6:1.35),speed=view?.speed ?? 1;
+    const a=window.YayaActions?.sample(key,age)||{nod:0,energy:0,jump:0};
+    if(locomotion)p.sq=(run?.05:.015)*Math.sin(gait*2)*speed;
+    const flight=run?.48*Math.pow(Math.sin(gait),2)*speed:0;
+    const bob=locomotion?-flight-(run?.08:.075)*Math.abs(Math.sin(gait))*speed:p.dy||0;
+    const lean=locomotion?sn*(run?.14:.025)*speed:p.rot||0;
     // Full winter-melon profile: shared volume is 86% as deep as it is wide.
     const breadth=YayaBody.breadth(yaw);
-    D.flatEllipse(x,y+.18*u,3.7*u*breadth,.43*u,'rgba(48,80,100,.18)',null,0);
+    if(!view?.hideShadow)D.flatEllipse(x,y+.18*u,3.7*u*breadth*(1-.15*(a.energy||0)),.43*u,'rgba(48,80,100,.18)',null,0);
     push(); translate(x,y+bob*u); rotate(lean); scale(1+(p.sq||0)*.25,1-(p.sq||0)*.45);
-    D.drawLeaves(u,age,key,S,{yaw,gait,speed});
-    const arms=makeArms(D,R,key,age,S,p,yaw,run,gait,speed);
+    D.drawLeaves(u,age,key,S,{yaw,gait,speed,nod:a.nod});
+    const arms=makeArms(D,R,key,age,S,p,yaw,locomotion,gait,speed);
     // Feet are attached to the same body volume; near/far order changes with yaw.
     const feet=[-1,1].map(s=>({s,p:project(s*1.35,-.24,.1,yaw)})).sort((a,b)=>a.p[2]-b.p[2]);
     const paintFoot=foot=>{
-      const step=run?YayaGait.foot(gait,foot.s,speed):{forward:0,lift:(foot.s<0?p.footL:p.footR)||0,angle:0};
+      const step=locomotion?YayaGait.foot(gait,foot.s,speed):{forward:0,lift:(foot.s<0?p.footL:p.footR)||0,angle:0};
+      if(run){step.forward*=1.24;step.lift*=2;step.angle*=1.4;}
       const stride=step.forward*sn,lift=step.lift;
-      push(); translate((foot.p[0]+stride)*u,((run?.12:-.24)-lift)*u); rotate(step.angle*sn);
+      push(); translate((foot.p[0]+stride)*u,((locomotion?.12:-.24)-lift)*u); rotate(step.angle*sn);
       D.flatEllipse(0,0,(1.12-.18*side)*u,.5*u,foot.p[2]<-.1?'#D99928':cols.shade,C.ink,2.4); pop();
     };
-    for(const foot of feet.filter(f=>!run || f.p[2]<=0)) paintFoot(foot);
+    for(const foot of feet.filter(f=>!locomotion || f.p[2]<=0)) paintFoot(foot);
     for(const arm of arms.filter(a=>!a.foreground)) D.drawRigArm(u,arm,cols);
     push(); scale(breadth,1); D.flatBody(u,cols); pop();
-    for(const foot of feet.filter(f=>run && f.p[2]>0)) paintFoot(foot);
+    for(const foot of feet.filter(f=>locomotion && f.p[2]>0)) paintFoot(foot);
     // Visibility uses each feature's surface normal: eyes disappear gradually
     // behind the contour, never popping between a two-eye and one-eye sprite.
-    drawTurnedFace(D,u,S,age,yaw,cols);
+    push();translate(0,(-4.5+.50*a.nod)*u);scale(1-.025*a.nod,1-.18*a.nod);translate(0,4.5*u);
+    drawTurnedFace(D,u,S,age,yaw,cols);pop();
+    if(cs>.02) {
+      const bx=2.65*sn,by=YayaBody.constants.heartY+YayaBody.surfaceArc(bx/breadth);
+      push();translate(bx*u,by*u);scale(cs,1);D.flatHeart(0,0,.48*u,'#FFB07D',2);pop();
+    }
     const forearms=arms.filter(a=>a.foreground);
     for(const arm of forearms) D.drawRigArm(u,arm,cols,false,{arm:true,palm:false});
     if(D.drawRigProps && cs>.45) D.drawRigProps(u,key,age,arms,cols);
+    if(window.YayaScenes&&key==='hug'&&cs>0)YayaScenes.drawHeld(u,key,age,arms,cols,{yaw});
     for(const arm of forearms) D.drawRigArm(u,arm,cols,false,{arm:false,palm:true});
     if(debug) {
       for(const arm of arms.filter(a=>a.foreground || cs>=0)) debugArm(D,u,arm);
@@ -144,5 +158,26 @@
     pop();
     return {yaw,arms,breadth};
   }
-  window.YayaViews={draw,travel,project,viewAngle,period:8};
+  function speedLines(x,y,u,age,travel) {
+    if(travel.speed<.12)return;
+    const D=YayaDrawing,dir=Math.sin(travel.yaw)>0?1:-1;
+    for(let i=0;i<5;i++) {
+      const pulse=(age*3+i*.21)%1,start=(3.8+pulse*.9)*u,length=(1.0+(i%3)*.4)*u*travel.speed;
+      const yy=y-(1.5+i*.85)*u;
+      D.flatLine([[x-dir*start,yy],[x-dir*(start+length),yy]],i%2?'#65B9B7':'#37988D',3.5);
+    }
+  }
+  function perform(x,y,u,t,state='idle',age=t,debug=false) {
+    const S=typeof state==='string'?getYayaEmotionState(state,age):state,key=S.action||S.state||'idle';
+    const a=window.YayaActions?.sample(key,age)||{yaw:0};
+    if(key==='sleep'&&window.YayaScenes)return YayaScenes.drawSleep(x,y,u,t,S,age,debug);
+    if(key==='walk'||key==='run') {
+      const route=travel(age,key),size=u*.86,cx=x+route.x*530;
+      if(key==='run')speedLines(cx,y,size,age,route);
+      return draw(cx,y,size,t,S,age,route,debug);
+    }
+    const yaw=key==='hug'?1.15:['turn','spin'].includes(key)?a.yaw:0;
+    return draw(x,y,key==='celebrate'?u*.89:u,t,S,age,{yaw},debug);
+  }
+  window.YayaViews={draw,perform,travel,project,viewAngle,solveArms:makeArms,period:6};
 })();

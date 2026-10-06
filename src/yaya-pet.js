@@ -226,32 +226,19 @@
     const dir=S.direction||e.direction||1;
     if(direct) { p.dx*=dir; if(key==='reach'){ if(dir<0){p.left=1.12;p.right=-.2;} else {p.left=-.2;p.right=1.12;} } return p; }
     if(key==='cuddle'){p.rot=-.08+.03*Math.sin(age*2.2);p.left=-.28;p.right=-.55;p.dy-=.1;}
-    if(key==='sleep'){p.rot=.045*Math.sin(age*1.3);p.left=-.38;p.right=-.42;p.dy=-.03*Math.sin(age*1.6);}
     if(key==='hello'){p.left=1.05+.25*Math.sin(age*TAU*2.2);p.right=.12;}
-    if(key==='wave'){p.left=1.05+.3*Math.sin(age*TAU*2.2);p.right=.12;p.rot=.035*Math.sin(age*TAU/2);}
     if(key==='eat'){p.left=.92;p.right=.92;}
     // Daily-care and exercise clips keep the cheek anchors stable while the
     // body, feet and leaves share one readable phase. Front props are layered
     // by the shared arm solver and its palm-owned prop sockets.
     if(key==='drink'){p.left=.28;p.right=.9;p.dy+=.015*Math.sin(age*TAU*1.5);p.rot=.025*Math.sin(age*TAU/2);}
-    if(key==='stretch'){const a=Math.sin(age*TAU/1.8);p.left=1.08+.12*a;p.right=1.08-.12*a;p.dy-=.16*Math.abs(Math.sin(age*TAU/1.8));p.sq-=.025;p.rot=.035*a;}
-    if(key==='run'){const a=Math.sin(age*TAU/1.1), b=Math.sin(age*TAU*2.2);p.dx=1.15*a;p.dy-=.13*Math.abs(a);p.rot=.1*a;p.sq+=.035*Math.abs(a);p.left=.7+.3*b;p.right=.42-.25*b;p.footL=.38*Math.sin(age*TAU*2.2);p.footR=-p.footL;}
     if(key==='exercise'){const a=Math.sin(age*TAU/1.25), b=Math.sin(age*TAU*2.5);p.dx=.28*a;p.dy-=.24*Math.abs(a);p.rot=.12*a;p.sq+=.045*Math.abs(a);p.left=1+.42*b;p.right=1-.42*b;p.footL=.3*b;p.footR=-.3*b;}
     if(key==='ball'){const a=Math.sin(age*TAU/1.5), b=Math.sin(age*TAU*1.5);p.dx=.2*a;p.dy-=.08*Math.abs(a);p.rot=.06*a;p.left=.72+.34*b;p.right=.35-.16*b;p.footL=.15*Math.max(0,a);p.footR=-.1*Math.max(0,-a);}
     if(key==='dance'){const a=Math.sin(age*TAU/1.35), b=Math.sin(age*TAU*2.7);p.dx=.38*a;p.dy-=.2*Math.abs(a);p.rot=.11*a;p.sq+=.02*Math.abs(b);p.left=.86+.4*b;p.right=.86-.4*b;p.footL=.24*b;p.footR=-.24*b;}
     if(key==='play'){const a=age<1.7?jump(age,.35,1.15,1.35):jump(age,2,2.8,1.35);p.dy+=a.dy;p.sq+=a.sq;p.left=.8+.35*Math.sin(age*9);p.right=.35;}
-    if(key==='hug'){p.rot=-.08+.03*Math.sin(age*2.2);p.left=-.28;p.right=-.55;p.dy-=.1;}
     if(key==='jump'){const a=jump(age,.2,.9,1.45);p.dy+=a.dy;p.sq+=a.sq;p.left=1.02;p.right=1.02;}
     if(key==='sway'){const a=Math.sin(age*TAU/1.6);p.dx=.22*a;p.rot=.07*a;p.left=.45+.14*a;p.right=.45-.14*a;}
-    // A readable turn-in-place keeps the full silhouette on a learning-device
-    // screen; the larger spin can be composed later around a centered rig.
-    if(key==='spin'){p.rot=.16*Math.sin(age*TAU/2);p.dx=.12*Math.sin(age*TAU/2);p.left=.62;p.right=.62;p.sq=.025*Math.sin(age*TAU*2);}
-    if(key==='walk'){const a=Math.sin(age*TAU/2);p.dx=1.18*a;p.dy-=.09*Math.abs(a);p.left=.35+.18*Math.sin(age*TAU*2);p.right=.35-.18*Math.sin(age*TAU*2);p.footL=.28*Math.sin(age*TAU*2);p.footR=-p.footL;}
-    if(key==='reach'){p.left=-.2;p.right=1.12+.14*Math.sin(age*TAU/2);p.dx=.12;}
     if(key==='stomp'){const a=Math.abs(Math.sin(age*TAU*2));p.dy+=.05*a;p.sq+=.09*a;p.left=.18;p.right=.18;p.footL=.35*a;p.footR=.35*a;}
-    if(key==='turn'){p.rot=.2*Math.sin(age*TAU/2);p.dx=.12*Math.sin(age*TAU/2);p.left=.4;p.right=.4;}
-    if(key==='nod'){const a=Math.sin(age*TAU*2);p.rot=.1*a;p.dy+=.06*Math.abs(a);p.left=.25;p.right=.25;}
-    if(key==='celebrate'){const a=Math.sin(age*TAU*2);p.dy-=.34*Math.abs(Math.sin(age*TAU));p.left=1.05+.2*a;p.right=1.05-.2*a;p.sq-=.03;}
     if(key==='curious'){p.left=.92+.12*Math.sin(age*4);p.right=-.15;p.rot=.12+.025*Math.sin(age*TAU/2);p.dy-=.06*Math.abs(Math.sin(age*TAU/2));}
     if(key==='happy'){p.left=.72+.28*Math.sin(age*TAU*2);p.right=.72-.28*Math.sin(age*TAU*2);p.dy-=.5*Math.abs(Math.sin(age*TAU));p.sq+=.06*Math.max(0,Math.cos(age*TAU*2));}
     if(key==='shy'){p.left=-.42+.08*Math.sin(age*3);p.right=-.52;p.dy-=.03*Math.sin(age*2);}
@@ -281,6 +268,18 @@
     if(key==='starstruck'){p.left=1.05+.3*Math.sin(age*TAU*2);p.right=1.05-.3*Math.sin(age*TAU*2);p.dy-=.45*Math.abs(Math.sin(age*TAU));}
     if(key==='ko'){p.sq+=.08+.04*Math.sin(age*TAU*.4);p.rot=.08;p.left=-.75;p.right=-.75;}
     if(key==='mischief'){const r=Math.sin(age*TAU*1.4);p.left=-.05+.1*r;p.right=-.05-.1*r;p.rot=.08*r;p.dy-=.04*Math.abs(r);}
+    // Shared beats drive the body here, the palms in YayaRig, and the face
+    // and leaf pitch in YayaViews. Yaw belongs to the view renderer.
+    if(window.YayaActions && ['stretch','wave','reach','celebrate','hug','sleep','spin','turn','nod','walk','run'].includes(key)) {
+      const a=YayaActions.sample(key,age);
+      p.dx=0;p.rot=0;p.footL=0;p.footR=0;
+      p.dy=-.025*Math.sin(age*TAU/YayaActions.duration(key));p.sq=0;
+      if(key==='stretch'){p.dy-=.10*a.lift;p.sq=-.10*a.lift;}
+      if(key==='celebrate'){p.dy=-a.jump+.18*a.crouch;p.sq=.25*a.crouch-.055*a.energy;}
+      if(key==='nod'){p.sq=.15*a.nod;p.dy=.045*a.nod;}
+      if(key==='hug'){p.dy=-.055*a.reach;}
+      if(key==='sleep'){p.dy=0;p.sq=.022*Math.sin(age*TAU/4);}
+    }
     return p;
   }
   function moodColors(e) {
@@ -420,9 +419,20 @@
     arms.filter(arm=>arm.layer===layer).forEach(arm=>drawRigArm(u,arm,cols,paper,parts));
   }
   function actionFace(S,key,age) {
-    if(key!=='eat'&&key!=='drink') return S;
-    const q=YayaRig.actionCycle(key,age),face={...(S.face||S)};
-    face.mouth=q.mouthOpen>.25?(key==='eat'?'open':'o'):q.chew>.25?'puff':'smile';
+    const face={...(S.face||S)},a=window.YayaActions?.sample(key,age);
+    if(key==='eat'||key==='drink') {
+      const q=YayaRig.actionCycle(key,age);
+      face.mouth=q.mouthOpen>.25?(key==='eat'?'open':'o'):q.chew>.25?'puff':'smile';
+    } else if(key==='stretch'&&a) {
+      face.eyes=a.yawn>.15?'relieved':'normal';face.mouth=a.yawn>.02?'yawn':'smile';face.yawn=a.yawn;face.lookY=0;
+    } else if(key==='celebrate'&&a) {
+      face.eyes=a.energy>.3?'laugh':a.crouch>.2?'relieved':'shine';
+      face.mouth=a.energy>.3?'cheer':'smile';face.excitement=a.energy;face.blush=.6;
+    } else if(key==='sleep') {face.eyes='relieved';face.mouth='small';face.closed=1;}
+    else if(key==='hug') {face.eyes='relieved';face.mouth='smile';face.blush=.6;}
+    else if(key==='nod'&&a) {face.eyes=a.nod>.7?'relieved':'normal';face.mouth='smile';face.lookY=0;}
+    else if(['wave','reach','walk','run','turn','spin'].includes(key)) {face.eyes=key==='run'?'happy':'normal';face.mouth=key==='run'?'open':'smile';face.lookY=0;}
+    else return S;
     return {...S,face};
   }
   function flatLeaf(u,side,drift,lp=YayaLeaves.pose(0,'idle',side)) {
@@ -508,7 +518,15 @@
     const puff=e.mouth==='puff' ? .18+.06*Math.abs(Math.sin(t*TAU*.7)) : 0;
     for(const s of [-1,1]) flatEllipse(s*2.28*u,-3.93*u,.64*u+puff*u,.43*u+puff*u*.65,cheekCol,null,0);
     const m=e.mouth||'smile', y=-3.58*u;
-    if(m==='o'||m==='O'||m==='yawn') flatEllipse(0,y,m==='O'?.48*u:.34*u,m==='yawn'?.62*u:.42*u,YC.ink,YC.ink,1.5);
+    if(m==='yawn') {
+      const k=e.yawn??1,cy=y-.13*u;
+      flatEllipse(0,cy,(.18+.45*k)*u,(.14+.64*k)*u,YC.ink,YC.ink,1.5);
+      if(k>.25)flatEllipse(0,cy+(.06+.39*k)*u,.27*k*u,.12*k*u,YC.cheek,null,0);
+    } else if(m==='cheer') {
+      flatEllipse(0,y,.73*u,.61*u,YC.ink,YC.ink,1.5);
+      flatLine([[-.42*u,y-.3*u],[.42*u,y-.3*u]],YC.paper,3);
+      flatEllipse(0,y+.29*u,.35*u,.18*u,YC.cheek,null,0);
+    } else if(m==='o'||m==='O') flatEllipse(0,y,m==='O'?.48*u:.34*u,.42*u,YC.ink,YC.ink,1.5);
     else if(m==='open') { flatEllipse(0,y,.5*u,.5*u,YC.ink,YC.ink,1.5); flatLine([[-.34*u,y-.2*u],[.34*u,y-.2*u]],YC.paper,2); flatEllipse(0,y+.2*u,.25*u,.11*u,YC.cheek,null,0); }
     else if(m==='puff') flatEllipse(0,y,.24*u,.3*u,YC.ink,YC.ink,1.4);
     else if(m==='wide'||m==='grin') flatEllipse(0,y,m==='grin'?.62*u:.55*u,.3*u,YC.ink,YC.ink,1.5);
@@ -648,9 +666,8 @@
       background(YC.paper); push(); noStroke(); fill('#EAF7FF'); ellipse(960,230,1440,720); fill('#B8F0E1'); ellipse(960,960,2360,470); pop();
       for(let i=0;i<13;i++){const gx=170+hash(i*4.1)*1580, gy=850+hash(i*6.7)*170; flatEllipse(gx,gy,28+hash(i)*23,9+hash(i+2)*7,YC.leafLight,null,0);}
       flatLine([[160,830],[180,770],[218,745]],YC.leafShade,3); flatLine([[1760,840],[1738,770],[1702,748]],YC.leafShade,3);
-      if(normalizePetState(state)==='run' && window.YayaViews) {
-        const travel=YayaViews.travel(age);
-        YayaViews.draw(960+travel.x*550,900,60,t,state,age,travel); return;
+      if(['sleep','stretch','walk','run','spin','celebrate','wave','hug','reach','turn','nod'].includes(normalizePetState(state)) && window.YayaViews) {
+        YayaViews.perform(960,900,70,t,state,age); return;
       }
       drawYaya(960,900,72,t,state,age); return;
     }
@@ -703,7 +720,7 @@
   // timeline.js owns the lexical LOOPS table; use it when present so --loop=yaya_idle works.
   const loopTable = typeof LOOPS !== 'undefined' ? LOOPS : (window.LOOPS=window.LOOPS||{});
   [...new Set([...MOODS,...ACTIONS,...MOTION_ACTIONS])].forEach(state=>{
-    const key='yaya_'+state, duration=state==='run'?8:4;
+    const key='yaya_'+state, duration=window.YayaActions?.duration(state)||4;
     loopTable[key]=t=>yayaStage(t,state,frac(t/duration)*duration); loopTable[key].len=duration;
   });
 })();
