@@ -11,7 +11,7 @@ const names = process.argv.slice(2).length
   : ['drink', 'run', 'exercise', 'stretch', 'ball', 'dance'];
 const chrome = process.env.CHROME_PATH || 'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe';
 const out = resolve(process.env.YAYA_ACTION_OUT || '../../outputs/yaya-pet/assets/actions');
-const fps = 24, seconds = 4;
+const fps = 24;
 mkdirSync(out, { recursive: true });
 const browser = await puppeteer.launch({
   executablePath: chrome, headless: true, protocolTimeout: 0,
@@ -25,6 +25,7 @@ for (const name of names) {
   const available = await page.evaluate(key => Boolean(LOOPS[`yaya_${key}`]), name);
   if (!available) throw new Error(`No Yaya loop named ${name}`);
   await page.evaluate(key => { window.LOOP = LOOPS[`yaya_${key}`]; }, name);
+  const seconds = await page.evaluate(() => window.LOOP.len || 4);
   const poster = await page.evaluate(() => window.renderAt(1.55, 'image/jpeg', .9));
   writeFileSync(resolve(out, `${name}.jpg`), Buffer.from(poster.slice(poster.indexOf(',') + 1), 'base64'));
   const file = resolve(out, `${name}.mp4`);

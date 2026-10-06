@@ -56,6 +56,16 @@
     .sound-toggle svg { width: 19px; height: 19px; flex: none; }
     .top-action-link { min-height:56px; padding:8px 14px; border:2px solid #9cddbe; border-radius:16px; background:#f0fff7; color:#246c52; cursor:pointer; font-weight:800; box-shadow:0 3px 0 rgba(38,104,147,.08); transition:transform .16s ease, background .16s ease, border-color .16s ease; }
     .top-action-link:hover { transform:translateY(-2px); background:#d8f7e8; border-color:#2b9b6a; }
+    .top-lab-link { background:#fff3c9; border-color:#edc459; color:#71530d; }
+    .top-lab-link:hover { background:#ffeb9c; border-color:#b88c1c; }
+    .rig-lab-panel { margin:24px auto 0; max-width:1100px; padding:20px; border:3px solid #b4ddcb; border-radius:26px; background:#f0fbf6; box-shadow:0 8px 0 rgba(38,104,147,.07); scroll-margin-top:18px; }
+    .rig-lab-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:8px; }
+    .rig-lab-heading h2 { margin:0; font-size:1.2rem; }
+    .rig-lab-heading a { color:#217653; font-size:.82rem; font-weight:800; white-space:nowrap; }
+    .rig-lab-intro { margin:0 0 8px; font-size:.86rem; color:#477568; }
+    .rig-lab-frame { display:block; width:100%; height:780px; border:0; border-radius:20px; background:#f0fbf6; }
+    @media(max-width:760px) { .rig-lab-panel { padding:12px; } .rig-lab-frame { height:690px; } .rig-lab-heading { align-items:flex-start; } .rig-lab-heading h2 { font-size:1rem; } }
+    @media(max-width:460px) { .rig-lab-frame { height:640px; } }
     .stage-card {
       position: relative; overflow: hidden; border-radius: var(--radius); padding: 10px;
       background: #ffffff;
@@ -215,6 +225,7 @@
         </div>
       </div>
       <div class="topbar-tools">
+      <button class="top-action-link top-lab-link" type="button" data-jump-to="rig-lab" aria-label="查看芽芽三视图与动作实验室">🌱 <span>三视图与动作实验室</span></button>
       <button class="top-action-link" type="button" data-jump-to="action-panel" aria-label="查看 19 个日常动作">🧺 <span>动作 19</span></button>
       <button class="sound-toggle" type="button" data-testid="sound-toggle" aria-pressed="false" aria-label="打开轻柔音效">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 9.2v5.6h3.4l4.3 3.7V5.5L7.9 9.2H4.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path class="sound-wave" d="M15.8 9a4.3 4.3 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
@@ -247,9 +258,16 @@
     </nav>
     <div class="pause-row"><button class="pause-button" type="button" data-testid="pause-toggle" aria-pressed="false">Ⅱ&nbsp; 暂停</button></div>
     <nav class="section-nav" aria-label="快速查看">
+      <button class="section-jump" type="button" data-jump-to="rig-lab">🌱 三视图与动作实验室</button>
       <button class="section-jump" type="button" data-jump-to="action-panel">🧺 日常动作 <b>19</b></button>
       <button class="section-jump" type="button" data-jump-to="emotion-panel">😊 全部情绪 <b>31</b></button>
     </nav>
+
+    <section id="rig-lab" class="rig-lab-panel" data-testid="rig-lab-panel" aria-label="芽芽三视图与动作实验室">
+      <div class="rig-lab-heading"><h2>三视图与动作实验室</h2><a href="rig-lab.html" target="_blank" rel="noopener">单独打开 ↗</a></div>
+      <p class="rig-lab-intro">一起看正面、侧面和背面。试试吃饭、伸懒腰和往返小跑，也可以暂停，仔细看手臂怎么动。</p>
+      <iframe class="rig-lab-frame" data-testid="rig-lab-frame" src="rig-lab.html?embed" title="芽芽三视图与动作实验室" loading="eager"></iframe>
+    </section>
 
     <section id="emotion-panel" class="emotion-panel" aria-label="芽芽的 31 种情绪">
       <div class="emotion-heading"><h2>芽芽的 31 种情绪</h2><span>点击按钮查看不同表情</span></div>
@@ -328,6 +346,12 @@
       document.querySelectorAll('[data-jump-to]').forEach(button => {
         button.addEventListener('click', () => document.getElementById(button.dataset.jumpTo)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
       });
+      const rigLabFrame = document.querySelector('[data-testid="rig-lab-frame"]');
+      window.addEventListener('message', event => {
+        if (event.source !== rigLabFrame?.contentWindow || event.data?.type !== 'yaya-rig-lab-size') return;
+        const height = Number(event.data.height);
+        if (Number.isFinite(height)) rigLabFrame.style.height = `${Math.max(400, Math.min(1300, height))}px`;
+      });
       let active = 0;
       let clip = 'idle';
       let sleeping = false;
@@ -347,7 +371,7 @@
         ['drink','喝水','举起小杯子咕噜咕噜喝水，喝完擦擦嘴。','care','💧'],
         ['sleep','睡觉','身体慢慢放松，叶子垂下来，进入香甜梦乡。','care','🌙'],
         ['stretch','伸懒腰','两只小手向上伸一伸，身体跟着舒展开。','care','🙆'],
-        ['run','小跑','小脚交替迈步，身体轻轻上下弹动。','exercise','🏃'],
+        ['run','小跑','侧身跑到另一边，停下转身，再跑回来。','exercise','🏃'],
         ['exercise','热身操','举起小哑铃、动动脚，先做一组热身。','exercise','🏋️'],
         ['ball','玩球','眼睛追着小球，伸手把球轻轻推回来。','exercise','⚽'],
         ['dance','跳舞','左右摇摆、蹦一蹦，叶子也跟着跳舞。','exercise','🎵'],
@@ -366,8 +390,9 @@
       let selectedAction = 'eat';
       let selectedCategory = 'care';
       let selectedDirection = 1;
+      const assetVersion = 'rig-v2-20261006';
       function playPreview(video, media, path, poster) {
-        video.poster = poster; video.src = path; video.load();
+        video.poster = poster; video.src = `${path}?v=${assetVersion}`; video.load();
         media.classList.remove('video-failed');
         const attempt = video.play();
         if (attempt && attempt.catch) attempt.catch(() => media.classList.add('video-failed'));
@@ -444,7 +469,7 @@
         badge.dataset.kind = kind === 'sleep' ? 'sleep' : kind === 'error' ? 'error' : 'ready';
         badge.textContent = kind === 'sleep' ? '安静睡觉中' : kind === 'error' ? '需要点一下' : sleeping ? '甜甜的梦' : '芽芽在线';
       }
-      function pathFor(name) { return clips[name] || clips.idle; }
+      function pathFor(name) { return `${clips[name] || clips.idle}?v=${assetVersion}`; }
       function setLayerClasses(next) {
         layers.forEach((video, i) => { video.classList.toggle('is-active', i === next); video.classList.toggle('is-previous', i !== next); });
       }

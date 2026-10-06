@@ -1,17 +1,24 @@
 import puppeteer from 'puppeteer-core';
+import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const chrome = process.env.CHROME_PATH || 'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe';
 const browser = await puppeteer.launch({ executablePath: chrome, headless: true, args: ['--allow-file-access-from-files'] });
 const page = await browser.newPage();
+const errors = [];
 page.on('console', message => console.log('[page]', message.type(), message.text()));
-page.on('pageerror', error => console.log('[pageerror]', error.message));
+page.on('pageerror', error => errors.push(error.message));
 await page.goto(pathToFileURL(resolve('../../outputs/yaya-pet/index.html')).href, { waitUntil: 'networkidle0' });
 await new Promise(resolve => setTimeout(resolve, 12000));
 const bootState = await page.evaluate(() => window.yayaPet?.getState?.() || null);
 if (!bootState?.ready) throw new Error(`pet page did not become ready: ${JSON.stringify(bootState)}`);
 const initial = await page.evaluate(() => ({ state: window.yayaPet.getState(), emotionCount: document.querySelectorAll('[data-emotion]').length, actionCount: document.querySelectorAll('[data-motion]').length }));
+assert.equal(initial.emotionCount, 31);
+assert.equal(initial.actionCount, 19);
+await page.click('[data-jump-to="rig-lab"]');
+const lab = await (await page.$('[data-testid="rig-lab-frame"]')).contentFrame();
+await lab.waitForFunction(() => window.yayaLab?.getState().ready, { timeout: 60000 });
 await page.click('[data-jump-to="action-panel"]');
 await page.waitForFunction(() => { const r = document.querySelector('#action-panel')?.getBoundingClientRect(); return r && r.top < window.innerHeight && r.bottom > 0; }, { timeout: 5000 });
 const actionEntry = await page.evaluate(() => ({ actionPanelFirst: document.querySelector('#action-panel')?.compareDocumentPosition(document.querySelector('#emotion-panel')) === Node.DOCUMENT_POSITION_FOLLOWING, jumpLabel: document.querySelector('.top-action-link')?.textContent.trim() }));
@@ -34,3 +41,4 @@ const categories = await page.evaluate(() => [...document.querySelectorAll('.act
 const afterAction = await page.evaluate(() => window.yayaPet.getState());
 console.log(JSON.stringify({ initial, actionEntry, selected, selectedAction, categories, afterAction }));
 await browser.close();
+assert.deepEqual(errors, [], 'main page and embedded lab must not throw');
