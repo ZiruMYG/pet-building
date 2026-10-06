@@ -31,6 +31,14 @@ await page.click('[data-motion="walk"]');
 await page.click('[data-direction="-1"]');
 await page.waitForFunction(() => document.querySelector('[data-testid="action-preview-video"]').currentTime > 0, { timeout: 10000 });
 const selectedAction = await page.evaluate(() => ({ title: document.querySelector('[data-testid="action-preview-title"]').textContent, image: document.querySelector('[data-testid="action-preview-image"]').getAttribute('src'), direction: document.querySelector('[data-direction="-1"]').getAttribute('aria-pressed') }));
+await page.click('[data-action-category="all"]');
+for(const [action,seconds] of [['sleep',8],['turn',4],['spin',6]]) {
+  await page.click(`[data-motion="${action}"]`);
+  await page.waitForFunction(({action,seconds})=>{
+    const video=document.querySelector('[data-testid="action-preview-video"]');
+    return video.currentSrc.includes(`/${action}.mp4`) && Math.abs(video.duration-seconds)<.02 && video.currentTime>0;
+  },{timeout:10000},{action,seconds});
+}
 await page.click('[data-testid="action-feed"]');
 await page.waitForFunction(() => window.yayaPet.getState().clip === 'eat', { timeout: 10000 });
 await page.click('[data-testid="action-drink"]');

@@ -5,10 +5,10 @@ import vm from 'node:vm';
 // Pure geometry regression: no browser, p5 or drawing stubs are needed.
 const context = vm.createContext({ console });
 context.window = context;
-for (const file of ['src/yaya-actions.js','src/yaya-rig.js', 'src/yaya-views.js']) {
+for (const file of ['src/yaya-turns.js','src/yaya-actions.js','src/yaya-rig.js', 'src/yaya-views.js']) {
   vm.runInContext(readFileSync(file, 'utf8'), context, { filename: file });
 }
-const A=context.YayaActions,R = context.YayaRig, V = context.YayaViews;
+const A=context.YayaActions,T=context.YayaTurns,R = context.YayaRig, V = context.YayaViews;
 assert.ok(R && V, 'both shared geometry APIs must load without a graphics runtime');
 const near = (a, b, message, tolerance = 1e-8) => assert.ok(Math.abs(a-b) <= tolerance, `${message}: ${a} != ${b}`);
 const samePoint = (a, b, message, tolerance) => a.forEach((n, i) => near(n, b[i], `${message}[${i}]`, tolerance));
@@ -106,7 +106,9 @@ for (const action of actions) {
 let projectedSamples=0;
 function projectedArms(action,t,yaw,route={}) {
  const locomotion=action==='run'||action==='walk';
- return V.solveArms({},R,action,t,{action},{},yaw,locomotion,route.gait??t*Math.PI*2,route.speed??1);
+ const turn=['turn','spin'].includes(action)?T.sample(action,t):null;
+ const pose=turn?{left:.35+turn.armSwing,right:.35-turn.armSwing}:{};
+ return V.solveArms({},R,action,t,{action},pose,yaw,locomotion,route.gait??t*Math.PI*2,route.speed??1);
 }
 function checkArms(action,arms,yaw) {
  assert.equal(arms.length,2,`${action}: two projected arms`);
@@ -142,7 +144,7 @@ for(const action of ['turn','spin','walk','run']) {
   previous=arms;
  }
  const duration=A.duration(action),move=action==='run'?2.3:3;
- const boundaries=['walk','run'].includes(action)?[0,move,duration/2,duration/2+move,duration]:[0,duration/2,duration];
+ const boundaries=['walk','run'].includes(action)?[0,move,duration/2,duration/2+move,duration]:[0,...T.plans[action].flatMap(step=>[step.start,step.end]),duration];
  for(const t of boundaries) {
   const samples=[-1,1].map(sign=>{
    const age=t+sign*1e-6,route=['walk','run'].includes(action)?V.travel(age,action):A.sample(action,age);

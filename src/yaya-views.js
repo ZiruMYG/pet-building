@@ -1,4 +1,4 @@
-// Yaya's 2.5D turntable. One body, one shoulder pair and one palm pair.
+// Yaya's shared 2.5D views and grounded action renderer.
 // Angles: 0 front, PI/2 facing right, PI back, 3PI/2 facing left.
 // No raster sprites or horizontal-flip cuts are used at the turnarounds.
 (() => {
@@ -33,7 +33,7 @@
     D.flatEllipse(b[0]*u,b[1]*u,.07*u,.07*u,'#308CCB',null,0);
     D.flatEllipse(arm.wrist[0]*u,arm.wrist[1]*u,.055*u,.055*u,'#FFFFFF','#308CCB',1.4);
   }
-  function drawTurnedFace(D,u,S,age,yaw,cols) {
+  function drawTurnedFace(D,u,S,age,yaw,cols,bodyYaw=yaw) {
     const c=Math.cos(yaw),s=Math.sin(yaw),C=D.palette,e=S.face||S;
     if(Math.abs(s)<.0001 && c>0) {D.flatFace(u,age,S);return;}
     const kinds=Array.isArray(e.eyes)?e.eyes:[e.eyes,e.eyes];
@@ -41,22 +41,23 @@
       const visibility=smooth((c*.82-side*s*.58+.08)/.5);
       if(visibility<.005) continue;
       const eye=project(side*1.55,-5.15,1.63,yaw), w=(.57-.13*Math.abs(s))*visibility;
-      eye[0]=YayaBody.fitEllipseX(eye[0],eye[1],w,.9,yaw);
+      eye[0]=YayaBody.fitEllipseX(eye[0],eye[1],w,.9,bodyYaw);
       const kind=kinds[side<0?0:1];
       push();translate(eye[0]*u,eye[1]*u);
       if(['happy','laugh','relieved','closed','sleepy'].includes(kind)) {
         D.flatLine([[-w*u,.06*u],[0,(kind==='relieved'?.26:-.22)*u],[w*u,.06*u]],C.ink,2.6);
       } else if(['wide','look','curious'].includes(kind)) {
         D.flatEllipse(0,0,w*u,.88*u,C.paper,C.ink,2.3);
-        D.flatEllipse(s*.1*u,.05*u,w*.47*u,.35*u,C.eye,null,0);
-        D.flatEllipse(s*.1*u-.07*u,-.11*u,.08*u,.12*u,'#FFFFFF',null,0);
+        const gaze=s*.1+Math.max(-1,Math.min(1,e.lookX||0))*.20;
+        D.flatEllipse(gaze*u,.05*u,w*.47*u,.35*u,C.eye,null,0);
+        D.flatEllipse(gaze*u-.07*u,-.11*u,.08*u,.12*u,'#FFFFFF',null,0);
       } else {
         D.flatEllipse(0,0,w*u,.82*u,C.eye,C.ink,2.2);
         D.flatEllipse(-.14*visibility*u,-.28*u,.12*visibility*u,.18*u,'#FFFFFF',null,0);
       }
       pop();
       const cheek=project(side*2.28,-3.93,1.68,yaw);
-      cheek[0]=YayaBody.fitEllipseX(cheek[0],cheek[1],.64*visibility,.43,yaw);
+      cheek[0]=YayaBody.fitEllipseX(cheek[0],cheek[1],.64*visibility,.43,bodyYaw);
       D.flatEllipse(cheek[0]*u,cheek[1]*u,.64*visibility*u,.43*u,mixCol(cols.body,C.blush,e.blush??.22),null,0);
     }
     const mouthVisibility=smooth((c+.13)/.45);
@@ -112,7 +113,12 @@
     let S=typeof state==='string'?getYayaEmotionState(state,age):state;
     const key=S.action||S.state||'idle';
     S=D.actionFace(S,key,age);
-    const p=D.pose(age,S), cols=D.moodColors(S.face||S), C=D.palette;
+    const p=D.pose(age,S), cols=D.moodColors(S.face||S), C=D.palette,turnPose=view?.turnPose;
+    if(turnPose) {
+      p.left=.35+turnPose.armSwing;p.right=.35-turnPose.armSwing;
+      p.dy=turnPose.bob;p.rot=turnPose.lean;p.sq=turnPose.squash;
+      S={...S,face:{...S.face,eyes:'look',lookX:Math.max(-1,Math.min(1,(turnPose.faceYaw-yaw)*4))}};
+    }
     const run=key==='run',locomotion=run||key==='walk',gait=view?.gait ?? age*TAU*(run?2.6:1.35),speed=view?.speed ?? 1;
     const a=window.YayaActions?.sample(key,age)||{nod:0,energy:0,jump:0};
     if(locomotion)p.sq=(run?.05:.015)*Math.sin(gait*2)*speed;
@@ -121,9 +127,22 @@
     const lean=locomotion?sn*(run?.14:.025)*speed:p.rot||0;
     // Full winter-melon profile: shared volume is 86% as deep as it is wide.
     const breadth=YayaBody.breadth(yaw);
-    if(!view?.hideShadow)D.flatEllipse(x,y+.18*u,3.7*u*breadth*(1-.15*(a.energy||0)),.43*u,'rgba(48,80,100,.18)',null,0);
-    push(); translate(x,y+bob*u); rotate(lean); scale(1+(p.sq||0)*.25,1-(p.sq||0)*.45);
-    D.drawLeaves(u,age,key,S,{yaw,gait,speed,nod:a.nod});
+    if(!view?.hideShadow)D.flatEllipse(x+(turnPose?.bodyX||0)*u,y+.18*u,3.7*u*breadth*(1-.15*(a.energy||0)),.43*u,'rgba(48,80,100,.18)',null,0);
+    const turnFeet=turnPose?.feet||[],centerDepth=turnPose?.bodyZ||0;
+    const paintTurnFoot=foot=>{
+      // These are world-floor coordinates. Body lean, breathing and yaw must
+      // never drag a supporting sole across the ground.
+      push();translate(x+foot.x*u,y+(-.24+foot.z*.11-foot.lift)*u);
+      rotate(Math.sin(foot.yaw)*foot.lift*.12);
+      D.flatEllipse(0,0,(1.12-.18*Math.abs(Math.sin(foot.yaw)))*u,.5*u,foot.z<centerDepth?'#D99928':cols.shade,C.ink,2.4);
+      pop();
+    };
+    for(const foot of turnFeet.filter(f=>f.z<=centerDepth))paintTurnFoot(foot);
+    push(); translate(x+(turnPose?.bodyX||0)*u,y+(bob+centerDepth*.11)*u); rotate(lean); scale(1+(p.sq||0)*.25,1-(p.sq||0)*.45);
+    // A six-second turn must also finish its leaf cycle; using the independent
+    // four-second leaf clock here would snap the blade at the video seam.
+    const leafAge=turnPose?age*YayaLeaves.period/turnPose.duration:age;
+    D.drawLeaves(u,leafAge,key,S,{yaw:turnPose?.leafYaw??yaw,gait,speed,nod:a.nod});
     const arms=makeArms(D,R,key,age,S,p,yaw,locomotion,gait,speed);
     // Feet are attached to the same body volume; near/far order changes with yaw.
     const feet=[-1,1].map(s=>({s,p:project(s*1.35,-.24,.1,yaw)})).sort((a,b)=>a.p[2]-b.p[2]);
@@ -134,14 +153,14 @@
       push(); translate((foot.p[0]+stride)*u,((locomotion?.12:-.24)-lift)*u); rotate(step.angle*sn);
       D.flatEllipse(0,0,(1.12-.18*side)*u,.5*u,foot.p[2]<-.1?'#D99928':cols.shade,C.ink,2.4); pop();
     };
-    for(const foot of feet.filter(f=>!locomotion || f.p[2]<=0)) paintFoot(foot);
+    if(!turnPose)for(const foot of feet.filter(f=>!locomotion || f.p[2]<=0)) paintFoot(foot);
     for(const arm of arms.filter(a=>!a.foreground)) D.drawRigArm(u,arm,cols);
     push(); scale(breadth,1); D.flatBody(u,cols); pop();
-    for(const foot of feet.filter(f=>locomotion && f.p[2]>0)) paintFoot(foot);
+    if(!turnPose)for(const foot of feet.filter(f=>locomotion && f.p[2]>0)) paintFoot(foot);
     // Visibility uses each feature's surface normal: eyes disappear gradually
     // behind the contour, never popping between a two-eye and one-eye sprite.
     push();translate(0,(-4.5+.50*a.nod)*u);scale(1-.025*a.nod,1-.18*a.nod);translate(0,4.5*u);
-    drawTurnedFace(D,u,S,age,yaw,cols);pop();
+    drawTurnedFace(D,u,S,age,turnPose?.faceYaw??yaw,cols,yaw);pop();
     if(cs>.02) {
       const bx=2.65*sn,by=YayaBody.constants.heartY+YayaBody.surfaceArc(bx/breadth);
       push();translate(bx*u,by*u);scale(cs,1);D.flatHeart(0,0,.48*u,'#FFB07D',2);pop();
@@ -156,7 +175,8 @@
       D.flatLine([[0,-7*u],[0,0]],'rgba(65,151,180,.45)',1.5);
     }
     pop();
-    return {yaw,arms,breadth};
+    for(const foot of turnFeet.filter(f=>f.z>centerDepth))paintTurnFoot(foot);
+    return {yaw,arms,breadth,turnPose};
   }
   function speedLines(x,y,u,age,travel) {
     if(travel.speed<.12)return;
@@ -177,7 +197,8 @@
       return draw(cx,y,size,t,S,age,route,debug);
     }
     const yaw=key==='hug'?1.15:['turn','spin'].includes(key)?a.yaw:0;
-    return draw(x,y,key==='celebrate'?u*.89:u,t,S,age,{yaw},debug);
+    const turnPose=['turn','spin'].includes(key)&&window.YayaTurns?YayaTurns.sample(key,age):undefined;
+    return draw(x,y,key==='celebrate'?u*.89:u,t,S,age,{yaw,turnPose},debug);
   }
   window.YayaViews={draw,perform,travel,project,viewAngle,solveArms:makeArms,period:6};
 })();

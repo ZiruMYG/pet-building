@@ -47,7 +47,7 @@ try {
     assert.equal(await page.$eval(`[data-lab-action="${action}"]`,button=>button.getAttribute('aria-pressed')),'true');
     assert.ok(current.image.length>20000,'canvas contains rendered character artwork');
     actionImages.set(action,current.image);
-    const expectedDuration=action==='run'?6:['walk','sleep'].includes(action)?8:4;
+    const expectedDuration=['run','spin'].includes(action)?6:['walk','sleep'].includes(action)?8:4;
     assert.equal(current.state.duration,expectedDuration,`${action} has its full timeline`);
     assert.equal(await page.$eval('#scrub',input=>Number(input.max)),expectedDuration);
   }

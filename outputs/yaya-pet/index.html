@@ -266,7 +266,7 @@
     <section id="rig-lab" class="rig-lab-panel" data-testid="rig-lab-panel" aria-label="芽芽三视图与动作实验室">
       <div class="rig-lab-heading"><h2>三视图与动作实验室</h2><a href="rig-lab.html" target="_blank" rel="noopener">单独打开 ↗</a></div>
       <p class="rig-lab-intro">14 个动作可以直接点选：躺着睡觉、打哈欠、快跑、转圈和抱泰迪熊。先看完整演示，再切换正面、侧面和背面；暂停后还能拖动进度、调整叶子。</p>
-      <iframe class="rig-lab-frame" data-testid="rig-lab-frame" src="rig-lab.html?embed&v=actions-v5-20261006" title="芽芽动作演示、三视图与叶子实验室" loading="eager"></iframe>
+      <iframe class="rig-lab-frame" data-testid="rig-lab-frame" src="rig-lab.html?embed&v=actions-v6-20261006" title="芽芽动作演示、三视图与叶子实验室" loading="eager"></iframe>
     </section>
 
     <section id="emotion-panel" class="emotion-panel" aria-label="芽芽的 31 种情绪">
@@ -369,7 +369,7 @@
       const actions = [
         ['eat','吃饭','拿起小勺一口一口吃饭，吃完满足地点点头。','care','🍚'],
         ['drink','喝水','举起小杯子咕噜咕噜喝水，喝完擦擦嘴。','care','💧'],
-        ['sleep','睡觉','躺在小床上，脸朝向外面，枕好枕头盖好被子，轻轻呼吸。','care','🌙'],
+        ['sleep','睡觉','安静地躺下，闭上眼睛，身体随着呼吸轻轻起伏。','care','🌙'],
         ['stretch','伸懒腰','双手向上舒展，张大嘴打个哈欠，再慢慢放松。','care','🙆'],
         ['run','小跑','身体前倾、脚步加快，一蹬一跃地往返跑，身后带着跑动线。','exercise','🏃'],
         ['exercise','热身操','举起小哑铃、动动脚，先做一组热身。','exercise','🏋️'],
@@ -378,19 +378,19 @@
         ['jump','跳高','身体向上弹起，落地时有柔软的回弹。','exercise','⬆️'],
         ['walk','走一走','侧着身慢慢走，小脚交替着地，走到另一边再转身回来。','exercise','🚶'],
         ['sway','摇摆','身体左右摇一摇，叶子带着一点惯性。','exercise','↔️'],
-        ['spin','转圈圈','站在原地转一整圈，依次看到正面、侧面、背面，再回到正面。','exercise','🌀'],
+        ['spin','转圈圈','先看向要转的方向，再交替迈小步，身体跟着转一整圈。','exercise','🌀'],
         ['stomp','跺脚','小脚有节奏地落地，表达认真和决心。','exercise','👣'],
         ['celebrate','庆祝','先蹲一蹲，伸开双手高高跳起，在最高处兴奋地笑出来。','exercise','🎉'],
         ['wave','挥挥手','一只短胳膊向外伸开，小手来回挥三下，和你打招呼。','interaction','👋'],
         ['hug','抱抱','转向侧面，把泰迪熊抱在怀里，两只小手轻轻收紧。','interaction','🧸'],
         ['reach','伸手','短胳膊向外展开，小圆手向前探一探，再慢慢收回。','interaction','🤲'],
-        ['turn','转身','从正面转向侧面，停一下看看旁边，再转回来看你。','interaction','↩️'],
+        ['turn','转身','先看看旁边，再换脚、迈小步转向侧面，停一下后转回来看你。','interaction','↩️'],
         ['nod','点点头','脸向前下方低一低，再抬起来，叶子跟着轻轻点两下。','interaction','🙂']
       ].map(([key,label,description,category,icon]) => ({key,label,description,category,icon}));
       let selectedAction = 'eat';
       let selectedCategory = 'care';
       let selectedDirection = 1;
-      const assetVersion = 'actions-v5-20261006';
+      const assetVersion = 'actions-v6-20261006';
       function playPreview(video, media, path, poster) {
         video.poster = poster; video.src = `${path}?v=${assetVersion}`; video.load();
         media.classList.remove('video-failed');

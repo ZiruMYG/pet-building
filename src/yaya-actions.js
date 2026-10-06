@@ -6,7 +6,7 @@
   const smooth=v=>{const q=clamp(v);return q*q*(3-2*q);};
   const ramp=(t,a,b)=>smooth((t-a)/(b-a));
   const envelope=(t,a,b,c,d)=>ramp(t,a,b)*(1-ramp(t,c,d));
-  const duration=key=>key==='run'?6:(key==='walk'||key==='sleep')?8:4;
+  const duration=key=>(key==='run'||key==='spin')?6:(key==='walk'||key==='sleep')?8:4;
   const wrap=(t,period)=>((t%period)+period)%period;
 
   function sample(key='idle',age=0) {
@@ -41,10 +41,10 @@
       q.nod=envelope(t,.45,.78,.9,1.3)+envelope(t,1.85,2.18,2.3,2.7);
       q.energy=q.nod*.15;
     } else if(key==='spin') {
-      q.yaw=TAU*phase;
-      q.energy=.4;
+      q.yaw=globalThis.YayaTurns?.sample(key,age).yaw||0;
+      q.energy=.2;
     } else if(key==='turn') {
-      q.yaw=(Math.PI/2)*envelope(t,.3,1.2,2.5,3.65);
+      q.yaw=globalThis.YayaTurns?.sample(key,age).yaw||0;
     }
     return q;
   }

@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import {createContext,runInContext} from 'node:vm';
 
 const ctx=createContext({console});
-for(const file of ['src/yaya-actions.js','src/yaya-rig.js']) runInContext(readFileSync(new URL(file,import.meta.url),'utf8'),ctx,{filename:file});
+for(const file of ['src/yaya-turns.js','src/yaya-actions.js','src/yaya-rig.js']) runInContext(readFileSync(new URL(file,import.meta.url),'utf8'),ctx,{filename:file});
 const actions=ctx.YayaActions,rig=ctx.YayaRig;
 const keys=['idle','walk','run','sleep','stretch','celebrate','wave','hello','reach','hug','cuddle','nod','spin','turn'];
 const gap=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
@@ -37,6 +37,7 @@ for(const key of keys) {
   }
 }
 assert.equal(actions.duration('run'),6); assert.equal(actions.duration('walk'),8); assert.equal(actions.duration('sleep'),8);
+assert.equal(actions.duration('spin'),6); assert.equal(actions.duration('turn'),4);
 assert.ok(actions.sample('stretch',1.5).yawn>.99,'stretch needs clearly open yawn');
 assert.ok(actions.sample('stretch',1.5).lift>.99,'hands must reach up during yawn');
 const apex=actions.sample('celebrate',1.78),prepare=actions.sample('celebrate',.75),land=actions.sample('celebrate',2.66);
@@ -57,5 +58,9 @@ assert.ok(gap(low[1].palm,high[1].palm)>.95,'wave swing too small');
 assert.ok(actions.sample('nod',.84).nod>.99&&actions.sample('nod',2.24).nod>.99,'two nod beats');
 assert.equal(actions.sample('nod',1.5).nod,0,'nod beats need clear reset');
 assert.ok(Math.abs(actions.sample('turn',1.8).yaw-Math.PI/2)<1e-8,'turn holds side view');
-assert.ok(Math.abs(actions.sample('spin',2).yaw-Math.PI)<1e-8,'spin reaches back view');
+assert.ok(Math.abs(actions.sample('spin',2.8).yaw-Math.PI)<1e-8,'spin reaches back view between steps');
+for(const key of ['turn','spin'])for(let frame=0;frame<actions.duration(key)*120;frame++) {
+  const t=frame/120;
+  assert.ok(Math.abs(actions.sample(key,t).yaw-ctx.YayaTurns.sample(key,t).yaw)<1e-12,'action timing uses the planted-step turn clock');
+}
 console.log(`Yaya action timing PASS: ${keys.length} actions, ${armCount} connected hands, periodic timing, clear reach/wave/yawn/jump/nod beats.`);

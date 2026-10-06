@@ -6,7 +6,7 @@ import { createContext, runInContext } from 'node:vm';
 // to prove attachment, reach, constant palm size or action/prop timing.
 const context=createContext({ console });
 context.window=context;
-for(const file of ['src/config-yaya-pet.js','src/core.js','src/yaya-actions.js','src/yaya-rig.js','src/yaya-pet.js']) {
+for(const file of ['src/config-yaya-pet.js','src/core.js','src/yaya-turns.js','src/yaya-actions.js','src/yaya-rig.js','src/yaya-pet.js']) {
   runInContext(readFileSync(new URL(file,import.meta.url),'utf8'),context,{filename:file});
 }
 const {YayaRig:rig,YayaDrawing:drawing,getYayaEmotionState:state}=context;
@@ -16,7 +16,8 @@ const allStates=[...new Set([...context.YAYA_MOODS,...context.YAYA_ACTIONS])];
 let solved=0;
 for(const key of allStates) {
   let previous;
-  for(let frame=0;frame<=4*240;frame++) {
+  const duration=context.YayaActions.duration(key);
+  for(let frame=0;frame<=duration*240;frame++) {
     const t=frame/240,S=state(key,t),p=drawing.pose(t,S),arms=rig.poseArms(key,t,S,p);
     assert.equal(arms.length,2,`${key}: exactly two physical arms`);
     assert.equal(arms[0].side,-1); assert.equal(arms[1].side,1);
@@ -34,7 +35,7 @@ for(const key of allStates) {
       }
       assert.equal(arm.edges.length,2,`${key}: shoulder must have no closing edge`);
       assert.equal(distance(arm.sockets.grip,arm.palm),0,`${key}: floating grip`);
-      if(previous && frame<4*240) {
+      if(previous && frame<duration*240) {
         assert.ok(distance(arm.palm,previous[i].palm)<.09,`${key}: hand jumps between frames`);
         assert.equal(arm.layer,previous[i].layer,`${key}: hand disappears by switching layer`);
       }

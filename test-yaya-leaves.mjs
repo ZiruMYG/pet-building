@@ -6,7 +6,7 @@ import vm from 'node:vm';
 // folding blades that cut through themselves, and jumps when seeking/turning.
 const context=vm.createContext({console});
 context.window=context;
-for(const file of ['src/config-yaya-pet.js','src/core.js','src/yaya-leaves.js','src/yaya-actions.js','src/yaya-rig.js','src/yaya-pet.js']) {
+for(const file of ['src/config-yaya-pet.js','src/core.js','src/yaya-leaves.js','src/yaya-turns.js','src/yaya-actions.js','src/yaya-rig.js','src/yaya-pet.js']) {
   vm.runInContext(readFileSync(new URL(file,import.meta.url),'utf8'),context,{filename:file});
 }
 const L=context.YayaLeaves;
