@@ -102,7 +102,12 @@
         pt=[s<0?1.25+.12*squeeze:2.80-.12*squeeze,-3.05-.09*squeeze,1];
         if(sn<0)pt[0]*=-1;
       }
-      const layer=view.armTargets?.[s]?'front':arm.layer;
+      // A room interaction already knows its target in this projected local
+      // plane. Apply it after the ordinary body-volume projection, while the
+      // shoulder remains the same projected cheek-height attachment.
+      const projectedTarget=view.projectedArmTargets?.[s];
+      if(projectedTarget)pt=[projectedTarget[0],projectedTarget[1],pt[2]];
+      const layer=(view.armTargets?.[s]||projectedTarget)?'front':arm.layer;
       const solved=R.solveArm({side:s,target:pt.slice(0,2),shoulder:root.slice(0,2),angle:arm.angle,gesture:arm.gesture,layer});
       solved.depth=root[2];
       solved.visible= Math.abs(sn)<.08 || root[2]>-.5;
@@ -110,6 +115,7 @@
       // occlusion. In profile only the near limb draws on the body surface.
       solved.foreground= Math.abs(sn)>.18 ? root[2]>.2 : cs>0 && layer==='front';
       if(key==='hug'&&cs>0)solved.foreground=true;
+      if(projectedTarget)solved.foreground=view.projectedHandsForeground!==false;
       return solved;
     });
   }
@@ -142,7 +148,7 @@
       D.flatEllipse(0,0,(1.12-.18*Math.abs(Math.sin(foot.yaw)))*u,.5*u,foot.z<centerDepth?'#D99928':cols.shade,C.ink,2.4);
       pop();
     };
-    for(const foot of turnFeet.filter(f=>f.z<=centerDepth))paintTurnFoot(foot);
+    if(!view?.hideFeet)for(const foot of turnFeet.filter(f=>f.z<=centerDepth))paintTurnFoot(foot);
     push(); translate(x+(turnPose?.bodyX||0)*u,y+(bob+centerDepth*.11)*u); rotate(lean); scale(1+(p.sq||0)*.25,1-(p.sq||0)*.45);
     // A six-second turn must also finish its leaf cycle; using the independent
     // four-second leaf clock here would snap the blade at the video seam.
@@ -155,8 +161,9 @@
       if(view?.seated) {
         // The same two feet hang just below the chair cushion, instead of
         // leaving a standing pair planted on the floor behind the table.
-        push();translate((foot.p[0]+foot.s*.12)*u,.18*u);rotate(foot.s*.10);
-        D.flatEllipse(0,0,1.04*u,.5*u,cols.shade,C.ink,2.4);pop();return;
+        const sit=typeof view.seated==='number'?clamp01(view.seated):1;
+        push();translate((foot.p[0]+foot.s*.12*sit)*u,mix(-.24,.18,sit)*u);rotate(foot.s*.10*sit);
+        D.flatEllipse(0,0,mix(1.12-.18*side,1.04,sit)*u,.5*u,cols.shade,C.ink,2.4);pop();return;
       }
       const step=locomotion?YayaGait.foot(gait,foot.s,speed):{forward:0,lift:(foot.s<0?p.footL:p.footR)||0,angle:0};
       if(run){step.forward*=1.24;step.lift*=2;step.angle*=1.4;}
@@ -164,10 +171,10 @@
       push(); translate((foot.p[0]+stride)*u,((locomotion?.12:-.24)-lift)*u); rotate(step.angle*sn);
       D.flatEllipse(0,0,(1.12-.18*side)*u,.5*u,foot.p[2]<-.1?'#D99928':cols.shade,C.ink,2.4); pop();
     };
-    if(!turnPose)for(const foot of feet.filter(f=>!locomotion || f.p[2]<=0)) paintFoot(foot);
+    if(!turnPose&&!view?.hideFeet)for(const foot of feet.filter(f=>!locomotion || f.p[2]<=0)) paintFoot(foot);
     for(const arm of arms.filter(a=>!a.foreground)) D.drawRigArm(u,arm,cols);
     push(); scale(breadth,1); D.flatBody(u,cols); pop();
-    if(!turnPose)for(const foot of feet.filter(f=>locomotion && f.p[2]>0)) paintFoot(foot);
+    if(!turnPose&&!view?.hideFeet)for(const foot of feet.filter(f=>locomotion && f.p[2]>0)) paintFoot(foot);
     // Visibility uses each feature's surface normal: eyes disappear gradually
     // behind the contour, never popping between a two-eye and one-eye sprite.
     push();translate(0,(-4.5+.50*a.nod)*u);scale(1-.025*a.nod,1-.18*a.nod);translate(0,4.5*u);
@@ -183,15 +190,15 @@
     const forearms=arms.filter(a=>a.foreground);
     for(const arm of forearms) D.drawRigArm(u,arm,cols,false,{arm:true,palm:false});
     if(typeof view?.drawProps==='function')view.drawProps({u,arms,cols,yaw});
-    else if(D.drawRigProps && cs>.45) D.drawRigProps(u,key,age,arms,cols);
-    if(window.YayaScenes&&key==='hug'&&cs>0)YayaScenes.drawHeld(u,key,age,arms,cols,{yaw});
+    else if(!view?.hideProps && D.drawRigProps && cs>.45) D.drawRigProps(u,key,age,arms,cols);
+    if(!view?.hideProps&&typeof view?.drawProps!=='function'&&window.YayaScenes&&key==='hug'&&cs>0)YayaScenes.drawHeld(u,key,age,arms,cols,{yaw});
     for(const arm of forearms) D.drawRigArm(u,arm,cols,false,{arm:false,palm:true});
     if(debug) {
       for(const arm of arms.filter(a=>a.foreground || cs>=0)) debugArm(D,u,arm);
       D.flatLine([[0,-7*u],[0,0]],'rgba(65,151,180,.45)',1.5);
     }
     pop();
-    for(const foot of turnFeet.filter(f=>f.z>centerDepth))paintTurnFoot(foot);
+    if(!view?.hideFeet)for(const foot of turnFeet.filter(f=>f.z>centerDepth))paintTurnFoot(foot);
     return {yaw,arms,breadth,turnPose};
   }
   function speedLines(x,y,u,age,travel) {

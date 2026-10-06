@@ -163,4 +163,27 @@ for(let frame=0;frame<=4*240;frame++) {
  const span=arms[1].palm[0]-arms[0].palm[0];
  assert.ok(span>=1.30&&span<=1.56,'hug: palms hold opposite bear edges');
 }
+// Room-space contacts must not be projected twice. In particular a side-view
+// prop target overrides ordinary locomotion/hug gestures without moving the
+// shoulder to hide an unreachable grip.
+for(const yaw of [0,1.28,Math.PI/2,Math.PI,Math.PI*1.5])for(const action of ['idle','walk','hug']) {
+ const projectedArmTargets={};
+ for(const side of [-1,1]) {
+  const root=V.project(side*R.constants.shoulderX,R.constants.shoulderY,.45,yaw);
+  projectedArmTargets[side]=[root[0]+side*.75,root[1]+.35];
+ }
+ const arms=V.solveArms({},R,action,.7,{action},{},yaw,action==='walk',1,.8,{projectedArmTargets});
+ checkArms(`room:${action}`,arms,yaw);
+ for(const arm of arms) {
+  samePoint(arm.palm,projectedArmTargets[arm.side],'projected prop contact uses actual requested plane');
+  assert.equal(arm.clamped,false,'near room prop remains reachable');
+  assert.equal(arm.layer,'front','room grasp renders on front hand layer');
+  assert.equal(arm.foreground,true,'both requested grips remain in foreground');
+ }
+ const backArms=V.solveArms({},R,action,.7,{action},{},yaw,action==='walk',1,.8,{projectedArmTargets,projectedHandsForeground:false});
+ for(const arm of backArms) {
+  samePoint(arm.palm,projectedArmTargets[arm.side],'back occlusion does not move the physical grip');
+  assert.equal(arm.foreground,false,'room may place held hands behind torso');
+ }
+}
 console.log(JSON.stringify({ok:true,travelPeriods:{run:A.duration('run'),walk:A.duration('walk')},armGeometrySamples:armSamples,projectedSamples,actions:actions.length}));

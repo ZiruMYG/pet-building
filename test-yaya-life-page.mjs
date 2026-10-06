@@ -16,13 +16,18 @@ async function verifyReducedMotionAndVisibility() {
   normal.on('pageerror',error=>errors.push(error.message));
   normal.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text());});
   await normal.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
-  await normal.goto(pathToFileURL(target).href,{waitUntil:'networkidle0'});
-  await normal.waitForFunction(()=>window.yayaLife&&window.yayaPet?.getState().ready&&window.yayaPet.getState().playing,{timeout:60000});
+  await normal.goto(pathToFileURL(target).href,{waitUntil:'domcontentloaded',timeout:60000});
+  await normal.waitForFunction(()=>window.yayaLife&&window.yayaPet?.getState().ready,{timeout:60000});
+  const normalInitial=await normal.evaluate(()=>({pet:yayaPet.getState(),life:yayaLife.getState()}));
+  assert.equal(normalInitial.pet.paused,true,'the legacy garden starts paused beside the active bedroom');
+  assert.equal(normalInitial.life.enabled,false,'the legacy garden does not compete with room autonomy');
+  await normal.evaluate(()=>{yayaPet.resume();yayaLife.setEnabled(true);});
+  await normal.waitForFunction(()=>yayaPet.getState().playing&&yayaLife.getState().enabled);
   const reduced=await browser.newPage();
   reduced.on('pageerror',error=>errors.push(error.message));
   reduced.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text());});
   await reduced.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
-  await reduced.goto(pathToFileURL(target).href,{waitUntil:'networkidle0'});
+  await reduced.goto(pathToFileURL(target).href,{waitUntil:'domcontentloaded',timeout:60000});
   await reduced.waitForFunction(()=>window.yayaLife&&window.yayaPet?.getState().ready,{timeout:60000});
   const reducedState=await reduced.evaluate(()=>({pet:yayaPet.getState(),life:yayaLife.getState(),toggle:document.getElementById('life-toggle').getAttribute('aria-pressed')}));
   assert.equal(reducedState.pet.reducedMotion,true);
@@ -64,11 +69,14 @@ try {
   await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
   page.on('pageerror',error=>errors.push(error.message));
   page.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text());});
-  await page.goto(pathToFileURL(target).href,{waitUntil:'networkidle0'});
-  await page.waitForFunction(()=>window.yayaLife&&window.yayaPet?.getState().ready&&window.yayaPet.getState().playing,{timeout:60000});
+  await page.goto(pathToFileURL(target).href,{waitUntil:'domcontentloaded',timeout:60000});
+  await page.waitForFunction(()=>window.yayaLife&&window.yayaPet?.getState().ready,{timeout:60000});
   const initial=await page.evaluate(()=>({pet:yayaPet.getState(),life:yayaLife.getState()}));
   assert.equal(initial.pet.reducedMotion,false);
-  assert.equal(initial.life.enabled,true,'visible non-reduced-motion page begins with autonomous activity enabled');
+  assert.equal(initial.life.enabled,false,'the legacy garden begins with autonomous activity disabled');
+  assert.equal(initial.pet.paused,true,'the bedroom is primary and the legacy garden starts paused');
+  await page.evaluate(()=>{yayaPet.resume();yayaLife.setEnabled(true);});
+  await page.waitForFunction(()=>yayaLife.getState().enabled&&yayaPet.getState().playing&&!yayaPet.getState().switching);
   await page.click('#life-toggle');
   await page.waitForFunction(()=>!yayaLife.getState().enabled&&!yayaPet.getState().switching);
 
@@ -91,8 +99,9 @@ try {
   assert.equal(implementedRows.length,19);
   assert.ok(implementedRows.every(row=>row.canPlay));
   const planned=await page.$$eval('#action-catalog .catalog-gaps p',rows=>rows.map(row=>({text:row.textContent,hasButton:Boolean(row.querySelector('button'))})));
-  assert.equal(planned.length,5);
+  assert.equal(planned.length,4,'room reading is implemented and no longer listed as missing');
   assert.ok(planned.every(row=>row.text.includes('待开发')&&!row.hasButton));
+  assert.equal(await page.$$eval('#action-catalog [data-catalog-room]',rows=>rows.length),7,'catalog separates seven complete room behaviors from basic clips');
   await (await page.$('#emotion-panel')).screenshot({path:resolve(output,'emotions-desktop.png')});
 
   await page.click('#life-toggle');
@@ -106,7 +115,7 @@ try {
     const sample=await page.evaluate(()=>({life:yayaLife.getState(),pet:yayaPet.getState()}));
     if(!sample.pet.switching&&sequence.at(-1)!==sample.pet.clip)sequence.push(sample.pet.clip);
     if(sample.pet.clip==='eat'&&!capturedMeal) {
-      await (await page.$('#life-panel')).screenshot({path:resolve(output,'life-desktop.png')});
+      await (await page.$('#garden-life-panel')).screenshot({path:resolve(output,'life-desktop.png')});
       capturedMeal=true;
     }
     if(sample.life.completed>=1&&sample.life.plan===null)break;
@@ -162,7 +171,7 @@ try {
   assert.ok(layout.width<=layout.viewport+1,`mobile page overflows: ${JSON.stringify(layout)}`);
   assert.ok(layout.body<=layout.viewport+1,'body must fit 390px viewport');
   assert.ok(layout.tableWidth>layout.tableViewport,'wide action table scrolls within its own container');
-  await (await page.$('#life-panel')).screenshot({path:resolve(output,'life-mobile.png')});
+  await (await page.$('#garden-life-panel')).screenshot({path:resolve(output,'life-mobile.png')});
   await (await page.$('#emotion-panel')).screenshot({path:resolve(output,'emotions-mobile.png')});
   await (await page.$('#action-catalog')).screenshot({path:resolve(output,'actions-mobile.png')});
   assert.deepEqual(errors,[],'page and embedded lab must not throw');

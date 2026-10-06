@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#eaf7ff">
-  <title>芽芽的小花园 · 电子宠物</title>
+  <title>芽芽的小世界 · 电子宠物</title>
   <link rel="stylesheet" href="source/yaya-life.css?v=life-v8-20261006">
   <style>
     :root {
@@ -65,8 +65,14 @@
     .rig-lab-heading a { color:#217653; font-size:.82rem; font-weight:800; white-space:nowrap; }
     .rig-lab-intro { margin:0 0 8px; font-size:.86rem; color:#477568; }
     .rig-lab-frame { display:block; width:100%; height:780px; border:0; border-radius:20px; background:#f0fbf6; }
+    .bedroom-panel { margin:0 0 28px; padding:18px 14px 6px; border:3px solid #b4ddcb; border-radius:26px; background:#f2faf5; scroll-margin-top:18px; box-shadow:0 8px 0 rgba(38,104,147,.07); }
+    .bedroom-panel .rig-lab-heading,.bedroom-panel .rig-lab-intro { margin-left:12px; margin-right:12px; }
+    #bedroom-panel { display:block; scroll-margin-top:18px; }
+    .bedroom-frame { display:block; width:100%; height:960px; border:0; border-radius:18px; background:#f2faf5; }
+    .garden-heading { margin:26px 0 10px; font-size:1.2rem; color:#426f85; }
     @media(max-width:760px) { .rig-lab-panel { padding:12px; } .rig-lab-frame { height:690px; } .rig-lab-heading { align-items:flex-start; } .rig-lab-heading h2 { font-size:1rem; } }
     @media(max-width:460px) { .rig-lab-frame { height:640px; } }
+    @media(max-width:680px) { .bedroom-panel { padding:14px 4px 4px; border-radius:20px; } .bedroom-panel .rig-lab-heading,.bedroom-panel .rig-lab-intro { margin-left:9px; margin-right:9px; } .bedroom-frame { height:710px; } }
     .stage-card {
       position: relative; overflow: hidden; border-radius: var(--radius); padding: 10px;
       background: #ffffff;
@@ -221,11 +227,12 @@
           <svg viewBox="0 0 32 32"><path d="M16 24.8c-4.9-3.6-9-6.5-9-11.2a4.4 4.4 0 0 1 8-2.6 4.4 4.4 0 0 1 8 2.6c0 4.7-4.1 7.6-9 11.2Z" fill="#ffffff" stroke="#197a58" stroke-width="1.4"/><path d="M16 8.9c-1-3.8 1.3-5.5 4.2-6.1.4 3.2-.9 5.5-4.2 6.1Z" fill="#5fc88f" stroke="#197a58" stroke-width="1.2"/></svg>
         </div>
         <div>
-          <h1>芽芽的小花园</h1>
+          <h1>芽芽的小世界</h1>
           <p class="tagline">陪你玩一会儿，也陪你慢慢长大。</p>
         </div>
       </div>
       <div class="topbar-tools">
+      <button class="top-action-link" type="button" data-jump-to="life-panel" aria-label="进入芽芽的卧室">🏡 <span>芽芽的卧室</span></button>
       <button class="top-action-link top-lab-link" type="button" data-jump-to="rig-lab" aria-label="查看芽芽三视图与动作实验室">🌱 <span>三视图与动作实验室</span></button>
       <button class="top-action-link" type="button" data-jump-to="action-panel" aria-label="查看 19 个日常动作">🧺 <span>动作 19</span></button>
       <button class="sound-toggle" type="button" data-testid="sound-toggle" aria-pressed="false" aria-label="打开轻柔音效">
@@ -235,7 +242,16 @@
       </div>
     </header>
 
-    <p class="style-note">芽芽会自己找点小事做，也会停下来回应你。<a href="#life-panel">看看芽芽自己的小日子 ↓</a></p>
+    <p class="style-note">芽芽有自己的卧室了。它会走到喜欢的东西旁边，读读书、抱抱小熊，再钻进被子休息。</p>
+
+    <section id="life-panel" class="bedroom-panel" data-testid="bedroom-panel" aria-label="芽芽的卧室与自主生活">
+      <span id="bedroom-panel" aria-hidden="true"></span>
+      <div class="rig-lab-heading"><h2>🏡 芽芽的卧室</h2><a href="bedroom.html?v=bedroom-v9-20261006" target="_blank" rel="noopener">单独打开 ↗</a></div>
+      <p class="rig-lab-intro">点选房间里的东西，让芽芽自己走过去；也可以让它安排接下来做什么。</p>
+      <iframe class="bedroom-frame" data-testid="bedroom-frame" src="bedroom.html?embed&v=bedroom-v9-20261006" title="芽芽的卧室：自由活动与家具互动" loading="eager"></iframe>
+    </section>
+
+    <h2 class="garden-heading" id="garden-preview">小花园 · 表情与动作预览</h2>
 
     <section class="stage-card" aria-label="芽芽的动画舞台">
       <div class="stage" data-testid="pet-stage" role="button" tabindex="0" aria-label="点击和芽芽打招呼">
@@ -259,6 +275,7 @@
     </nav>
     <div class="pause-row"><button class="pause-button" type="button" data-testid="pause-toggle" aria-pressed="false">Ⅱ&nbsp; 暂停</button></div>
     <nav class="section-nav" aria-label="快速查看">
+      <button class="section-jump" type="button" data-jump-to="life-panel">🏡 芽芽的卧室</button>
       <button class="section-jump" type="button" data-jump-to="rig-lab">🌱 三视图与动作实验室</button>
       <button class="section-jump" type="button" data-jump-to="action-panel">🧺 日常动作 <b>19</b></button>
       <button class="section-jump" type="button" data-jump-to="emotion-panel">😊 表情与状态 <b>31</b></button>
@@ -266,7 +283,7 @@
 
     <section id="rig-lab" class="rig-lab-panel" data-testid="rig-lab-panel" aria-label="芽芽三视图与动作实验室">
       <div class="rig-lab-heading"><h2>三视图与动作实验室</h2><a href="rig-lab.html" target="_blank" rel="noopener">单独打开 ↗</a></div>
-      <p class="rig-lab-intro">14 个动作可以直接点选：桌边吃喝、仰卧睡觉、打哈欠、快跑、转圈和抱泰迪熊。先看完整演示，再切换视角检查。<a href="#life-panel">🌿 看芽芽自主生活 ↑</a> · <a href="#action-catalog">查看动作与场景表 ↓</a></p>
+      <p class="rig-lab-intro">14 个动作可以直接点选：桌边吃喝、仰卧睡觉、打哈欠、快跑、转圈和抱泰迪熊。先看完整演示，再切换视角检查。<a href="#life-panel">🏡 回到芽芽的卧室 ↑</a> · <a href="#action-catalog">查看动作与场景表 ↓</a></p>
       <iframe class="rig-lab-frame" data-testid="rig-lab-frame" src="rig-lab.html?embed&v=life-v8-20261006" title="芽芽动作演示、三视图与叶子实验室" loading="eager"></iframe>
     </section>
 
@@ -274,7 +291,7 @@
       <div class="emotion-heading"><h2>芽芽的 31 种情绪</h2><span>点击按钮查看不同表情</span></div>
       <div class="emotion-grid" data-testid="emotion-grid" role="list"></div>
       <div class="emotion-preview" data-testid="emotion-preview">
-        <div class="preview-media" data-testid="emotion-preview-media"><img data-testid="emotion-preview-image" src="assets/emotions/idle.jpg" alt="芽芽平静的表情预览"><video class="preview-video" data-testid="emotion-preview-video" src="assets/emotions/idle.mp4" poster="assets/emotions/idle.jpg" muted playsinline autoplay loop aria-label="芽芽平静的动态预览"></video></div>
+        <div class="preview-media" data-testid="emotion-preview-media"><img data-testid="emotion-preview-image" src="assets/emotions/idle.jpg" alt="芽芽平静的表情预览"><video class="preview-video" data-testid="emotion-preview-video" src="assets/emotions/idle.mp4" poster="assets/emotions/idle.jpg" muted playsinline loop aria-label="芽芽平静的动态预览"></video></div>
         <div><h3 data-testid="emotion-preview-title">平静 · idle</h3><p data-testid="emotion-preview-description">芽芽安安静静地陪在你身边。</p></div>
       </div>
     </section>
@@ -289,7 +306,7 @@
       </div>
       <div class="action-grid" data-testid="action-grid" role="list"></div>
       <div class="action-preview" data-testid="action-preview">
-        <div class="preview-media" data-testid="action-preview-media"><img data-testid="action-preview-image" src="assets/actions/eat.jpg" alt="芽芽吃饭的动作预览"><video class="preview-video" data-testid="action-preview-video" src="assets/eat.mp4" poster="assets/actions/eat.jpg" muted playsinline autoplay loop aria-label="芽芽吃饭的动态预览"></video></div>
+        <div class="preview-media" data-testid="action-preview-media"><img data-testid="action-preview-image" src="assets/actions/eat.jpg" alt="芽芽吃饭的动作预览"><video class="preview-video" data-testid="action-preview-video" src="assets/eat.mp4" poster="assets/actions/eat.jpg" muted playsinline loop aria-label="芽芽吃饭的动态预览"></video></div>
         <div>
           <span class="action-active-note" data-testid="action-active-note">已选择：吃饭</span>
           <h3 data-testid="action-preview-title">吃饭 · eat</h3>
@@ -302,7 +319,7 @@
       </div>
     </section>
 
-    <details class="details"><summary>给大人的小说明</summary><p>这是离线电子宠物原型。自主活动按当前精力和兴趣选择小段生活过程，画面由程序绘制后预渲染播放。关闭页面后不会积累饥饿或惩罚；页面不收集信息。完整的走到家具旁、坐下和离场衔接仍在动作表中标明待补。</p></details>
+    <details class="details"><summary>给大人的小说明</summary><p>这是离线电子宠物原型。卧室由程序实时绘制：芽芽会走到家具旁、取放物品，并完成上床和起身的动作。小花园保留原有表情与动作片段，可单独点选。关闭页面后不会积累饥饿或惩罚；页面不收集信息。</p></details>
     <footer>芽芽电子宠物 · 明亮卡通版学习机原型</footer>
   </main>
 
@@ -350,15 +367,18 @@
         button.addEventListener('click', () => document.getElementById(button.dataset.jumpTo)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
       });
       const rigLabFrame = document.querySelector('[data-testid="rig-lab-frame"]');
+      const bedroomFrame = document.querySelector('[data-testid="bedroom-frame"]');
       window.addEventListener('message', event => {
-        if (event.source !== rigLabFrame?.contentWindow || event.data?.type !== 'yaya-rig-lab-size') return;
+        const frame=event.data?.type==='yaya-bedroom-size'?bedroomFrame:event.data?.type==='yaya-rig-lab-size'?rigLabFrame:null;
+        if(!frame||event.source!==frame.contentWindow)return;
         const height = Number(event.data.height);
-        if (Number.isFinite(height)) rigLabFrame.style.height = `${Math.max(400, Math.min(1300, height))}px`;
+        if (Number.isFinite(height)) frame.style.height = `${Math.max(350, Math.min(1600, height))}px`;
       });
       let active = 0;
       let clip = 'idle';
       let sleeping = false;
-      let pausedByUser = false;
+      let awaitingGardenStart = Boolean(bedroomFrame);
+      let pausedByUser = awaitingGardenStart;
       let switching = false;
       let switchToken = 0;
       let ready = false;
@@ -402,18 +422,19 @@
       let selectedCategory = 'care';
       let selectedDirection = 1;
       const assetVersion = 'life-v8-20261006';
-      function playPreview(video, media, path, poster) {
+      function playPreview(video, media, path, poster, autoplay=true) {
         video.poster = poster; video.src = `${path}?v=${assetVersion}`; video.load();
         media.classList.remove('video-failed');
+        if(!autoplay)return;
         const attempt = video.play();
         if (attempt && attempt.catch) attempt.catch(() => media.classList.add('video-failed'));
       }
       [emotionPreviewVideo, actionPreviewVideo].forEach(video => video.addEventListener('error', () => video.closest('.preview-media')?.classList.add('video-failed')));
-      function selectEmotion(key) {
+      function selectEmotion(key, autoplay=true) {
         const emotion = emotions.find(item => item.key === key) || emotions[0];
         emotionGrid.querySelectorAll('.emotion-button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.emotion === emotion.key)));
         emotionPreviewImage.src = `assets/emotions/${emotion.key}.jpg`;
-        playPreview(emotionPreviewVideo, emotionPreviewMedia, `assets/emotions/${emotion.key}.mp4`, `assets/emotions/${emotion.key}.jpg`);
+        playPreview(emotionPreviewVideo, emotionPreviewMedia, `assets/emotions/${emotion.key}.mp4`, `assets/emotions/${emotion.key}.jpg`, autoplay);
         emotionPreviewImage.alt = `芽芽${emotion.label}的表情预览`;
         emotionPreviewTitle.textContent = `${emotion.label} · ${emotion.key}`;
         emotionPreviewDescription.textContent = emotion.description;
@@ -425,7 +446,7 @@
         button.innerHTML = `${emotion.label}<small>${emotion.key}</small>`;
         button.addEventListener('click', () => selectEmotion(emotion.key)); emotionGrid.appendChild(button);
       });
-      selectEmotion('idle');
+      selectEmotion('idle', !bedroomFrame);
       function actionAssetPath(key, kind = 'video') {
         const root = key === 'eat' || key === 'sleep' ? `assets/${key}` : `assets/actions/${key}`;
         return `${kind === 'video' ? root : `assets/actions/${key}`}.${kind === 'video' ? 'mp4' : 'jpg'}`;
@@ -447,14 +468,14 @@
         }
       }
       actionTabs.forEach(tab => tab.addEventListener('click', () => filterActions(tab.dataset.actionCategory)));
-      function selectAction(key, direction = selectedDirection) {
+      function selectAction(key, direction = selectedDirection, autoplay=true) {
         const action = actions.find(item => item.key === key) || actions[0];
         selectedAction = action.key; selectedDirection = direction < 0 ? -1 : 1;
         actionGrid.querySelectorAll('.action-button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.motion === action.key)));
         directionButtons.forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.direction) === selectedDirection)));
         actionPreviewImage.src = actionAssetPath(action.key, 'image');
         actionPreviewImage.style.transform = selectedDirection < 0 ? 'scaleX(-1)' : '';
-        playPreview(actionPreviewVideo, actionPreviewMedia, actionAssetPath(action.key), actionAssetPath(action.key, 'image'));
+        playPreview(actionPreviewVideo, actionPreviewMedia, actionAssetPath(action.key), actionAssetPath(action.key, 'image'), autoplay);
         actionPreviewVideo.style.transform = selectedDirection < 0 ? 'scaleX(-1)' : '';
         actionPreviewImage.alt = `芽芽${action.label}的动作预览`;
         actionPreviewTitle.textContent = `${action.label} · ${action.key} · ${selectedDirection < 0 ? '朝左' : '朝右'}`;
@@ -472,7 +493,7 @@
       });
       directionButtons.forEach(button => button.addEventListener('click', () => selectAction(selectedAction, Number(button.dataset.direction))));
       filterActions('care');
-      selectAction('eat', 1);
+      selectAction('eat', 1, !bedroomFrame);
 
       function setStatus(message, kind = 'ready') {
         statusText.textContent = message;
@@ -554,6 +575,7 @@
         return true;
       }
       async function interact(action) {
+        if(awaitingGardenStart)activateGarden();
         if (pausedByUser) return;
         window.dispatchEvent(new CustomEvent('yaya:interaction',{detail:{action}}));
         if (action === 'sleep') {
@@ -571,6 +593,10 @@
         firstPlayAttempted = true;
         if (ok && ready) setStatus(labels[clip]);
       }
+      function activateGarden() {
+        awaitingGardenStart=false;pausedByUser=false;
+        pauseButton.setAttribute('aria-pressed','false');pauseButton.innerHTML='Ⅱ&nbsp; 暂停';
+      }
       function preloadAll() {
         const names = ['idle','cuddle','eat','play','sleep','hello','drink','exercise'];
         let loaded = 0, failed = 0, preloadFinished = false;
@@ -583,15 +609,16 @@
         function finishPreload() {
           preloadFinished = true; ready = failed === 0;
           if (!ready) setStatus('动画资源还没准备好，请检查 assets 文件夹', 'error');
-          else { setStatus(labels.idle); start(); }
+          else { setStatus(awaitingGardenStart?'点一下，在小花园里和芽芽玩':labels.idle); if(!pausedByUser)start(); }
         }
         setTimeout(() => { if (!preloadFinished && !firstPlayAttempted) { setStatus('正在加载芽芽的动画…'); if (layers[0].readyState >= 2) start(); } }, 2200);
       }
       document.querySelectorAll('[data-action]').forEach(btn => btn.addEventListener('click', () => interact(btn.dataset.action)));
       stage.addEventListener('click', () => interact('hello'));
       stage.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); interact('hello'); } });
-      startButton.addEventListener('click', () => start());
+      startButton.addEventListener('click', () => {activateGarden();start();});
       pauseButton.addEventListener('click', () => {
+        awaitingGardenStart=false;
         pausedByUser = !pausedByUser; pauseButton.setAttribute('aria-pressed', String(pausedByUser)); pauseButton.innerHTML = pausedByUser ? '▶&nbsp; 继续' : 'Ⅱ&nbsp; 暂停';
         if (pausedByUser) { layers[active].pause(); setStatus('芽芽在安静等你（已暂停）', sleeping ? 'sleep' : 'ready'); }
         else { playLayer(layers[active]); setStatus(labels[clip], sleeping ? 'sleep' : 'ready'); }
@@ -606,6 +633,10 @@
       });
       layers[0].src = clips.idle;
       layers[0].loop = true;
+      if(awaitingGardenStart) {
+        pauseButton.setAttribute('aria-pressed','true');pauseButton.innerHTML='▶&nbsp; 播放小花园';
+        startOverlay.hidden=false;startButton.textContent='点一下，在小花园里玩';
+      }
       layers[0].addEventListener('error', () => { if (!ready) setStatus('找不到芽芽的动画，请检查 assets 文件夹', 'error'); });
       preloadAll();
       window.yayaPet = {
@@ -621,7 +652,7 @@
       };
     })();
   </script>
-  <script src="source/yaya-page-life.js"></script>
+  <script src="source/yaya-page-life.js?v=bedroom-v9-20261006"></script>
 </body>
 </html>
 

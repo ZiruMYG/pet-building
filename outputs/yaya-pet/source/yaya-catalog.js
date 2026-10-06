@@ -1,5 +1,6 @@
 // Semantic inventory for the pet UI, life scheduler and agent consumers.
-// Pure data: a need is not an emotion, and a planned action is never callable.
+// Pure data: a need is not an emotion. Standalone clip actions and continuous
+// room behaviors are separate inventories, with distinct playback contracts.
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
@@ -69,7 +70,7 @@
   const actions = [
     action('eat','坐在桌旁吃饭','care',['餐桌','椅子','碗','勺子'],['坐在桌旁看向饭碗','真实圆手握勺送到嘴边','张嘴吃下、咀嚼','放低勺子、稍作停顿'],'饥饿上升，或用户喂食',{autonomous:true,notes:'餐桌椅属于进食场景；勺子绑定真实手掌。走到椅旁和自行坐下的过渡尚待实现。'}),
     action('drink','喝水','care',['水杯'],['看向杯子','举杯贴近嘴边','杯子倾斜、吞咽','放低杯子、放松'],'口渴上升、运动后，或用户给水',{autonomous:true}),
-    action('sleep','仰卧睡觉','care',['床','枕头','被子'],['仰卧、后脑枕在枕头上','脸朝上、侧脸露出被子','闭眼、被子轻轻起伏','保持安静呼吸'],'精力低，或用户选择睡觉',{autonomous:true,notes:'当前可循环睡眠场景；走上床、掀被子和离床尚待实现。'}),
+    action('sleep','仰卧睡觉','care',['床','枕头','被子'],['仰卧、后脑枕在枕头上','脸朝上、侧脸露出被子','闭眼、被子轻轻起伏','保持安静呼吸'],'精力低，或用户选择睡觉',{autonomous:true,availableIn:['clip','bedroom'],roomCommand:'sleep',notes:'此 key 保留循环睡眠片段；卧室 sleep 已包含走近床、上床、躺倒、拉被子、起身和下床的连续过程。'}),
     action('stretch','伸懒腰与哈欠','care',[],['身体收拢一点','短手向上舒展','张大嘴打哈欠','双手回到身体两侧'],'睡醒、安静待久，或运动后',{autonomous:true}),
     action('run','小跑','exercise',['跑动线'],['身体前倾','脚步加快并腾空','沿地面往返跑','脚落地、收住速度'],'精力充足时玩耍，或用户选择',{autonomous:true}),
     action('exercise','热身操','exercise',['小哑铃'],['握住哑铃','双手小幅交替举起','配合脚步和身体节奏','回到自然站姿'],'精力充足，或准备开始活动',{autonomous:true}),
@@ -89,11 +90,26 @@
     action('hello','回应招呼','interaction',[],['注意到呼唤','看过来并挥手','露出开心表情','回到陪伴'],'用户呼唤',{inMenu:false,notes:'保留原主舞台交互 key。'}),
     action('cuddle','被摸摸','interaction',[],['注意到触摸','轻轻靠近','露出喜欢和腮红','放松回位'],'用户轻触或抚摸',{inMenu:false,notes:'与 hug 抱泰迪熊不同：这是接收伙伴触摸的回应。'}),
     action('play','互动玩球','play',['球'],['看向小球','跟着球轻轻动','开心地回应','回到陪伴'],'用户选择一起玩',{inMenu:false,notes:'保留原主舞台交互 key；新的自主玩球优先调用 ball。'}),
-    action('read','看绘本','learning',['矮桌','椅子','绘本'],['坐到桌边','看一页图画','手靠书角翻页','看完把书合上'],'安静时探索',{implemented:false,inMenu:false,autonomous:false,duration:null}),
+    action('read','看绘本','learning',['矮桌','椅子','绘本'],['坐到桌边','看一页图画','手靠书角翻页','看完把书合上'],'安静时探索',{implemented:false,inMenu:false,autonomous:false,duration:null,availableIn:['bedroom'],roomCommand:'read',notes:'独立的桌边阅读视频片段尚未制作，不能作为 clip 调用；卧室已可走到矮柜拿书、带到地毯坐下、打开翻页，再合书归位。请调用 roomBehaviors.read。'}),
     action('draw','画画','learning',['矮桌','椅子','纸','蜡笔'],['看着白纸','握笔画几笔','停下看看画','开心地展示'],'获得新画纸或想安静玩',{implemented:false,inMenu:false,autonomous:false,duration:null}),
     action('waterPlant','给植物浇水','housekeeping',['花盆','小水壶','水滴'],['走近花盆','双手拿稳水壶','小幅倾斜浇水','看看植物、收回水壶'],'照料环境',{implemented:false,inMenu:false,autonomous:false,duration:null}),
     action('tidy','收玩具','housekeeping',['玩具','收纳篮'],['发现地上的玩具','弯身捡起','放进篮子','拍拍手、满意地看看'],'玩耍结束',{implemented:false,inMenu:false,autonomous:false,duration:null}),
     action('wash','洗洗手','care',['低洗手台','水龙头','毛巾'],['走到洗手台','短手伸向水流','小幅搓手','擦干手'],'吃饭前、玩耍后',{implemented:false,inMenu:false,autonomous:false,duration:null})
+  ];
+  // Persistent scenes own furniture, walking routes, grasp points and object
+  // transfers. These are model commands, never filenames for the clip player.
+  const roomBehavior=(key,label,category,props,beats,trigger,options={})=>({
+    key,label,category,scene:'bedroom',roomCommand:key,implemented:true,props,beats,trigger,
+    autonomous:true,duration:null,...options
+  });
+  const roomBehaviors=[
+    roomBehavior('window','走到窗前看看','play',['窗户','窗外的云和树'],['沿空过道走到窗前','停稳、转身看向窗外','看一会儿云朵和树','转回来，回到地毯边'],'自主探索，或点选窗户'),
+    roomBehavior('read','拿绘本来读','learning',['矮柜','绘本','地毯'],['走到矮柜，双手接触书边后拿起','抱着绘本走到地毯、坐下','打开绘本，看图、翻一页、再看一会儿','合书、起身，走回矮柜放稳后松手','空手回到地毯边'],'自主安静活动，或点选绘本',{notes:'绘本从矮柜转移到真实双手，归位后才松手；书始终属于房间或双手中的一方。'}),
+    roomBehavior('teddy','抱抱自己的小熊','interaction',['矮柜','泰迪熊','地毯'],['走到矮柜，双手扶住小熊后抱起','抱着小熊走到地毯、坐下','抱紧一点，轻轻靠一靠','站起、走回矮柜，放稳小熊再松手','空手走回地毯边'],'自主陪伴，或点选小熊'),
+    roomBehavior('tidy','检查小柜子','housekeeping',['矮柜','已归位的小熊与绘本'],['走到矮柜前','转过去，看看绘本和小熊的位置','确认都放好了','转回来，走回地毯边'],'用户邀请检查物品',{autonomous:false,notes:'仅检查固定柜面物品。阅读和抱熊流程本身会完成归还；这不等于已实现捡起散落玩具、整理房间或清洁。'}),
+    roomBehavior('lamp','开关床头灯','care',['床头灯','灯的拉绳'],['沿空过道走到床头柜旁','站稳后伸短手，接触灯绳','接触时切换灯光','收回手，走回房间空地'],'点选床头灯',{autonomous:false}),
+    roomBehavior('sleep','上床睡一会儿','care',['床头灯','低床','枕头','被子'],['灯亮时先走过去关灯','走到床边，手碰床沿，蹬脚上床坐稳','慢慢仰卧，把后脑放到枕头上','手抓被沿拉到胸前，闭眼睡一会儿','醒来推回被子，撑起身体坐稳','下床落地，走回地毯边伸个懒腰'],'自主休息，或点选床',{notes:'睡眠过程中收到新安排时，会先推被、坐起、下床，再转去下一个活动；不会从床上瞬移。'}),
+    roomBehavior('wander','在房间散散步','exercise',['地毯','家具之间的空地'],['看向要走的方向、换脚转身','沿家具间的空地走一小段','停下来看看房间','继续走回地毯边，站稳休息'],'自主探索，或用户选择散步')
   ];
   const gaps = [
     {key:'hunger',label:'饿了',domain:'need',status:'composite',availableStates:['hopeful','eat','relieved'],design:'先看向饭碗、手轻靠肚子；坐到桌旁吃饭，之后安静满足。不要把饥饿直接等同难过。'},
@@ -106,6 +122,7 @@
   const implementedActions = actions.filter(item => item.implemented).map(item => item.key);
   const getEmotion = key => emotions.find(item => item.key === key) || null;
   const getAction = key => actions.find(item => item.key === key) || null;
+  const getRoomBehavior = key => roomBehaviors.find(item => item.key === key) || null;
   function freeze(value) {
     if (value && typeof value === 'object' && !Object.isFrozen(value)) {
       Object.values(value).forEach(freeze);
@@ -113,5 +130,5 @@
     }
     return value;
   }
-  return freeze({version:'1.0.0',emotionGroups,emotions,actionCategories,actions,gaps,implementedActions,getEmotion,getAction});
+  return freeze({version:'1.1.0',emotionGroups,emotions,actionCategories,actions,roomBehaviors,gaps,implementedActions,getEmotion,getAction,getRoomBehavior});
 });
