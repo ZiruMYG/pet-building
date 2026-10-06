@@ -5,7 +5,7 @@ import {pathToFileURL} from 'node:url';
 import puppeteer from 'puppeteer-core';
 
 const chrome=process.env.CHROME_PATH||'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe';
-const target=resolve(process.env.YAYA_LIFE_PAGE||'outputs/yaya-pet/index.html');
+const target=resolve(process.env.YAYA_LIFE_PAGE||'outputs/yaya-pet/gallery.html');
 const output=resolve('out/life-page-review');
 mkdirSync(output,{recursive:true});
 const browser=await puppeteer.launch({executablePath:chrome,headless:true,args:['--allow-file-access-from-files','--ignore-gpu-blocklist','--use-angle=d3d11']});

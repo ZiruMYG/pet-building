@@ -181,10 +181,10 @@ if(process.argv.includes('--browser')) {
   await page.setViewport({width:390,height:844,deviceScaleFactor:1});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true,'mobile page has no horizontal overflow');
 
-  // The main entry must expose the living room directly, with the standalone
-  // room loaded in its real iframe and the older garden remaining opt-in.
+  // The archived gallery retains the original continuous bedroom integration
+  // and opt-in garden. The six-room main entry has a separate workbench test.
   await page.setViewport({width:1280,height:1100,deviceScaleFactor:1});
-  const mainTarget=resolve(process.env.YAYA_MAIN_PAGE||'outputs/yaya-pet/index.html');
+  const mainTarget=resolve(process.env.YAYA_MAIN_PAGE||'outputs/yaya-pet/gallery.html');
   await page.goto(pathToFileURL(mainTarget).href+'#life-panel',{waitUntil:'domcontentloaded',timeout:60000});
   await page.waitForFunction(()=>window.yayaLife&&window.yayaPet?.getState().ready,{timeout:60000});
   const embedded=await page.$('#life-panel [data-testid="bedroom-frame"]');

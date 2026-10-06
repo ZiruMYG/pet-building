@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#eaf7ff">
+  <title>芽芽的小世界 · 电子宠物</title>
+  <link rel="stylesheet" href="source/yaya-life.css?v=life-v8-20261006">
+  <style>
+    :root {
+      --cream: #eaf7ff;
+      --paper: #ffffff;
+      --ink: #123d66;
+      --ink-soft: #466f8f;
+      --mint: #69d8a3;
+      --mint-deep: #19895d;
+      --peach: #ff886a;
+      --peach-soft: #ffd4c7;
+      --yellow: #ffd957;
+      --blue-line: #8bd5f5;
+      --shadow: 0 8px 0 rgba(38, 104, 147, .08), 0 16px 30px rgba(38, 104, 147, .12);
+      --radius: 26px;
+    }
+    * { box-sizing: border-box; }
+    html { min-width: 320px; background: var(--cream); }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--cream);
+      font-family: ui-rounded, "SF Pro Rounded", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+      line-height: 1.5;
+    }
+    button { font: inherit; }
+    .page {
+      width: min(1160px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 34px 0 22px;
+    }
+    .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 20px; }
+    .topbar-tools { display:flex; align-items:center; gap:9px; flex-wrap:wrap; justify-content:flex-end; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      width: 46px; height: 46px; display: grid; place-items: center;
+      border-radius: 17px 17px 19px 19px; background: var(--mint); transform: rotate(-5deg);
+      box-shadow: inset 0 -5px 0 rgba(16, 107, 77, .18), 0 3px 0 rgba(16, 107, 77, .12);
+    }
+    .brand-mark svg { width: 28px; height: 28px; }
+    h1 { margin: 0; color: var(--ink); font-size: clamp(1.35rem, 3vw, 2rem); letter-spacing: .03em; font-weight: 800; }
+    .tagline { margin: 4px 0 0; color: var(--ink-soft); font-size: .92rem; }
+    .sound-toggle {
+      border: 2px solid var(--blue-line); background: #ffffff; color: var(--ink);
+      min-height: 56px; padding: 8px 13px; border-radius: 16px; display: inline-flex; align-items: center; gap: 8px;
+      cursor: pointer; transition: transform .18s ease, background .18s ease, border-color .18s ease;
+    }
+    .sound-toggle:hover { transform: translateY(-2px); background: #f2fbff; }
+    .sound-toggle[aria-pressed="true"] { background: #d8f7e8; border-color: var(--mint-deep); }
+    .sound-toggle svg { width: 19px; height: 19px; flex: none; }
+    .top-action-link { min-height:56px; padding:8px 14px; border:2px solid #9cddbe; border-radius:16px; background:#f0fff7; color:#246c52; cursor:pointer; font-weight:800; box-shadow:0 3px 0 rgba(38,104,147,.08); transition:transform .16s ease, background .16s ease, border-color .16s ease; }
+    .top-action-link:hover { transform:translateY(-2px); background:#d8f7e8; border-color:#2b9b6a; }
+    .top-lab-link { background:#fff3c9; border-color:#edc459; color:#71530d; }
+    .top-lab-link:hover { background:#ffeb9c; border-color:#b88c1c; }
+    .rig-lab-panel { margin:24px auto 0; max-width:1100px; padding:20px; border:3px solid #b4ddcb; border-radius:26px; background:#f0fbf6; box-shadow:0 8px 0 rgba(38,104,147,.07); scroll-margin-top:18px; }
+    .rig-lab-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:8px; }
+    .rig-lab-heading h2 { margin:0; font-size:1.2rem; }
+    .rig-lab-heading a { color:#217653; font-size:.82rem; font-weight:800; white-space:nowrap; }
+    .rig-lab-intro { margin:0 0 8px; font-size:.86rem; color:#477568; }
+    .rig-lab-frame { display:block; width:100%; height:780px; border:0; border-radius:20px; background:#f0fbf6; }
+    .bedroom-panel { margin:0 0 28px; padding:18px 14px 6px; border:3px solid #b4ddcb; border-radius:26px; background:#f2faf5; scroll-margin-top:18px; box-shadow:0 8px 0 rgba(38,104,147,.07); }
+    .bedroom-panel .rig-lab-heading,.bedroom-panel .rig-lab-intro { margin-left:12px; margin-right:12px; }
+    #bedroom-panel { display:block; scroll-margin-top:18px; }
+    .bedroom-frame { display:block; width:100%; height:960px; border:0; border-radius:18px; background:#f2faf5; }
+    .garden-heading { margin:26px 0 10px; font-size:1.2rem; color:#426f85; }
+    @media(max-width:760px) { .rig-lab-panel { padding:12px; } .rig-lab-frame { height:690px; } .rig-lab-heading { align-items:flex-start; } .rig-lab-heading h2 { font-size:1rem; } }
+    @media(max-width:460px) { .rig-lab-frame { height:640px; } }
+    @media(max-width:680px) { .bedroom-panel { padding:14px 4px 4px; border-radius:20px; } .bedroom-panel .rig-lab-heading,.bedroom-panel .rig-lab-intro { margin-left:9px; margin-right:9px; } .bedroom-frame { height:710px; } }
+    .stage-card {
+      position: relative; overflow: hidden; border-radius: var(--radius); padding: 10px;
+      background: #ffffff;
+      border: 3px solid var(--blue-line);
+      box-shadow: var(--shadow);
+    }
+    .stage {
+      position: relative; overflow: hidden; isolation: isolate; aspect-ratio: 16 / 9; border-radius: calc(var(--radius) - 8px);
+      background: #dff6ff url("assets/poster.png") center / cover no-repeat;
+      cursor: pointer;
+    }
+    .stage::before, .stage::after { content: ""; position: absolute; z-index: -1; border-radius: 50%; pointer-events:none; }
+    .stage::before { width: 24%; aspect-ratio: 1; top: -11%; left: -4%; background: #b9f1d5; }
+    .stage::after { width: 30%; aspect-ratio: 1; bottom: -19%; right: -8%; background: #ffe69a; }
+    .video-layer {
+      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
+      opacity: 0; transition: opacity .25s ease; background: transparent;
+    }
+    .video-layer.is-active { opacity: 1; z-index: 1; }
+    .video-layer.is-previous { opacity: 0; z-index: 0; }
+    .stage-wash { display: none; }
+    .stage-hint {
+      position:absolute; z-index: 4; left: 18px; bottom: 17px; display:flex; align-items:center; gap:7px;
+      padding: 8px 12px; border: 2px solid #8bd5f5; border-radius: 999px; color: #1f5e84; background: #ffffff;
+      font-size: .8rem; box-shadow: 0 3px 0 rgba(38, 104, 147, .12); pointer-events:none;
+    }
+    .stage-hint svg { width: 15px; height: 15px; }
+    .stage-badge {
+      position:absolute; z-index:4; right:18px; top:17px; padding: 7px 12px; border-radius:999px;
+      font-size: .78rem; color: #1f5e84; background: #ffffff; border: 2px solid #8bd5f5;
+      pointer-events:none; transition: background .2s ease, color .2s ease;
+    }
+    .stage-badge[data-kind="sleep"] { color:#5e54a2; background: #eeeaff; border-color: #aaa0ee; }
+    .stage-badge[data-kind="error"] { color:#a14e38; background: #fff0e9; border-color: #ffae91; }
+    .start-overlay {
+      position:absolute; inset:0; z-index: 8; display:grid; place-items:center; background: rgba(24, 91, 130, .2);
+    }
+    .start-overlay[hidden] { display:none; }
+    .start-button { border: 3px solid #b77c00; cursor:pointer; color:#5b3c00; background:#ffd957; min-height:56px; padding:13px 20px; border-radius:999px; box-shadow:0 5px 0 rgba(121, 81, 0, .2); font-weight:800; }
+    .start-button:hover { transform: translateY(-1px); }
+    .status-row { min-height: 42px; display:flex; align-items:center; justify-content:center; gap:9px; padding: 13px 8px 5px; text-align:center; }
+    .status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--mint-deep); box-shadow: 0 0 0 5px rgba(91,155,114,.14); flex:none; }
+    .status-dot[data-kind="sleep"] { background:#8e87b5; box-shadow: 0 0 0 5px rgba(142,135,181,.13); }
+    .status-dot[data-kind="error"] { background:#d17d68; box-shadow: 0 0 0 5px rgba(209,125,104,.13); }
+    .status-text { margin:0; font-size:.98rem; color:#2f6382; font-weight:650; }
+    .controls { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:11px; margin: 10px 0 5px; }
+    .pet-button {
+      position:relative; min-width: 112px; min-height: 64px; display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      padding: 11px 16px; border: 3px solid #77b9df; border-radius: 20px; color: var(--ink); background: #ffffff;
+      box-shadow: 0 5px 0 rgba(38, 104, 147, .12); cursor:pointer; transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+      font-weight: 750;
+    }
+    .pet-button:hover { transform: translateY(-3px); box-shadow: 0 8px 0 rgba(38, 104, 147, .12); background:#f2fbff; }
+    .pet-button:active { transform: translateY(0) scale(.97); }
+    .pet-button:focus-visible, .sound-toggle:focus-visible, .top-action-link:focus-visible, .start-button:focus-visible, .details summary:focus-visible, .emotion-button:focus-visible, .action-button:focus-visible, .direction-button:focus-visible, .section-jump:focus-visible { outline: 4px solid #ffb300; outline-offset:3px; }
+    .pet-button svg { width: 26px; height: 26px; stroke: currentColor; stroke-width:1.8; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+    .pet-button[data-action="touch"] { background: #dcf8e9; border-color: #48b982; }
+    .pet-button[data-action="feed"] { background: #fff0d7; border-color: #f0ac36; }
+    .pet-button[data-action="play"] { background: #e9e4ff; border-color: #9385e4; }
+    .pet-button[data-action="sleep"] { background: #e5f2ff; border-color: #6ba5df; }
+    .pet-button[data-action="drink"] { background: #e0f7ff; border-color: #56b9df; }
+    .pet-button[data-action="exercise"] { background: #e6f8dd; border-color: #75bd55; }
+    .pause-row { display:flex; justify-content:center; margin: 8px 0 0; }
+    .pause-button { border:2px solid #8bd5f5; background:#ffffff; color:var(--ink-soft); cursor:pointer; padding:8px 14px; border-radius:14px; font-size:.86rem; min-height:56px; }
+    .pause-button:hover { background: #f2fbff; color:var(--ink); }
+    .section-nav { display:flex; justify-content:center; flex-wrap:wrap; gap:9px; margin: 14px auto 0; }
+    .section-jump { min-height:48px; padding:8px 15px; border:2px solid #9fddf7; border-radius:999px; background:#ffffff; color:#286b91; cursor:pointer; font-weight:800; box-shadow:0 3px 0 rgba(38,104,147,.08); transition:transform .16s ease, background .16s ease, border-color .16s ease; }
+    .section-jump:hover { transform:translateY(-2px); background:#f2fbff; border-color:#2689bd; }
+    .section-jump[data-jump-to="action-panel"] { border-color:#9cddbe; color:#246c52; background:#f0fff7; }
+    .section-jump[data-jump-to="action-panel"]:hover { border-color:#2b9b6a; background:#d8f7e8; }
+    .section-jump b { margin-left:4px; font-size:.78rem; }
+    .emotion-panel { margin: 24px auto 0; max-width: 980px; padding: 22px; border: 3px solid #9fddf7; border-radius: 26px; background: #ffffff; box-shadow: 0 8px 0 rgba(38,104,147,.08); }
+    .emotion-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .emotion-heading h2 { margin:0; font-size:1.05rem; color:var(--ink); }
+    .emotion-heading span { color:#527b99; font-size:.8rem; }
+    .emotion-grid { display:grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap:10px; }
+    .emotion-button { min-height:58px; padding:8px 5px; border:2px solid #9acfe7; border-radius:15px; background:#f5fcff; color:#205b7e; cursor:pointer; transition:transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease; font-weight:750; }
+    .emotion-button:hover { transform:translateY(-2px); border-color:#2689bd; box-shadow:0 5px 0 rgba(38,104,147,.12); }
+    .emotion-button[aria-pressed="true"] { background:#ffd957; border-color:#a87300; color:#5c3e00; box-shadow:inset 0 -3px 0 rgba(167,111,0,.18); }
+    .emotion-button small { display:block; margin-top:2px; color:#56809b; font-size:.66rem; line-height:1.2; font-weight:600; }
+    .emotion-button[aria-pressed="true"] small { color:#7b5800; }
+    .emotion-preview { display:grid; grid-template-columns:minmax(180px, 300px) 1fr; gap:17px; align-items:center; margin-top:17px; padding-top:17px; border-top:2px solid #d8eef9; }
+    .preview-media { position:relative; width:100%; aspect-ratio:16/9; overflow:hidden; border-radius:18px; background:#dff6ff; box-shadow:0 5px 0 rgba(38,104,147,.1); }
+    .preview-media img, .preview-media video { width:100%; height:100%; object-fit:cover; border:3px solid #9fddf7; border-radius:18px; background:#dff6ff; display:block; }
+    .preview-media video { position:absolute; inset:0; }
+    .preview-media.video-failed video { display:none; }
+    .emotion-preview h3 { margin:0 0 5px; color:var(--ink); font-size:1rem; }
+    .emotion-preview p { margin:0; color:#527b99; font-size:.84rem; }
+    .action-panel { margin: 20px auto 0; max-width: 980px; padding: 22px; border: 3px solid #b6e5d0; border-radius: 26px; background: #fbfffd; box-shadow: 0 8px 0 rgba(38,104,147,.06); }
+    .action-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .action-heading h2 { margin:0; font-size:1.05rem; color:var(--ink); }
+    .action-heading span { color:#4c8b73; font-size:.8rem; }
+    .action-tabs { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 13px; padding:0; border:0; }
+    .action-tab { min-height:42px; padding:7px 14px; border:2px solid #9cddbe; border-radius:999px; background:#fff; color:#246c52; cursor:pointer; font-size:.82rem; font-weight:800; transition:transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease; }
+    .action-tab:hover { transform:translateY(-2px); border-color:#2b9b6a; box-shadow:0 4px 0 rgba(38,104,147,.1); }
+    .action-tab[aria-selected="true"] { background:#d8f7e8; border-color:#239568; color:#15593e; box-shadow:inset 0 -3px 0 rgba(35,149,104,.16); }
+    .action-grid { display:grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap:10px; }
+    .action-button { min-height:70px; padding:7px 5px; border:2px solid #8bd5b4; border-radius:15px; background:#f0fff7; color:#246c52; cursor:pointer; transition:transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease; font-weight:750; }
+    .action-button:hover { transform:translateY(-2px); border-color:#2b9b6a; box-shadow:0 5px 0 rgba(38,104,147,.1); }
+    .action-button[aria-pressed="true"] { background:#ffd957; border-color:#a87300; color:#5c3e00; box-shadow:inset 0 -3px 0 rgba(167,111,0,.18); }
+    .action-button .action-icon { display:block; min-height:23px; font-size:1.18rem; line-height:1.15; }
+    .action-button .action-label { display:block; line-height:1.2; }
+    .action-button small { display:block; margin-top:2px; color:#4c8b73; font-size:.63rem; line-height:1.2; font-weight:600; }
+    .action-button.is-hidden { display:none; }
+    .action-button[aria-pressed="true"] small { color:#7b5800; }
+    .action-preview { display:grid; grid-template-columns:minmax(180px, 300px) 1fr; gap:17px; align-items:center; margin-top:17px; padding-top:17px; border-top:2px solid #d8f2e4; }
+    .action-preview .preview-media { background:#e8fff3; box-shadow:0 5px 0 rgba(38,104,147,.08); }
+    .action-preview .preview-media img, .action-preview .preview-media video { border-color:#9cddbe; background:#e8fff3; }
+    .action-preview h3 { margin:0 0 5px; color:var(--ink); font-size:1rem; }
+    .action-preview p { margin:0 0 11px; color:#527b99; font-size:.84rem; }
+    .action-active-note { display:inline-flex; align-items:center; gap:6px; margin:0 0 9px; padding:5px 9px; border-radius:999px; background:#f0fff7; color:#2b8060; font-size:.76rem; font-weight:750; }
+    .action-active-note::before { content:"●"; color:#2b9b6a; font-size:.62rem; }
+    .direction-row { display:flex; flex-wrap:wrap; gap:8px; }
+    .direction-button { min-height:48px; padding:7px 13px; border:2px solid #8bd5b4; border-radius:13px; background:#fff; color:#246c52; cursor:pointer; font-size:.82rem; font-weight:750; }
+    .direction-button[aria-pressed="true"] { background:#d8f7e8; border-color:#239568; }
+    @media (max-width: 760px) { .emotion-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } .action-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    @media (max-width: 520px) { .emotion-panel, .action-panel { padding:15px; border-radius:21px; } .emotion-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap:6px; } .emotion-button, .action-button { min-height:58px; font-size:.78rem; } .action-tab { flex:1 1 auto; padding-inline:10px; } .emotion-preview, .action-preview { grid-template-columns:1fr; gap:10px; } .action-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap:6px; } }
+    .style-note { margin: 10px auto 18px; max-width: 760px; padding: 10px 16px; border: 2px solid #9fddf7; border-radius: 14px; background: #ffffff; color: #2f6382; font-size: .9rem; font-weight: 700; text-align: center; }
+    .details { margin: 20px auto 0; max-width: 760px; color:#527b99; font-size:.78rem; text-align:center; }
+    .details summary { display:inline-block; cursor:pointer; padding:8px 12px; color:#286b91; list-style:none; border:2px solid #9fddf7; border-radius:13px; background:#ffffff; }
+    .details summary::-webkit-details-marker { display:none; }
+    .details summary::after { content:"⌄"; display:inline-block; margin-left:5px; transition: transform .2s ease; }
+    .details[open] summary::after { transform: rotate(180deg); }
+    .details p { max-width: 580px; margin: 5px auto 0; padding: 0 10px; }
+    footer { text-align:center; margin-top: 21px; color:#3f789a; font-size:.74rem; letter-spacing:.04em; font-weight:700; }
+    @media (max-width: 600px) {
+      .page { width: calc(100% - 20px); padding-top: 20px; }
+      .topbar { align-items:center; }
+      .tagline { font-size:.82rem; }
+      .brand-mark { width: 40px; height: 40px; border-radius:14px; }
+      .sound-toggle span, .top-action-link span { display:none; }
+      .sound-toggle, .top-action-link { width:56px; justify-content:center; padding:8px; }
+      .stage-card { padding: 6px; border-radius: 23px; }
+      .stage { border-radius:18px; }
+      .controls { gap:8px; }
+      .pet-button { min-width: calc(50% - 8px); min-height:60px; border-radius:17px; font-size:.94rem; }
+      .pet-button svg { width:23px; height:23px; }
+      .stage-hint { left:11px; bottom:11px; font-size:.7rem; }
+      .stage-badge { right:11px; top:11px; font-size:.68rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+      .pet-button:hover, .sound-toggle:hover { transform:none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M16 24.8c-4.9-3.6-9-6.5-9-11.2a4.4 4.4 0 0 1 8-2.6 4.4 4.4 0 0 1 8 2.6c0 4.7-4.1 7.6-9 11.2Z" fill="#ffffff" stroke="#197a58" stroke-width="1.4"/><path d="M16 8.9c-1-3.8 1.3-5.5 4.2-6.1.4 3.2-.9 5.5-4.2 6.1Z" fill="#5fc88f" stroke="#197a58" stroke-width="1.2"/></svg>
+        </div>
+        <div>
+          <h1>芽芽的小世界</h1>
+          <p class="tagline">陪你玩一会儿，也陪你慢慢长大。</p>
+        </div>
+      </div>
+      <div class="topbar-tools">
+      <button class="top-action-link" type="button" data-jump-to="life-panel" aria-label="进入芽芽的卧室">🏡 <span>芽芽的卧室</span></button>
+      <button class="top-action-link top-lab-link" type="button" data-jump-to="rig-lab" aria-label="查看芽芽三视图与动作实验室">🌱 <span>三视图与动作实验室</span></button>
+      <button class="top-action-link" type="button" data-jump-to="action-panel" aria-label="查看 19 个日常动作">🧺 <span>动作 19</span></button>
+      <button class="sound-toggle" type="button" data-testid="sound-toggle" aria-pressed="false" aria-label="打开轻柔音效">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 9.2v5.6h3.4l4.3 3.7V5.5L7.9 9.2H4.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path class="sound-wave" d="M15.8 9a4.3 4.3 0 0 1 0 6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+        <span>轻柔音效</span>
+      </button>
+      </div>
+    </header>
+
+    <p class="style-note">芽芽有自己的卧室了。它会走到喜欢的东西旁边，读读书、抱抱小熊，再钻进被子休息。</p>
+
+    <section id="life-panel" class="bedroom-panel" data-testid="bedroom-panel" aria-label="芽芽的卧室与自主生活">
+      <span id="bedroom-panel" aria-hidden="true"></span>
+      <div class="rig-lab-heading"><h2>🏡 芽芽的卧室</h2><a href="bedroom.html?v=bedroom-v9-20261006" target="_blank" rel="noopener">单独打开 ↗</a></div>
+      <p class="rig-lab-intro">点选房间里的东西，让芽芽自己走过去；也可以让它安排接下来做什么。</p>
+      <iframe class="bedroom-frame" data-testid="bedroom-frame" src="bedroom.html?embed&v=bedroom-v9-20261006" title="芽芽的卧室：自由活动与家具互动" loading="eager"></iframe>
+    </section>
+
+    <h2 class="garden-heading" id="garden-preview">小花园 · 表情与动作预览</h2>
+
+    <section class="stage-card" aria-label="芽芽的动画舞台">
+      <div class="stage" data-testid="pet-stage" role="button" tabindex="0" aria-label="点击和芽芽打招呼">
+        <video class="video-layer is-active" data-video="0" muted playsinline preload="auto" poster="assets/poster.png" aria-hidden="true"></video>
+        <video class="video-layer is-previous" data-video="1" muted playsinline preload="auto" poster="assets/poster.png" aria-hidden="true"></video>
+        <div class="stage-wash" aria-hidden="true"></div>
+        <div class="stage-badge" data-testid="mode-badge">准备好了</div>
+        <div class="stage-hint" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7.4 11.5V6.4a1.6 1.6 0 0 1 3.2 0v4.3-6.1a1.6 1.6 0 0 1 3.2 0v6.1-4.8a1.6 1.6 0 0 1 3.2 0v6.1-2.5a1.6 1.6 0 0 1 3.2 0v5.4c0 3.1-2.5 5.7-5.7 5.7h-1.7c-1.6 0-3-.7-4.1-1.9l-2.4-2.8a1.9 1.9 0 0 1 2.9-2.4l.2.2V11.5Z"/></svg><span>点一点，芽芽会回应</span></div>
+        <div class="start-overlay" data-testid="start-overlay" hidden><button class="start-button" type="button" data-testid="start-button">点一下开始播放</button></div>
+      </div>
+      <div class="status-row"><span class="status-dot" data-testid="status-dot"></span><p class="status-text" data-testid="status-text" aria-live="polite">芽芽正在准备花园…</p></div>
+    </section>
+
+    <nav class="controls" aria-label="芽芽互动">
+      <button class="pet-button" type="button" data-action="touch" data-testid="action-touch" aria-label="摸摸芽芽"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.4 11.5V6.4a1.6 1.6 0 0 1 3.2 0v4.3-6.1a1.6 1.6 0 0 1 3.2 0v6.1-4.8a1.6 1.6 0 0 1 3.2 0v6.1-2.5a1.6 1.6 0 0 1 3.2 0v5.4c0 3.1-2.5 5.7-5.7 5.7h-1.7c-1.6 0-3-.7-4.1-1.9l-2.4-2.8a1.9 1.9 0 0 1 2.9-2.4l.2.2V11.5Z"/></svg><span>摸摸</span></button>
+      <button class="pet-button" type="button" data-action="feed" data-testid="action-feed" aria-label="喂芽芽一口"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9.2h13.5v2.1a6.8 6.8 0 0 1-6.8 6.8h0a6.8 6.8 0 0 1-6.8-6.8V9.2Z"/><path d="M8.1 9.2V7.7a3.6 3.6 0 0 1 7.2 0v1.5M18.5 5.2l.1.8.8.1-.8.1-.1.8-.1-.8-.8-.1.8-.1.1-.8Z"/></svg><span>喂一口</span></button>
+      <button class="pet-button" type="button" data-action="play" data-testid="action-play" aria-label="和芽芽一起玩"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.4c1.6 0 2.6 1.5 2.6 3.1 0 1.3-.5 2.6-1.3 3.6M8.5 7.2c-1.1-1.1-2.8-.8-3.5.5-.8 1.5.3 2.9 1.5 3.8l2.4 1.8c.9.7 1.5 1.8 1.5 3a3.7 3.7 0 0 0 3.7 3.7h.9c2.5 0 4.5-2 4.5-4.5v-2.8M10.8 7.1c-1.4-.9-2.9-.1-3.1 1.4-.2 1.2.5 2.1 1.3 2.8"/><path d="M16.5 5.2 17 3.8l.5 1.4 1.4.5-1.4.5-.5 1.4L16.5 6l-1.4-.5 1.4-.3Z"/></svg><span>一起玩</span></button>
+      <button class="pet-button" type="button" data-action="drink" data-testid="action-drink" aria-label="给芽芽喝水"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.4 6.4h11.2l-.9 12.1a2 2 0 0 1-2 1.8H9.3a2 2 0 0 1-2-1.8L6.4 6.4Z"/><path d="M8.2 6.4V4.8h7.6v1.6M18 9.2c1.8.1 2.9 1 2.9 2.2 0 1.4-1.5 2.1-3.1 2.1"/><path d="M10.1 11.4c1.1.5 2.4.5 3.5 0"/></svg><span>喝水</span></button>
+      <button class="pet-button" type="button" data-action="exercise" data-testid="action-exercise" aria-label="和芽芽一起运动"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6.2" cy="6.1" r="2.1"/><path d="m8 8 3.2 3.1 2.1-2.1 2.7 2.5M11.1 11.1l-2.7 5.4M13.3 9l-1.1-4M14.2 15.1l3.4 3.1M8.3 16.5l-2.1 2.2"/></svg><span>运动</span></button>
+      <button class="pet-button" type="button" data-action="sleep" data-testid="action-sleep" aria-label="让芽芽睡觉"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.2 16.8h13.6M7.2 13.4h4.2l-4.2 3.4h4.7M14.3 7.2h4.5l-4.5 3.5h5"/><path d="M6.8 7.4a5.5 5.5 0 0 1 5-3.1c3 0 5.5 2.5 5.5 5.5"/></svg><span class="sleep-label">睡觉</span></button>
+    </nav>
+    <div class="pause-row"><button class="pause-button" type="button" data-testid="pause-toggle" aria-pressed="false">Ⅱ&nbsp; 暂停</button></div>
+    <nav class="section-nav" aria-label="快速查看">
+      <button class="section-jump" type="button" data-jump-to="life-panel">🏡 芽芽的卧室</button>
+      <button class="section-jump" type="button" data-jump-to="rig-lab">🌱 三视图与动作实验室</button>
+      <button class="section-jump" type="button" data-jump-to="action-panel">🧺 日常动作 <b>19</b></button>
+      <button class="section-jump" type="button" data-jump-to="emotion-panel">😊 表情与状态 <b>31</b></button>
+    </nav>
+
+    <section id="rig-lab" class="rig-lab-panel" data-testid="rig-lab-panel" aria-label="芽芽三视图与动作实验室">
+      <div class="rig-lab-heading"><h2>三视图与动作实验室</h2><a href="rig-lab.html" target="_blank" rel="noopener">单独打开 ↗</a></div>
+      <p class="rig-lab-intro">14 个动作可以直接点选：桌边吃喝、仰卧睡觉、打哈欠、快跑、转圈和抱泰迪熊。先看完整演示，再切换视角检查。<a href="#life-panel">🏡 回到芽芽的卧室 ↑</a> · <a href="#action-catalog">查看动作与场景表 ↓</a></p>
+      <iframe class="rig-lab-frame" data-testid="rig-lab-frame" src="rig-lab.html?embed&v=life-v8-20261006" title="芽芽动作演示、三视图与叶子实验室" loading="eager"></iframe>
+    </section>
+
+    <section id="emotion-panel" class="emotion-panel" aria-label="芽芽的 31 种情绪">
+      <div class="emotion-heading"><h2>芽芽的 31 种情绪</h2><span>点击按钮查看不同表情</span></div>
+      <div class="emotion-grid" data-testid="emotion-grid" role="list"></div>
+      <div class="emotion-preview" data-testid="emotion-preview">
+        <div class="preview-media" data-testid="emotion-preview-media"><img data-testid="emotion-preview-image" src="assets/emotions/idle.jpg" alt="芽芽平静的表情预览"><video class="preview-video" data-testid="emotion-preview-video" src="assets/emotions/idle.mp4" poster="assets/emotions/idle.jpg" muted playsinline loop aria-label="芽芽平静的动态预览"></video></div>
+        <div><h3 data-testid="emotion-preview-title">平静 · idle</h3><p data-testid="emotion-preview-description">芽芽安安静静地陪在你身边。</p></div>
+      </div>
+    </section>
+
+    <section id="action-panel" class="action-panel" data-testid="action-panel" aria-label="芽芽的日常动作">
+      <div class="action-heading"><h2>芽芽的日常动作</h2><span>先选类别，再点动作看清楚它怎么做</span></div>
+      <div class="action-tabs" data-testid="action-tabs" role="tablist" aria-label="动作类别">
+        <button class="action-tab" type="button" role="tab" data-action-category="care" aria-selected="true">🧺 日常照料</button>
+        <button class="action-tab" type="button" role="tab" data-action-category="exercise" aria-selected="false">🌈 运动玩耍</button>
+        <button class="action-tab" type="button" role="tab" data-action-category="interaction" aria-selected="false">👋 回应互动</button>
+        <button class="action-tab" type="button" role="tab" data-action-category="all" aria-selected="false">全部动作</button>
+      </div>
+      <div class="action-grid" data-testid="action-grid" role="list"></div>
+      <div class="action-preview" data-testid="action-preview">
+        <div class="preview-media" data-testid="action-preview-media"><img data-testid="action-preview-image" src="assets/actions/eat.jpg" alt="芽芽吃饭的动作预览"><video class="preview-video" data-testid="action-preview-video" src="assets/eat.mp4" poster="assets/actions/eat.jpg" muted playsinline loop aria-label="芽芽吃饭的动态预览"></video></div>
+        <div>
+          <span class="action-active-note" data-testid="action-active-note">已选择：吃饭</span>
+          <h3 data-testid="action-preview-title">吃饭 · eat</h3>
+          <p data-testid="action-preview-description">坐在桌旁，用自己的短手拿勺子吃饭。</p>
+          <div class="direction-row" aria-label="动作方向">
+            <button class="direction-button" type="button" data-direction="-1" aria-pressed="false">← 朝左</button>
+            <button class="direction-button" type="button" data-direction="1" aria-pressed="true">朝右 →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <details class="details"><summary>给大人的小说明</summary><p>这是离线电子宠物原型。卧室由程序实时绘制：芽芽会走到家具旁、取放物品，并完成上床和起身的动作。小花园保留原有表情与动作片段，可单独点选。关闭页面后不会积累饥饿或惩罚；页面不收集信息。</p></details>
+    <footer>芽芽电子宠物 · 明亮卡通版学习机原型</footer>
+  </main>
+
+  <script src="source/yaya-catalog.js"></script>
+  <script src="source/yaya-life.js"></script>
+  <script>
+    (() => {
+      'use strict';
+      const clips = { idle: 'assets/idle.mp4', cuddle: 'assets/cuddle.mp4', eat: 'assets/eat.mp4', play: 'assets/play.mp4', sleep: 'assets/sleep.mp4', hello: 'assets/hello.mp4', drink: 'assets/actions/drink.mp4', exercise: 'assets/actions/exercise.mp4' };
+      const labels = { idle: '芽芽在等你', cuddle: '芽芽喜欢被摸摸', eat: '芽芽吃得香香的', play: '芽芽玩得好开心', sleep: '芽芽睡得正香', hello: '芽芽听见你啦', drink: '芽芽喝了几口水', exercise: '芽芽运动起来啦' };
+      const stage = document.querySelector('[data-testid="pet-stage"]');
+      const layers = [...document.querySelectorAll('.video-layer')];
+      const statusText = document.querySelector('[data-testid="status-text"]');
+      const statusDot = document.querySelector('[data-testid="status-dot"]');
+      const badge = document.querySelector('[data-testid="mode-badge"]');
+      const startOverlay = document.querySelector('[data-testid="start-overlay"]');
+      const startButton = document.querySelector('[data-testid="start-button"]');
+      const pauseButton = document.querySelector('[data-testid="pause-toggle"]');
+      const soundButton = document.querySelector('[data-testid="sound-toggle"]');
+      const soundWave = document.querySelector('.sound-wave');
+      const sleepLabel = document.querySelector('.sleep-label');
+      const emotionGrid = document.querySelector('[data-testid="emotion-grid"]');
+      const emotionPreviewImage = document.querySelector('[data-testid="emotion-preview-image"]');
+      const emotionPreviewVideo = document.querySelector('[data-testid="emotion-preview-video"]');
+      const emotionPreviewMedia = document.querySelector('[data-testid="emotion-preview-media"]');
+      const emotionPreviewTitle = document.querySelector('[data-testid="emotion-preview-title"]');
+      const emotionPreviewDescription = document.querySelector('[data-testid="emotion-preview-description"]');
+      const actionGrid = document.querySelector('[data-testid="action-grid"]');
+      const actionPanel = document.querySelector('[data-testid="action-panel"]');
+      const emotionPanel = document.querySelector('.emotion-panel');
+      const actionPreviewImage = document.querySelector('[data-testid="action-preview-image"]');
+      const actionPreviewVideo = document.querySelector('[data-testid="action-preview-video"]');
+      const actionPreviewMedia = document.querySelector('[data-testid="action-preview-media"]');
+      const actionPreviewTitle = document.querySelector('[data-testid="action-preview-title"]');
+      const actionPreviewDescription = document.querySelector('[data-testid="action-preview-description"]');
+      const actionActiveNote = document.querySelector('[data-testid="action-active-note"]');
+      const actionTabs = [...document.querySelectorAll('.action-tab')];
+      const directionButtons = [...document.querySelectorAll('.direction-button')];
+      // Put the concrete daily-action controls before the long emotion grid so
+      // they are reachable immediately after the stage, instead of being lost
+      // below 31 emotion buttons. The top jump buttons remain useful on small
+      // screens and make the two sections discoverable without guessing.
+      if (actionPanel && emotionPanel) emotionPanel.before(actionPanel);
+      document.querySelectorAll('[data-jump-to]').forEach(button => {
+        button.addEventListener('click', () => document.getElementById(button.dataset.jumpTo)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+      });
+      const rigLabFrame = document.querySelector('[data-testid="rig-lab-frame"]');
+      const bedroomFrame = document.querySelector('[data-testid="bedroom-frame"]');
+      window.addEventListener('message', event => {
+        const frame=event.data?.type==='yaya-bedroom-size'?bedroomFrame:event.data?.type==='yaya-rig-lab-size'?rigLabFrame:null;
+        if(!frame||event.source!==frame.contentWindow)return;
+        const height = Number(event.data.height);
+        if (Number.isFinite(height)) frame.style.height = `${Math.max(350, Math.min(1600, height))}px`;
+      });
+      let active = 0;
+      let clip = 'idle';
+      let sleeping = false;
+      let awaitingGardenStart = Boolean(bedroomFrame);
+      let pausedByUser = awaitingGardenStart;
+      let switching = false;
+      let switchToken = 0;
+      let ready = false;
+      let audioEnabled = false;
+      let audioContext = null;
+      let firstPlayAttempted = false;
+      const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const emotions = [
+        ['idle','平静','安安静静地陪在你身边。'], ['curious','好奇','发现新东西，抬起眉毛看一看。'], ['happy','开心','眼睛弯弯，心里亮亮的。'], ['excited','兴奋','忍不住蹦起来分享快乐。'], ['laugh','咯咯笑','一只手捂住嘴，眼睛弯成月牙，轻轻抖两下。'], ['love','喜欢','双手握成小拳头收在胸前，真的好喜欢。'], ['shy','害羞','一只手遮住眼睛，脸颊红红地偷偷看。'], ['proud','自豪','我自己做到了，抬头挺起胸口。'], ['relieved','安心','事情过去了，放松下来呼一口气。'], ['sad','难过','眉心抬起、嘴角向下，眼泪慢慢掉下来。'], ['cry','想哭','眼泪在眼睛里打转。'], ['angry','闹别扭','哼，转过身抱住手臂，不理你一小会儿。'], ['furious','气鼓鼓','腮帮鼓起来，额头的小青筋跳一下。'], ['scared','小紧张','遇到新事情时先靠近你。'], ['surprised','惊讶','眼睛睁大，双手赶紧捂住嘴。'], ['confused','困惑','歪着脑袋，手一摊，大大的问号冒出来。'], ['thinking','思考','手托下巴，头顶的三个点一个一个出现。'], ['idea','有主意','小灯泡反复冒出来，想到好办法。'], ['determined','认真','一只小拳头收在胸前，准备稳稳地试一试。'], ['sleepy','困倦','眼皮慢慢变重，准备睡觉。'], ['bored','有点无聊','安静等一个新的小游戏。'], ['nervous','紧张','小手轻轻动一动给自己打气。'], ['suspicious','悄悄观察','抬手挡住额头，侧着眼睛悄悄看。'], ['disgusted','不喜欢','摇摇头，双手推开，头上的叶子交叉起来。'], ['dizzy','晕乎乎','小星星在头顶转圈圈。'], ['cool','酷酷的','摆一个轻松又自信的姿势。'], ['starstruck','闪闪着迷','看到喜欢的东西，眼睛发光。'], ['ko','睡着啦','进入软绵绵的小梦乡。'], ['playful','调皮','眨眨眼，准备和你玩。'], ['mischief','小淘气','眨眼吐舌，手指点点脸颊，藏着一点小淘气。'], ['hopeful','充满期待','两只手搓一搓，抬起头等一个好消息。']]
+        .map(([key,label,description]) => window.YayaCatalog?.getEmotion(key) || ({key,label,description}));
+      const actions = [
+        ['eat','吃饭','坐在椅子上，面前是餐桌和饭碗；自己的短手拿小勺，取食、送到嘴边、咀嚼。','care','🍚'],
+        ['drink','喝水','坐在桌边，用自己的圆手举杯喝水，再慢慢放低杯子。','care','💧'],
+        ['sleep','睡觉','头枕着枕头仰卧，脸朝上，侧脸露在被子外，轻轻呼吸。','care','🌙'],
+        ['stretch','伸懒腰','双手向上舒展，张大嘴打个哈欠，再慢慢放松。','care','🙆'],
+        ['run','小跑','身体前倾、脚步加快，一蹬一跃地往返跑，身后带着跑动线。','exercise','🏃'],
+        ['exercise','热身操','举起小哑铃、动动脚，先做一组热身。','exercise','🏋️'],
+        ['ball','玩球','眼睛追着小球，伸手把球轻轻推回来。','exercise','⚽'],
+        ['dance','跳舞','左右摇摆、蹦一蹦，叶子也跟着跳舞。','exercise','🎵'],
+        ['jump','跳高','身体向上弹起，落地时有柔软的回弹。','exercise','⬆️'],
+        ['walk','走一走','侧着身慢慢走，小脚交替着地，走到另一边再转身回来。','exercise','🚶'],
+        ['sway','摇摆','身体左右摇一摇，叶子带着一点惯性。','exercise','↔️'],
+        ['spin','转圈圈','短胳膊保持日常长度，略微朝下，交替迈小步转一整圈，五官跟着身体稳稳地转。','exercise','🌀'],
+        ['stomp','跺脚','小脚有节奏地落地，表达认真和决心。','exercise','👣'],
+        ['celebrate','庆祝','先蹲一蹲，伸开双手高高跳起，在最高处兴奋地笑出来。','exercise','🎉'],
+        ['wave','挥挥手','一只短胳膊向外伸开，小手来回挥三下，和你打招呼。','interaction','👋'],
+        ['hug','抱抱','转向侧面，把泰迪熊抱在怀里，两只小手轻轻收紧。','interaction','🧸'],
+        ['reach','伸手','短胳膊向外展开，小圆手向前探一探，再慢慢收回。','interaction','🤲'],
+        ['turn','转身','双手放松垂下，换脚、迈小步转向侧面，停一下后转回来看你。','interaction','↩️'],
+        ['nod','点点头','脸向前下方低一低，再抬起来，叶子跟着轻轻点两下。','interaction','🙂']
+      ].map(([key,label,description,category,icon]) => ({key,label,description,category,icon}));
+      for (const action of actions) {
+        clips[action.key] = ['eat','sleep'].includes(action.key) ? `assets/${action.key}.mp4` : `assets/actions/${action.key}.mp4`;
+        labels[action.key] = `芽芽正在${action.label}`;
+      }
+      for (const emotion of emotions) {
+        clips[`emotion:${emotion.key}`] = `assets/emotions/${emotion.key}.mp4`;
+        labels[`emotion:${emotion.key}`] = emotion.description;
+      }
+      let selectedAction = 'eat';
+      let selectedCategory = 'care';
+      let selectedDirection = 1;
+      const assetVersion = 'life-v8-20261006';
+      function playPreview(video, media, path, poster, autoplay=true) {
+        video.poster = poster; video.src = `${path}?v=${assetVersion}`; video.load();
+        media.classList.remove('video-failed');
+        if(!autoplay)return;
+        const attempt = video.play();
+        if (attempt && attempt.catch) attempt.catch(() => media.classList.add('video-failed'));
+      }
+      [emotionPreviewVideo, actionPreviewVideo].forEach(video => video.addEventListener('error', () => video.closest('.preview-media')?.classList.add('video-failed')));
+      function selectEmotion(key, autoplay=true) {
+        const emotion = emotions.find(item => item.key === key) || emotions[0];
+        emotionGrid.querySelectorAll('.emotion-button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.emotion === emotion.key)));
+        emotionPreviewImage.src = `assets/emotions/${emotion.key}.jpg`;
+        playPreview(emotionPreviewVideo, emotionPreviewMedia, `assets/emotions/${emotion.key}.mp4`, `assets/emotions/${emotion.key}.jpg`, autoplay);
+        emotionPreviewImage.alt = `芽芽${emotion.label}的表情预览`;
+        emotionPreviewTitle.textContent = `${emotion.label} · ${emotion.key}`;
+        emotionPreviewDescription.textContent = emotion.description;
+        return emotion.key;
+      }
+      emotions.forEach(emotion => {
+        const button = document.createElement('button');
+        button.type = 'button'; button.className = 'emotion-button'; button.dataset.emotion = emotion.key; button.setAttribute('aria-pressed', 'false');
+        button.innerHTML = `${emotion.label}<small>${emotion.key}</small>`;
+        button.addEventListener('click', () => selectEmotion(emotion.key)); emotionGrid.appendChild(button);
+      });
+      selectEmotion('idle', !bedroomFrame);
+      function actionAssetPath(key, kind = 'video') {
+        const root = key === 'eat' || key === 'sleep' ? `assets/${key}` : `assets/actions/${key}`;
+        return `${kind === 'video' ? root : `assets/actions/${key}`}.${kind === 'video' ? 'mp4' : 'jpg'}`;
+      }
+      function filterActions(category = selectedCategory) {
+        selectedCategory = category;
+        actionTabs.forEach(tab => {
+          const activeTab = tab.dataset.actionCategory === selectedCategory;
+          tab.setAttribute('aria-selected', String(activeTab));
+        });
+        actionGrid.querySelectorAll('.action-button').forEach(button => {
+          const visible = selectedCategory === 'all' || button.dataset.category === selectedCategory;
+          button.classList.toggle('is-hidden', !visible);
+        });
+        if (selectedCategory !== 'all') {
+          const current = actions.find(item => item.key === selectedAction);
+          const first = actions.find(item => item.category === selectedCategory);
+          if (first && current?.category !== selectedCategory) selectAction(first.key, selectedDirection);
+        }
+      }
+      actionTabs.forEach(tab => tab.addEventListener('click', () => filterActions(tab.dataset.actionCategory)));
+      function selectAction(key, direction = selectedDirection, autoplay=true) {
+        const action = actions.find(item => item.key === key) || actions[0];
+        selectedAction = action.key; selectedDirection = direction < 0 ? -1 : 1;
+        actionGrid.querySelectorAll('.action-button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.motion === action.key)));
+        directionButtons.forEach(button => button.setAttribute('aria-pressed', String(Number(button.dataset.direction) === selectedDirection)));
+        actionPreviewImage.src = actionAssetPath(action.key, 'image');
+        actionPreviewImage.style.transform = selectedDirection < 0 ? 'scaleX(-1)' : '';
+        playPreview(actionPreviewVideo, actionPreviewMedia, actionAssetPath(action.key), actionAssetPath(action.key, 'image'), autoplay);
+        actionPreviewVideo.style.transform = selectedDirection < 0 ? 'scaleX(-1)' : '';
+        actionPreviewImage.alt = `芽芽${action.label}的动作预览`;
+        actionPreviewTitle.textContent = `${action.label} · ${action.key} · ${selectedDirection < 0 ? '朝左' : '朝右'}`;
+        actionPreviewDescription.textContent = action.description;
+        actionActiveNote.textContent = `已选择：${action.label}`;
+        if (selectedCategory !== 'all' && selectedCategory !== action.category) filterActions(action.category);
+        return action.key;
+      }
+      actions.forEach(action => {
+        const button = document.createElement('button');
+        button.type = 'button'; button.className = 'action-button'; button.dataset.motion = action.key; button.setAttribute('aria-pressed', 'false');
+        button.dataset.category = action.category;
+        button.innerHTML = `<span class="action-icon" aria-hidden="true">${action.icon}</span><span class="action-label">${action.label}</span><small>${action.key}</small>`;
+        button.addEventListener('click', () => selectAction(action.key)); actionGrid.appendChild(button);
+      });
+      directionButtons.forEach(button => button.addEventListener('click', () => selectAction(selectedAction, Number(button.dataset.direction))));
+      filterActions('care');
+      selectAction('eat', 1, !bedroomFrame);
+
+      function setStatus(message, kind = 'ready') {
+        statusText.textContent = message;
+        statusDot.dataset.kind = kind;
+        badge.dataset.kind = kind === 'sleep' ? 'sleep' : kind === 'error' ? 'error' : 'ready';
+        badge.textContent = kind === 'sleep' ? '安静睡觉中' : kind === 'error' ? '需要点一下' : sleeping ? '甜甜的梦' : '芽芽在线';
+      }
+      function pathFor(name) { return `${clips[name] || clips.idle}?v=${assetVersion}`; }
+      function setLayerClasses(next) {
+        layers.forEach((video, i) => { video.classList.toggle('is-active', i === next); video.classList.toggle('is-previous', i !== next); });
+      }
+      function ensureAudio() {
+        if (!audioContext) { audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
+        if (audioContext.state === 'suspended') audioContext.resume();
+      }
+      function chirp(kind = 'soft') {
+        if (!audioEnabled) return;
+        try {
+          ensureAudio();
+          const now = audioContext.currentTime;
+          const osc = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(kind === 'sleep' ? 330 : kind === 'play' ? 610 : 470, now);
+          osc.frequency.exponentialRampToValueAtTime(kind === 'sleep' ? 260 : 760, now + .12);
+          gain.gain.setValueAtTime(.0001, now);
+          gain.gain.exponentialRampToValueAtTime(.045, now + .012);
+          gain.gain.exponentialRampToValueAtTime(.0001, now + .2);
+          osc.connect(gain).connect(audioContext.destination); osc.start(now); osc.stop(now + .22);
+        } catch (_) { /* a blocked audio device should never block the pet */ }
+      }
+      async function playLayer(video) {
+        if (pausedByUser) return false;
+        video.muted = true; video.playsInline = true;
+        try { await video.play(); startOverlay.hidden = true; return true; }
+        catch (_) { startOverlay.hidden = false; setStatus('点一下就能和芽芽见面', 'error'); return false; }
+      }
+      function waitForCanPlay(video, token) {
+        return new Promise(resolve => {
+          if (video.readyState >= 3) return resolve(true);
+          let done = false;
+          const finish = value => { if (done) return; done = true; video.removeEventListener('canplay', onCan); video.removeEventListener('error', onErr); resolve(value); };
+          const onCan = () => finish(token === switchToken);
+          const onErr = () => finish(false);
+          video.addEventListener('canplay', onCan, { once: true }); video.addEventListener('error', onErr, { once: true });
+          setTimeout(() => finish(video.readyState >= 2 && token === switchToken), 9000);
+          video.load();
+        });
+      }
+      async function switchClip(nextClip, opts = {}) {
+        if (!clips[nextClip]) nextClip = 'idle';
+        const token = ++switchToken;
+        switching = true;
+        const next = 1 - active;
+        const nextVideo = layers[next];
+        nextVideo.loop = opts.loop ?? (nextClip === 'sleep' || nextClip === 'idle');
+        nextVideo.src = pathFor(nextClip);
+        nextVideo.poster = 'assets/poster.png';
+        try { nextVideo.currentTime = 0; } catch (_) {}
+        const canPlay = await waitForCanPlay(nextVideo, token);
+        if (token !== switchToken) return false;
+        if (!canPlay) { switching = false; setStatus('动画资源还没准备好，请检查 assets 文件夹', 'error'); return false; }
+        try { nextVideo.currentTime = 0; } catch (_) {}
+        if (!pausedByUser && !document.hidden) await playLayer(nextVideo);
+        if (token !== switchToken) return false;
+        if (reducedMotion) { layers[active].pause(); setLayerClasses(next); } else { setLayerClasses(next); }
+        layers[active].pause(); active = next; clip = nextClip; switching = false;
+        if (nextClip === 'sleep') { sleeping = true; setStatus(labels.sleep, 'sleep'); sleepLabel.textContent = '叫醒'; }
+        else { sleeping = false; setStatus(labels[nextClip] || labels.idle); sleepLabel.textContent = '睡觉'; }
+        if (!opts.silent) chirp(nextClip === 'sleep' ? 'sleep' : nextClip === 'play' ? 'play' : 'soft');
+        if (opts.label) setStatus(opts.label,nextClip==='sleep'?'sleep':'ready');
+        if (nextClip !== 'sleep' && nextClip !== 'idle') {
+          nextVideo.onended = () => {
+            if(nextVideo!==layers[active])return;
+            window.dispatchEvent(new CustomEvent('yaya:clip-end',{detail:{clip:nextClip,managed:Boolean(opts.managed)}}));
+            if (!opts.managed && !sleeping && !pausedByUser) switchClip('idle', { silent: true });
+          };
+        } else nextVideo.onended = null;
+        return true;
+      }
+      async function interact(action) {
+        if(awaitingGardenStart)activateGarden();
+        if (pausedByUser) return;
+        window.dispatchEvent(new CustomEvent('yaya:interaction',{detail:{action}}));
+        if (action === 'sleep') {
+          if (sleeping) { await switchClip('idle'); }
+          else { await switchClip('sleep'); }
+          return;
+        }
+        const target = action === 'touch' ? 'cuddle' : action === 'feed' ? 'eat' : action === 'play' ? 'play' : action === 'drink' ? 'drink' : action === 'exercise' ? 'exercise' : 'hello';
+        await switchClip(target);
+      }
+      async function start() {
+        const video = layers[active];
+        if (!video.src) { video.src = pathFor('idle'); video.load(); }
+        const ok = await playLayer(video);
+        firstPlayAttempted = true;
+        if (ok && ready) setStatus(labels[clip]);
+      }
+      function activateGarden() {
+        awaitingGardenStart=false;pausedByUser=false;
+        pauseButton.setAttribute('aria-pressed','false');pauseButton.innerHTML='Ⅱ&nbsp; 暂停';
+      }
+      function preloadAll() {
+        const names = ['idle','cuddle','eat','play','sleep','hello','drink','exercise'];
+        let loaded = 0, failed = 0, preloadFinished = false;
+        names.forEach(name => {
+          const pre = document.createElement('video'); pre.preload = 'metadata'; pre.muted = true; pre.src = pathFor(name); pre.style.display = 'none';
+          pre.addEventListener('loadedmetadata', () => { loaded++; if (loaded + failed === names.length) finishPreload(); }, { once:true });
+          pre.addEventListener('error', () => { failed++; if (loaded + failed === names.length) finishPreload(); }, { once:true });
+          document.body.appendChild(pre);
+        });
+        function finishPreload() {
+          preloadFinished = true; ready = failed === 0;
+          if (!ready) setStatus('动画资源还没准备好，请检查 assets 文件夹', 'error');
+          else { setStatus(awaitingGardenStart?'点一下，在小花园里和芽芽玩':labels.idle); if(!pausedByUser)start(); }
+        }
+        setTimeout(() => { if (!preloadFinished && !firstPlayAttempted) { setStatus('正在加载芽芽的动画…'); if (layers[0].readyState >= 2) start(); } }, 2200);
+      }
+      document.querySelectorAll('[data-action]').forEach(btn => btn.addEventListener('click', () => interact(btn.dataset.action)));
+      stage.addEventListener('click', () => interact('hello'));
+      stage.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); interact('hello'); } });
+      startButton.addEventListener('click', () => {activateGarden();start();});
+      pauseButton.addEventListener('click', () => {
+        awaitingGardenStart=false;
+        pausedByUser = !pausedByUser; pauseButton.setAttribute('aria-pressed', String(pausedByUser)); pauseButton.innerHTML = pausedByUser ? '▶&nbsp; 继续' : 'Ⅱ&nbsp; 暂停';
+        if (pausedByUser) { layers[active].pause(); setStatus('芽芽在安静等你（已暂停）', sleeping ? 'sleep' : 'ready'); }
+        else { playLayer(layers[active]); setStatus(labels[clip], sleeping ? 'sleep' : 'ready'); }
+      });
+      soundButton.addEventListener('click', () => {
+        audioEnabled = !audioEnabled; soundButton.setAttribute('aria-pressed', String(audioEnabled)); soundButton.setAttribute('aria-label', audioEnabled ? '关闭轻柔音效' : '打开轻柔音效');
+        soundWave.style.display = audioEnabled ? '' : 'none'; if (audioEnabled) { ensureAudio(); chirp('soft'); }
+      });
+      document.addEventListener('visibilitychange',()=>{
+        if(document.hidden)layers[active].pause();
+        else if(!pausedByUser)playLayer(layers[active]);
+      });
+      layers[0].src = clips.idle;
+      layers[0].loop = true;
+      if(awaitingGardenStart) {
+        pauseButton.setAttribute('aria-pressed','true');pauseButton.innerHTML='▶&nbsp; 播放小花园';
+        startOverlay.hidden=false;startButton.textContent='点一下，在小花园里玩';
+      }
+      layers[0].addEventListener('error', () => { if (!ready) setStatus('找不到芽芽的动画，请检查 assets 文件夹', 'error'); });
+      preloadAll();
+      window.yayaPet = {
+        interact: action => interact(action),
+        pause: () => { if (!pausedByUser) pauseButton.click(); },
+        resume: () => { if (pausedByUser) pauseButton.click(); },
+        getState: () => ({ clip, sleeping, paused: pausedByUser, audioEnabled, ready, reducedMotion, switching,
+          playing:!layers[active].paused&&!layers[active].ended&&layers[active].readyState>=2 }),
+        playClip: (key,options={})=>switchClip(key,options),
+        assets: { ...clips },
+        emotions: emotions.map(item => item.key), selectEmotion,
+        actions: actions.map(item => item.key), selectAction
+      };
+    })();
+  </script>
+  <script src="source/yaya-page-life.js?v=bedroom-v9-20261006"></script>
+</body>
+</html>
+

@@ -4,13 +4,15 @@
 
 如果要让其他 agent 学习完整的方法论，请先阅读仓库根目录的 [PET_BUILDING.md](PET_BUILDING.md)；本文件聚焦芽芽的具体状态和 API。
 
-当前学习机预览使用 `src/config-yaya-pet.js` 中的 `yayaStyle: 'bright'` 和 `paintMode: 'flat'`：背景明亮、颜色扁平、轮廓清晰，适合 16:9 横屏触控界面。将 `yayaStyle` 改为 `'paper'`、`paintMode` 改为 `'paper'` 可以恢复原项目的手绘纸张质感。
+当前学习机预览使用 `src/config-yaya-pet.js` 中的 `yayaStyle: 'bright'` 和 `paintMode: 'flat'`：背景明亮、颜色扁平、轮廓清晰。源码画布保持 1920 × 1080，新首页的房间视口随工作台和屏幕大小适配。将 `yayaStyle` 改为 `'paper'`、`paintMode` 改为 `'paper'` 可以恢复原项目的手绘纸张质感。
+
+当前入口 `outputs/yaya-pet/index.html` 是六空间小家与右侧工作台，调用 `home.html`、`YayaHomeModel` 和 `YayaHomeLayout`。家居布局、成对房门与家具互动见 [docs/YAYA_HOME.md](docs/YAYA_HOME.md)，界面协议见 [docs/YAYA_WORKBENCH.md](docs/YAYA_WORKBENCH.md)。下文花园调度与独立视频 API 保留在 `gallery.html`，供已有 agent 和素材回归使用。
 
 ## 情绪和动作
 
 分类与完整动作表见 [docs/YAYA_LIFE_CATALOG.md](docs/YAYA_LIFE_CATALOG.md)。主页面把 31 个状态分成 7 组，支持逐组过滤，同时保留“全部”。吃饭、喝水由 `YayaScenes.drawMeal()` 绘制桌椅场景；主视频和实验室使用同一入口。
 
-自主生活由 `src/yaya-life.js` 提供，与绘图解耦：`create({random,needs,enabled,wait})` 返回 `tick(dt,{blocked})`、`begin(planKey)`、`interrupt(label)`、`setEnabled(value)`、`satisfy(action)`、`getState()`。`tick` 返回要播放的步骤或 `null`，一个步骤执行结束才结算需求变化。9 个计划定义于 `YayaLife.plans`；`hunger/thirst/fatigue/boredom` 是内部需求，数值越高需求越强，不是新的绘图 key。
+旧花园的自主生活由 `src/yaya-life.js` 提供，与绘图解耦：`create({random,needs,enabled,wait})` 返回 `tick(dt,{blocked})`、`begin(planKey)`、`interrupt(label)`、`setEnabled(value)`、`satisfy(action)`、`getState()`。`tick` 返回要播放的步骤或 `null`，一个步骤执行结束才结算需求变化。9 个计划定义于 `YayaLife.plans`；`hunger/thirst/fatigue/boredom` 是内部需求，数值越高需求越强，不是新的绘图 key。
 
 页面适配器 `src/yaya-page-life.js` 用同一主舞台播放这些步骤，空档有 9–18 秒安静陪伴、闲暇行为有 100 秒冷却。首次进入约 10 秒后开始；用户照料优先并取消原队列，手动睡觉一直持续到叫醒。自动睡眠为 24 秒演示，睡醒伸懒腰。暂停、后台、资源未就绪时不推进；没有离线需求累积。减少动态效果偏好默认关闭自主活动。`window.yayaLife` 提供 `getState/setEnabled/next/filterEmotions` 供集成验证。
 

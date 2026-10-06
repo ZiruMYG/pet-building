@@ -9,7 +9,9 @@ const page = await browser.newPage();
 const errors = [];
 page.on('console', message => console.log('[page]', message.type(), message.text()));
 page.on('pageerror', error => errors.push(error.message));
-await page.goto(pathToFileURL(resolve('../../outputs/yaya-pet/index.html')).href, { waitUntil: 'domcontentloaded', timeout:60000 });
+// Preserve the complete legacy gallery contract; the new home workbench has
+// its own test-yaya-workbench.mjs rather than pretending to expose yayaPet.
+await page.goto(pathToFileURL(resolve(process.env.YAYA_GALLERY_PAGE || 'outputs/yaya-pet/gallery.html')).href, { waitUntil: 'domcontentloaded', timeout:60000 });
 await page.waitForFunction(()=>window.yayaPet?.getState().ready,{timeout:60000});
 const bootState = await page.evaluate(() => window.yayaPet?.getState?.() || null);
 if (!bootState?.ready) throw new Error(`pet page did not become ready: ${JSON.stringify(bootState)}`);
