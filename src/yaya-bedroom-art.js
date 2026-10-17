@@ -2,7 +2,15 @@
 // until the controller parents them to the pet's solved hand sockets.
 (() => {
   'use strict';
-  const C={ink:'#36585C',wall:'#FFF4D8',floor:'#F1D6AF',wood:'#E6B47E',woodLight:'#F6D4A3',woodDark:'#C99160',mint:'#83CDBD',mintLight:'#B9E4CE',teal:'#51ABA4',cream:'#FFFBED',peach:'#F8AA86',pink:'#F2B4A1',blue:'#B9E3E9'};
+  const STYLE=globalThis.YayaProceduralStyle;
+  const SC=STYLE?.palette('bright')||{};
+  const C={
+    ink:SC.ink||'#36585C',wall:SC.wall||'#FFF4D8',floor:SC.floor||'#F1D6AF',
+    wood:SC.wood||'#E6B47E',woodLight:SC.woodTop||'#F6D4A3',woodDark:SC.woodSide||'#C99160',
+    mint:SC.mint||'#83CDBD',mintLight:SC.leafLight||'#B9E4CE',teal:SC.accent||'#51ABA4',
+    cream:SC.paper||'#FFFBED',peach:SC.blush||'#F8AA86',pink:SC.heart||'#F2B4A1',blue:SC.accentBlue||'#B9E3E9',
+    floorLine:SC.floorLine||'#C9B38E',wallEdge:SC.wallEdge||'#A3B59E',highlight:SC.highlight||'#FFF3C4'
+  };
   const layout=Object.freeze({
     width:1920,height:1080,wallFloor:610,
     bed:{x:425,y:790,u:28,mattressTop:752.2,bodyX:513.2,pillow:{x:353.32,y:734.84},approach:{x:627,y:835},hit:{x:232,y:588,w:360,h:220}},
@@ -71,14 +79,14 @@
     push();rectMode(CORNER);background(C.wall);
     // One clear floor plane gives every step and item a persistent place.
     box(0,610,1920,470,0,C.floor,0);
-    box(0,594,1920,27,0,'#E5C59C',0);linePath([[0,595],[1920,595]],'#C9B38E',3);
-    linePath([[0,621],[1920,621]],'#F8E8CC',3);
-    for(const yy of [744,904,1060])linePath([[0,yy],[1920,yy]],'#DEBD95',2);
-    for(const [xx,ya,yb] of [[565,621,744],[1230,621,744],[245,744,904],[1390,744,904],[640,904,1060],[1720,904,1060]])linePath([[xx,ya],[xx,yb]],'#DEBD95',2);
+    box(0,594,1920,27,0,C.woodLight,0);linePath([[0,595],[1920,595]],C.floorLine,3);
+    linePath([[0,621],[1920,621]],C.cream,3);
+    for(const yy of [744,904,1060])linePath([[0,yy],[1920,yy]],C.floorLine,2);
+    for(const [xx,ya,yb] of [[565,621,744],[1230,621,744],[245,744,904],[1390,744,904],[640,904,1060],[1720,904,1060]])linePath([[xx,ya],[xx,yb]],C.floorLine,2);
     // A soft elliptical rug is the open play zone, clear of the furniture.
     oval(1030,871,847,300,'rgba(116,103,77,.07)',0);
-    oval(1030,860,820,292,'#B6DCCD',3);
-    oval(1030,859,772,247,'#CDE8CF',0);
+    oval(1030,860,820,292,C.mint,3);
+    oval(1030,859,772,247,C.mintLight,0);
     curve([672,854],[[[730,754],[1261,754],[1382,854]]],'#EFF2C9',5);
     curve([683,884],[[[827,1000],[1257,988],[1375,883]]],'#EFF2C9',5);
     for(const [xx,yy,ss,aa] of [[728,875,17,-.6],[1270,958,15,.9],[1320,817,14,.8]])leaf(xx,yy,ss,aa,'#A5CCB0');

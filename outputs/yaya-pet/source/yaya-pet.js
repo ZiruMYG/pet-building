@@ -1,13 +1,14 @@
 // 芽芽 / Yaya: an original round winter-melon pet, independent of Clawd.
 (() => {
   const YAYA_STYLE = (typeof PROJECT !== 'undefined' && PROJECT.yayaStyle) || 'bright';
-  const PALETTE = YAYA_STYLE === 'paper' ? {
+  const PROCEDURAL_STYLE = globalThis.YayaProceduralStyle;
+  const PALETTE = PROCEDURAL_STYLE?.palette(YAYA_STYLE) || (YAYA_STYLE === 'paper' ? {
     body:'#F7D878', light:'#FFE9A8', shade:'#E8B84F', leaf:'#83C985', leafLight:'#B7E49A', leafShade:'#4F9C6B',
     ink:'#60402B', eye:'#513522', cheek:'#F39A7D', blush:'#F7B18D', heart:'#F47F79', mint:'#B9DED0', carpet:'#9CCEBE', paper:'#FBF1DA'
   } : {
     body:'#FFD45A', light:'#FFE98A', shade:'#EBAE32', leaf:'#63C98B', leafLight:'#B9EF96', leafShade:'#2E8C5A',
     ink:'#26384B', eye:'#1F3042', cheek:'#FF8B82', blush:'#FFB1A0', heart:'#FF6C86', mint:'#A7E4D2', carpet:'#9BE4CE', paper:'#F5FBFF'
-  };
+  });
   const YC = PALETTE;
 
   // Kept local so the original character module is not required by this independent pet.
@@ -222,7 +223,8 @@
   function pose(age,state) {
     const S=typeof state==='string'?getYayaEmotionState(state,age):state||getYayaEmotionState('idle',age);
     const key=S.state||'idle', e=S.pose||S, direct=typeof state!=='string'&&e.dy!==undefined;
-    const p=direct?{dy:e.dy||0,sq:e.sq||0,rot:e.rot||0,left:e.left??.35,right:e.right??.35,dx:e.dx||0,footL:e.footL||0,footR:e.footR||0}:{dy:-.09*Math.sin(age*TAU/2),sq:.025*Math.sin(age*TAU),rot:e.tilt||0,left:.35,right:.35,dx:0,footL:0,footR:0};
+    const breath=PROCEDURAL_STYLE?.breath(age,{period:3.2,amount:.035}) ?? (1+.035*Math.sin(age*TAU/3.2));
+    const p=direct?{dy:e.dy||0,sq:e.sq||0,rot:e.rot||0,left:e.left??.35,right:e.right??.35,dx:e.dx||0,footL:e.footL||0,footR:e.footR||0}:{dy:-(breath-1)*2.6,sq:(breath-1)*.7,rot:e.tilt||0,left:.35,right:.35,dx:0,footL:0,footR:0};
     const dir=S.direction||e.direction||1;
     if(direct) { p.dx*=dir; if(key==='reach'){ if(dir<0){p.left=1.12;p.right=-.2;} else {p.left=-.2;p.right=1.12;} } return p; }
     if(key==='cuddle'){p.rot=-.08+.03*Math.sin(age*2.2);p.left=-.28;p.right=-.55;p.dy-=.1;}
@@ -454,6 +456,7 @@
       else if(kind==='laugh') { flatLine([[-.68*u,.34*u],[0,-.32*u],[.68*u,.34*u]],YC.ink,3.2); flatLine([[-.42*u,.16*u],[0,.03*u],[.42*u,.16*u]],YC.ink,1.4); }
       else if(kind==='wink') flatLine([[-.68*u,.28*u],[0,-.22*u],[.68*u,.28*u]],YC.ink,3.1);
       else if(kind==='relieved') flatLine([[-.62*u,.02*u],[0,.34*u],[.62*u,.02*u]],YC.ink,2.8);
+      else if(kind==='narrow'||kind==='determined') flatLine([[-.62*u,.20*u],[0,-.10*u],[.62*u,.20*u]],YC.ink,3);
       else if(kind==='proud') {
         // Half-open upward gaze: pride should not collapse into the same
         // closed-eye smile used by relief.
@@ -666,7 +669,7 @@
   }
   function yayaStage(t,state='idle',age=t) {
     if(FLAT_PAINT) {
-      background(YC.paper); push(); noStroke(); fill('#EAF7FF'); ellipse(960,230,1440,720); fill('#B8F0E1'); ellipse(960,960,2360,470); pop();
+      background(YC.paper); push(); noStroke(); fill(YC.sky||'#EAF7FF'); ellipse(960,230,1440,720); fill(YC.carpet||'#B8F0E1'); ellipse(960,960,2360,470); pop();
       for(let i=0;i<13;i++){const gx=170+hash(i*4.1)*1580, gy=850+hash(i*6.7)*170; flatEllipse(gx,gy,28+hash(i)*23,9+hash(i+2)*7,YC.leafLight,null,0);}
       flatLine([[160,830],[180,770],[218,745]],YC.leafShade,3); flatLine([[1760,840],[1738,770],[1702,748]],YC.leafShade,3);
       if(['eat','drink','sleep','stretch','walk','run','spin','celebrate','wave','hug','reach','turn','nod'].includes(normalizePetState(state)) && window.YayaViews) {
@@ -676,8 +679,8 @@
     }
     boilSeed('yaya-stage');
     paint(rectPts(-100,-100,W+200,H+200),{wash:YC.paper,ink:null});
-    paint(ellPts(960,230,720,360,36,8),{fill:YAYA_STYLE==='paper'?'#FFF8E9':'#EAF7FF',fillOp:255,bleed:.35,tex:.45,ink:null});
-    paint(ellPts(960,960,1180,235,40,7),{wash:YC.carpet,fill:YAYA_STYLE==='paper'?YC.mint:'#B8F0E1',fillOp:255,bleed:.22,tex:.7,ink:null});
+    paint(ellPts(960,230,720,360,36,8),{fill:YC.sky|| (YAYA_STYLE==='paper'?'#FFF8E9':'#EAF7FF'),fillOp:255,bleed:.35,tex:.45,ink:null});
+    paint(ellPts(960,960,1180,235,40,7),{wash:YC.carpet,fill:YAYA_STYLE==='paper'?YC.mint:(YC.carpet||'#B8F0E1'),fillOp:255,bleed:.22,tex:.7,ink:null});
     for(let i=0;i<13;i++){const x=170+hash(i*4.1)*1580,y=850+hash(i*6.7)*170;
       paint(ellPts(x,y+Math.sin(t*1.2+i*2.4)*4,28+hash(i)*23,9+hash(i+2)*7,14,2),{wash:YC.leafLight,washOp:70,ink:null});}
     inkLine([[160,830],[180,770],[218,745]],1,YC.leafShade,'inkfine',.5);

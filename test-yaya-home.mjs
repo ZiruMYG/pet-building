@@ -65,30 +65,22 @@ function validate(s,old){
   assert.equal(held.length,s.carrying?1:0,'items have one owner, without duplicate carried props');
   if(s.carrying){
     assert.equal(held[0][0],s.carrying,'carrying state agrees with actual item ownership');
-    const tf=M.bodyTransform(s),prop=M.propLocal(s,s.grips),x=prop[0]*tf.sx,y=prop[1]*tf.sy;
-    near(s.heldScreen.x,tf.x+x*Math.cos(tf.rotation)-y*Math.sin(tf.rotation),'held prop follows actual solved palms X');
-    near(s.heldScreen.y,tf.y+x*Math.sin(tf.rotation)+y*Math.cos(tf.rotation),'held prop follows actual solved palms Y');
+    assert.ok(s.telekinetic,'carried legacy props use the telekinetic presentation');
+    const tf=M.bodyTransform(s),front=M.frontPresentation(s,L.rooms[s.room],1.0,1.63),x=front.x*s.u*tf.sx,y=front.y*s.u*tf.sy;
+    near(s.heldScreen.x,tf.x+x*Math.cos(tf.rotation)-y*Math.sin(tf.rotation),'floating prop stays one metre along the gaze X');
+    near(s.heldScreen.y,tf.y+x*Math.sin(tf.rotation)+y*Math.cos(tf.rotation),'floating prop stays one metre along the gaze Y');
   }
   if(s.sleeping)assert.ok(s.inBed,'sleeping requires support from the bed');
   if(s.phase==='desk')near(Math.sin(s.yaw-L.getFurniture(s.room,'desk-chair').seatYaw),0,'seated pet faces the desk, not the opposite side');
   if(s.mealProp){
-    assert.ok(s.hands,'a room meal exposes the same real hand targets that the renderer uses');
+    assert.equal(s.hands,null,'a room meal leaves the short hands relaxed while the utensil floats');
+    assert.ok(s.telekinetic,'a room meal is a telekinetic interaction');
     assert.equal(s.mealProp.side,-1,'the visible near hand owns the utensil');
-    assert.equal(s.mealProp.kind,s.phase==='eat'?'spoon':'cup','the utensil matches the eating/drinking phase');
+    if(s.phase==='eat'||s.phase==='drink')assert.equal(s.mealProp.kind,s.phase==='eat'?'spoon':'cup','the utensil matches the eating/drinking phase');
     const chair=L.getFurniture(s.room,'spare-chair');
     near(s.p.x,chair.seat.x,'meals use the actual far-side chair X');near(s.p.z,chair.seat.z,'meals use the actual far-side chair Z');near(s.p.h,chair.seat.h,'meals are supported by the seat height');
-    near(Math.sin(s.yaw-chair.seatYaw),0,'pet faces forward across the table');
-    const cycle=(s.phaseTime/4)%1;
-    if(cycle>=.27&&cycle<=.57){
-      const touch=utensilSocket(s,s.mealProp.kind==='spoon'?[1.04,0]:[-.64,-.48]);
-      const base=M.project(s.p,L.rooms[s.room]);
-      const mouth={x:base.x+2.55*Math.sin(s.yaw)*s.u,y:base.y-3.58*s.u};
-      assert.ok(dist(touch,mouth)<.05,'the real spoon tip / cup rim reaches the actual turned mouth');mealContacts++;
-    }
-    if(cycle>=.92||cycle<.0001){
-      const touch=utensilSocket(s,s.mealProp.kind==='spoon'?[1.04,0]:[-.64,.46]);
-      assert.ok(dist(touch,utensilSupport(s))<.05,'the spoon returns to food / cup bottom rests exactly on the table');mealContacts++;
-    }
+    near(Math.sin(s.yaw-M.worldYaw(s.p,s.telekineticTarget)),0,'pet faces the active table socket');
+    assert.ok(s.telekineticTarget,'the floating utensil keeps a link to its source socket');mealContacts++;
   }
   if(s.phase==='wash'){
     const sink=L.getFurniture(s.room,'sink'),water=M.project(sink.grip,L.rooms[s.room]);
@@ -111,14 +103,18 @@ function validate(s,old){
   }
   if(['wardrobe-open','wardrobe','wardrobe-close'].includes(s.phase)){
     const wardrobe=L.getFurniture(s.room,'wardrobe'),amount=s.openFurniture?.amount||0;
-    const handle=context.YayaHomeArt.wardrobeHandle(wardrobe,amount,-1),screen=M.project(handle,L.rooms[s.room]);
-    const hand=s.grips.find(arm=>arm.side===1);
-    assert.ok(dist(hand.screen,screen)<.05,'the actual palm holds the same moving wardrobe handle throughout opening and closing');
-    assert.ok(amount>=0&&amount<=.55,'wardrobe opens only as far as the attached short arm can reach');wardrobeContacts++;
+    // The moving handle is a furniture animation detail. The focus point is
+    // the authored closed-door point, which keeps the pet at the one-metre
+    // standoff while the door swings through its arc.
+    const handle=context.YayaHomeArt.wardrobeHandle(wardrobe,0,-1),screen=M.project(handle,L.rooms[s.room]);
+    assert.ok(s.telekinetic&&s.telekineticTarget,'wardrobe remains linked to the focused handle');
+    assert.ok(Math.hypot(s.p.x-handle.x,s.p.z-handle.z)>=.75,'wardrobe focus keeps a safe distance from the handle');
+    assert.ok(amount>=0&&amount<=.55,'wardrobe opens only within its authored travel');wardrobeContacts++;
   }
   if(s.phase==='lamp'){
     const lamp=L.getFurniture(s.room,'bedside-lamp'),screen=M.project({x:lamp.x+lamp.w/2+.12,z:lamp.z+lamp.d/2,h:lamp.elevation+.10},L.rooms[s.room]);
-    assert.ok(dist(s.grips.find(arm=>arm.side===1).screen,screen)<.05,'the held touch stays on the real lamp-base switch');lampContacts++;
+    assert.ok(s.telekinetic&&s.telekineticTarget,'lamp remains linked to the focused switch');
+    assert.ok(Math.hypot(s.p.x-(lamp.x+lamp.w/2+.12),s.p.z-(lamp.z+lamp.d/2))>=.75,'lamp focus keeps a safe distance from the switch');lampContacts++;
   }
   if(old){
     if(s.room!==old.room){
@@ -137,22 +133,18 @@ function validate(s,old){
     for(const key of Object.keys(s.items)){
       if(s.items[key].owner!==old.items[key].owner){
         transfers++;
-        assert.ok(dist(itemScreen(s,key),itemScreen(old,key))<.20,`${key}: ownership transfers at actual hand contact, not a teleport`);
+        if(s.telekinetic||old.telekinetic){
+          const src=s.items[key].anchor;
+          const sourceDistance=Math.hypot(s.p.x-src.x,s.p.z-src.z);
+          assert.ok(sourceDistance>=.85&&sourceDistance<=1.40,`${key}: telekinetic ownership keeps an approximately one-metre source distance`);
+        }else assert.ok(dist(itemScreen(s,key),itemScreen(old,key))<.20,`${key}: physical ownership transfer remains continuous`);
       }else if(s.carrying===key&&old.carrying===key&&s.room===old.room)
         assert.ok(dist(itemScreen(s,key),itemScreen(old,key))<6,`${key}: the carried prop moves continuously`);
     }
-    if(s.mealProp&&!old.mealProp){
-      const touch=utensilSocket(s,s.mealProp.kind==='spoon'?[1.04,0]:[-.64,.46]);
-      assert.ok(dist(touch,utensilSupport(s))<.2,'utensil ownership begins at actual table contact');
-    }
-    if(!s.mealProp&&old.mealProp){
-      const touch=utensilSocket(old,old.mealProp.kind==='spoon'?[1.04,0]:[-.64,.46]);
-      assert.ok(dist(touch,utensilSupport(old))<.2,'utensil ownership ends only after it returns to the support');
-    }
+    if(s.mealProp&&!old.mealProp)assert.ok(s.telekinetic,'utensil ownership begins with a mind-focus phase');
+    if(!s.mealProp&&old.mealProp)assert.equal(s.hands,null,'utensil release leaves both short hands relaxed');
     if(s.lampOn!==old.lampOn){
-      assert.equal(old.phase,'lamp-reach','lamp changes only after the hand reaches the switch');
-      const lamp=L.getFurniture(s.room,'bedside-lamp'),screen=M.project({x:lamp.x+lamp.w/2+.12,z:lamp.z+lamp.d/2,h:lamp.elevation+.10},L.rooms[s.room]);
-      assert.ok(dist(s.grips.find(arm=>arm.side===1).screen,screen)<.05,'lamp switches at exact physical palm contact');
+      assert.equal(old.phase,'mind-focus','lamp changes only after the focus phase');
     }
   }
 }
@@ -193,8 +185,8 @@ for(const room of L.roomList){
     assert.equal(state.inBed,false,'complete activities finish off the bed');
     assert.equal(state.seated,0,'complete activities finish standing');
     assert.equal(state.room,room.id,'local activities stay in their room');
-    if(command==='read')for(const phase of ['reach','pick','open-book','read','page','close-book','place','release'])assert.ok(phases.has(phase),`reading includes ${phase}`);
-    if(command==='teddy')for(const phase of ['reach','pick','hug','place','release'])assert.ok(phases.has(phase),`teddy interaction includes ${phase}`);
+    if(command==='read')for(const phase of ['walk','turn','mind-focus','reach','open-book','read','page','close-book','place'])assert.ok(phases.has(phase),`reading includes ${phase}`);
+    if(command==='teddy')for(const phase of ['walk','turn','mind-focus','reach','hug','place'])assert.ok(phases.has(phase),`teddy interaction includes ${phase}`);
     if(command==='sleep')for(const phase of ['climb','bed-sit','lie-down','cover','sleep','uncover','sit-up','climb-down'])assert.ok(phases.has(phase),`sleep includes ${phase}`);
     if(command==='wash')for(const phase of ['wash-reach','wash','wash-release','wash-rub-reach','wash-rub','wash-rub-release'])assert.ok(phases.has(phase),`washing separates visible water contact and chest-height rubbing: ${phase}`);
     if(['eat','drink','sofa','desk'].includes(command))for(const phase of ['sit',command,'stand'])assert.ok(phases.has(phase),`${command} uses actual furniture: ${phase}`);
@@ -265,4 +257,8 @@ assert.ok(washContacts>100,'real water / palm contact was sampled');
 assert.ok(washRubs>100,'chest-height rubbing was sampled separately from faucet contact');
 assert.ok(lampContacts>40,'both bedroom lamp switches were tested at their real touch points');
 assert.ok(wardrobeContacts>100,'actual wardrobe handle contacts were sampled throughout the door arc');
+for(const yaw of [0,.6,Math.PI/2,Math.PI,-1.2]){
+  const probe=M.create({auto:false,random:()=>.5}),state=probe.getState();state.yaw=yaw;const front=M.frontPresentation(state,L.rooms[state.room],1.0,1.63);
+  assert.ok(Math.abs(Math.hypot(front.world.x-state.p.x,front.world.z-state.p.z)-1)<1e-9,`front presentation stays one world metre away at yaw ${yaw}`);
+}
 console.log(JSON.stringify({ok:true,samples,transfers,doorCrossings,mealContacts,washContacts,washRubs,lampContacts,wardrobeContacts,autonomousSeconds:600,autonomousRooms:[...visited],autonomousTrips:autoTrips.length,rooms:L.roomOrder.length,directedJourneys:30,activities:results}));

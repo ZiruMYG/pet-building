@@ -6,9 +6,10 @@
 (() => {
   'use strict';
   const PAD=.43,WALL=.40,EPS=1e-8,CORNER_SPACE=.08;
+  const L=globalThis.YayaHomeLayout;
   const distance=(a,b)=>Math.hypot(b.x-a.x,b.z-a.z);
   const point=p=>({x:p.x,z:p.z});
-  const obstacles=r=>r.furniture.filter(o=>o.collision!==false&&o.blocks!==false&&!o.mounted);
+  const obstacles=r=>L.sceneGraph(r).nodes.filter(n=>n.collision&&n.space==='floor').map(n=>n.object);
   const bounds=(o,pad)=>({x0:o.x-pad,x1:o.x+o.w+pad,z0:o.z-pad,z1:o.z+o.d+pad});
   function blocked(r,x,z,pad=PAD){
     if(!Number.isFinite(x)||!Number.isFinite(z)||x<WALL-EPS||z<WALL-EPS||x>r.w-WALL+EPS||z>r.d-WALL+EPS)return true;

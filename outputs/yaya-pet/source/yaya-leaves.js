@@ -34,6 +34,18 @@
     const motion=motions.includes(context.leafMotion)?context.leafMotion:auto.motion;
     const strength=motions.includes(context.leafMotion)?1:auto.strength;
     const p={shape,motion,rot:s*.43,bend:s*.12,fold:.035,length:3.45,width:.90,sweep:0};
+    // Telekinetic interactions use the two leaves as a readable, repeatable
+    // control signal. Keep this separate from the ordinary action vocabulary
+    // so a walk, turn, or idle breath never accidentally looks supernatural.
+    if(context.telekinetic){
+      p.shape='upright';
+      p.motion='alternate';
+      p.rot=s*.16;
+      p.bend=s*.035;
+      p.fold=.015;
+      p.length=3.56;
+      p.width=.84;
+    }
     if(shape==='upright')Object.assign(p,{rot:s*.16,bend:s*.035,fold:0,length:3.55,width:.83});
     if(shape==='spread')Object.assign(p,{rot:s*.77,bend:s*.20,fold:.10,length:3.38,width:.94});
     if(shape==='droop')Object.assign(p,{rot:s*.50,bend:s*2.0,fold:.70,length:3.45,width:.69});
@@ -64,6 +76,14 @@
       p.rot+=s*.13*speed;
       p.fold=Math.min(.70,p.fold+.08*speed);
       p.bend+=s*.12*Math.sin(phase-.55)*speed;
+    }
+    if(context.telekinetic){
+      // A slightly faster two-beat alternation reads as focus, while the
+      // amplitude remains small enough for a preschool character.
+      const focus=Math.sin(q*2+(s>0?Math.PI:0));
+      p.rot+=s*.14*focus;
+      p.bend+=s*.10*(1-focus)*.5;
+      p.length*=1+.055*focus;
     }
     if(context.action==='stretch' && !shapes.includes(context.leafShape) && !motions.includes(context.leafMotion))p.length*=1+.08*(1-Math.cos(q*2))*.5;
     if(['eat','drink'].includes(context.action) && !motions.includes(context.leafMotion))p.fold+=.025*(1-Math.cos(q*2));

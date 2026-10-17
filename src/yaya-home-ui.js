@@ -11,21 +11,33 @@
  function pause(){playing=false;report();return draw();}
  function play(){playing=true;last=0;report();return draw();}
  function setAuto(value){model.setAuto(value);if(value)play();report();return draw();}
- function tick(now){const dt=last?Math.min(.05,(now-last)/1000):0;last=now;if(playing&&!document.hidden&&ready){model.step(dt);if(now-paintTime>1000/30){paintTime=now;draw();}}if(now-reportTime>300){reportTime=now;report();}requestAnimationFrame(tick);}
+ function tick(now){const dt=last?Math.min(.05,(now-last)/1000):0;last=now;if(playing&&!document.hidden&&ready){
+   // Sub-step long frames so a busy paint never turns into a visible jump.
+   // The model keeps one authoritative clock; this only improves integration.
+   for(let left=dt;left>1e-8;){const chunk=Math.min(1/120,left);model.step(chunk);left-=chunk;}
+   if(now-paintTime>=1000/60){paintTime=now;draw();}
+ }if(now-reportTime>300){reportTime=now;report();}requestAnimationFrame(tick);}
  // Hit polygons share the art's world bounds and projection. A foreground object
  // wins overlap; books, lamps and toys on surfaces keep their own hit regions.
  const cross=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
  function hull(points){const sorted=points.slice().sort((a,b)=>a.x-b.x||a.y-b.y),lower=[],upper=[];for(const p of sorted){while(lower.length>1&&cross(lower.at(-2),lower.at(-1),p)<=0)lower.pop();lower.push(p);}for(const p of sorted.reverse()){while(upper.length>1&&cross(upper.at(-2),upper.at(-1),p)<=0)upper.pop();upper.push(p);}return lower.slice(0,-1).concat(upper.slice(0,-1));}
  function inside(p,polygon){let hit=false;for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){const a=polygon[i],b=polygon[j];if((a.y>p.y)!==(b.y>p.y)&&p.x<(b.x-a.x)*(p.y-a.y)/(b.y-a.y)+a.x)hit=!hit;}return hit;}
- function prism(r,o){if(o.kind==='ceilingLamp')o={...o,x:o.x+o.w/2-.52,z:o.z+o.d/2-.38,w:1.04,d:.76,elevation:3.23,h:.54};const points=[],base=o.elevation||0;for(const x of [o.x,o.x+o.w])for(const z of [o.z,o.z+o.d])for(const h of [base,base+o.h])points.push(YayaHomeArt.project(x,z,h,r));if(o.kind==='chair'){for(const edge of [0,1]){const acrossX=!['+x','-x'].includes(o.facing);points.push(YayaHomeArt.project(acrossX?o.x+o.w*edge:o.x+(o.facing==='-x'?o.w:0),acrossX?o.z+(o.facing==='-z'?o.d:0):o.z+o.d*edge,o.h+.62,r));}}if(o.kind==='bed')for(const edge of [0,1])points.push(YayaHomeArt.project(o.facing==='+z'?o.x+o.w*edge:o.x,o.facing==='+z'?o.z:o.z+o.d*edge,o.h+.65,r));return hull(points);}
+ function prism(r,o){const points=[],base=o.elevation||0;for(const x of [o.x,o.x+o.w])for(const z of [o.z,o.z+o.d])for(const h of [base,base+o.h])points.push(YayaHomeArt.project(x,z,h,r));if(o.kind==='chair'){for(const edge of [0,1]){const acrossX=!['+x','-x'].includes(o.facing);points.push(YayaHomeArt.project(acrossX?o.x+o.w*edge:o.x+(o.facing==='-x'?o.w:0),acrossX?o.z+(o.facing==='-z'?o.d:0):o.z+o.d*edge,o.h+.62,r));}}if(o.kind==='bed')for(const edge of [0,1])points.push(YayaHomeArt.project(o.facing==='+z'?o.x+o.w*edge:o.x,o.facing==='+z'?o.z:o.z+o.d*edge,o.h+.65,r));return hull(points);}
  function hotspots(){const s=model.getState(),r=YayaHomeLayout.rooms[s.room],objects=YayaHomeInteractions.list(s.room),items=YayaHomeInteractions.items?.(s.room)||[],list=[];
-  for(const item of objects){const f=r.furniture.find(o=>o.id===item.targetId),spec=items.find(o=>o.id===item.targetId),prop=s.items?.[item.targetId]||s.roomItems?.[s.room+':'+item.targetId]||spec||(item.anchor?item:null);let polygon,depth;
+  const graph=YayaHomeLayout.sceneGraph(r),nodes=new Map(graph.nodes.map(n=>[n.id,n]));
+  for(const item of objects){const f=nodes.get(item.targetId)?.object||r.furniture.find(o=>o.id===item.targetId),spec=items.find(o=>o.id===item.targetId),prop=s.items?.[item.targetId]||s.roomItems?.[s.room+':'+item.targetId]||spec||(item.anchor?item:null);let polygon,depth;
    if(item.targetType==='item'||prop){if(!prop||(['hand','hidden'].includes(prop.owner))||(prop.room&&prop.room!==s.room))continue;const p=YayaHomeModel.project(prop.anchor,r),bounds=({book:[-26,-25,26,6],teddy:[-28,-48,28,4],remote:[-10,-14,10,14],wateringCan:[-17,-4,38,50],cup:[-14,-21,14,5]})[item.kind]||[-22,-25,22,25];polygon=[{x:p.x+bounds[0],y:p.y+bounds[1]},{x:p.x+bounds[2],y:p.y+bounds[1]},{x:p.x+bounds[2],y:p.y+bounds[3]},{x:p.x+bounds[0],y:p.y+bounds[3]}];depth=prop.anchor.x+prop.anchor.z+.2;}
-   else if(f){polygon=prism(r,f);depth=f.x+f.z+(f.w+f.d)/2+(f.parent?.length ? .01 : 0);if(f.kind==='ceilingLamp')depth+=100;}
+   else if(f){polygon=prism(r,f);depth=nodes.get(f.id)?.depth??(f.x+f.z+(f.w+f.d)/2+(f.parent?.length ? .01 : 0));}
    else continue;
    list.push({...item,room:s.room,polygon,depth});
   }
-  for(const d of r.doors){const a=d.offset-d.width/2,b=d.offset+d.width/2,polygon=[a,b].flatMap(n=>[0,2.8].map(h=>YayaHomeArt.project(d.wall==='z0'?n:0,d.wall==='x0'?n:0,h,r)));list.push({id:d.id,room:s.room,command:'room:'+d.to,label:d.label,description:'走到门前，开门，再走进房间',polygon:hull(polygon),depth:-1});}
+  for(const d of r.doors){
+   const a=d.offset-d.width/2,b=d.offset+d.width/2,axis=d.wall[0],max=d.wall.endsWith('1'),edge=axis==='x'?r.w:r.d;
+   // Keep a generous, thin hit prism on the actual threshold. This works for
+   // both the old solid-wall edges and the new exposed x1/z1 edges.
+   const polygon=[a,b].flatMap(n=>[0,2.8].map(h=>axis==='x'?YayaHomeArt.project(max?edge:0,n,h,r):YayaHomeArt.project(n,max?edge:0,h,r)));
+   list.push({id:d.id,room:s.room,command:'room:'+d.to,label:d.label,description:'走到门前，开门，再走进房间',polygon:hull(polygon),depth:-1});
+  }
   return list.sort((a,b)=>b.depth-a.depth);
  }
  function toCanvas(clientX,clientY){const box=canvas.getBoundingClientRect(),scale=Math.max(box.width/1920,box.height/1080);return {x:(clientX-box.left-(box.width-1920*scale)/2)/scale,y:(clientY-box.top-(box.height-1080*scale)/2)/scale};}

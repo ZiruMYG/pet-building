@@ -101,8 +101,11 @@
     const dt=Math.max(0,Math.min(.1,(now-lastClock)/1000));
     lastClock=now;
     if(playing&&!document.hidden&&ready) {
-      model.step(dt);
-      if(now-lastPaint>=1000/30) {lastPaint=now;updateUi();requestFrame();}
+      // Integrate at a fixed small step when a frame arrives late. This keeps
+      // route easing and gait phase smooth instead of teleporting by a large
+      // delta after a busy paint.
+      for(let left=dt;left>1e-8;){const chunk=Math.min(1/120,left);model.step(chunk);left-=chunk;}
+      if(now-lastPaint>=1000/60) {lastPaint=now;updateUi();requestFrame();}
     }
     requestAnimationFrame(tick);
   }

@@ -38,6 +38,50 @@
       for(let i=0;i<3;i++){const k=((s.time||0)*1.4+i*.31)%1,px=sx+(tx-sx)*k,py=sy+(ty-sy)*k+Math.sin(PI*k)*5;d.flatEllipse(px,py,1.7,3.3,'rgba(117,195,211,.8)',null,0);}
     }
   }
+  function drawTelekinetic(u,s,arms,colors){
+    const obj=s.heldObject;if(!obj)return;
+    const d=YayaDrawing,room=YayaHomeLayout.rooms[s.room],base=YayaHomeModel.project(s.p,room),
+      targetPoint=s.telekineticTarget||s.waterTarget,
+      target=targetPoint?YayaHomeArt.project(targetPoint.x,targetPoint.z,targetPoint.h||0,room):null;
+    // Local +z is the pet's gaze direction. Keep the controlled object on
+    // that forward ray, even while the body turns in profile; the target may
+    // be elsewhere in the room, but the prop itself must never slip behind
+    // the pet. A link/stream communicates the remote destination instead.
+    // The controlled prop is always presented one world unit along the pet's
+    // gaze, at eye height. The logical destination remains `targetPoint`; it
+    // is only used for the mint link and never for the prop's local position.
+    const front=YayaHomeModel.frontPresentation(s,room,1.0,1.63),px=front.x,py=front.y;
+    const targetLocal=target?{x:(target.x-base.x)/u,y:(target.y-base.y)/u}:null;
+    const float=.10*Math.sin((s.time||0)*Math.PI*2.2),x=px*u,y=(py+float)*u;
+    push();translate(x,y);rotate(obj.angle||0);
+    const E=(x,y,rx,ry,c,stroke='#526E67',sw=1.5)=>d.flatEllipse(x*u,y*u,rx*u,ry*u,c,stroke,sw),P=(pts,c,sw=1.5)=>d.flatPoly(pts.map(p=>p.map(n=>n*u)),c,'#526E67',sw),L=(pts,c,sw=1.8)=>d.flatLine(pts.map(p=>p.map(n=>n*u)),c,sw);
+    switch(obj.kind){
+      case 'wateringCan':E(.06,.27,.37,.33,'#A5CEC5');E(.06,.27,.23,.21,'#F8F6E8');P([[-.48,.40],[.65,.40],[.57,1.93],[-.38,1.93]],'#A7D5CD');P([[.55,.90],[1.30,.19],[1.40,.32],[.61,1.25]],'#A7D5CD');E(1.35,.255,.11,.16,'#80B3B1');E(.09,.42,.56,.13,'#C5E5D9');break;
+      case 'remote':P([[-.19,-.38],[.19,-.38],[.22,.38],[-.22,.38]],'#DCE7CF');for(const dy of [.01,.16])for(const dx of [-.08,.08])E(dx,dy,.035,.035,'#8BAA99',null,0);break;
+      case 'cloth':P([[-.90,-.22],[.95,-.12],[.91,.72],[-.94,.65]],'#D4E3C0');L([[-.77,.49],[.76,.56]],'#A0BD98',1.8);break;
+      case 'towel':P([[-1.44,0],[1.44,0],[1.38,2.35],[.54,2.30],[-.2,2.38],[-1.37,2.32]],obj.wet?'#D7A494':'#EDBEA8');L([[-1.33,2.05],[1.33,2.05]],'#F7DEBC',4);break;
+      case 'ball':E(0,-.80,.95,.95,'#A5C8E9');break;
+      case 'spoon':P([[-.10,-.05],[.94,-.05],[.94,.06],[-.10,.06]],'#B8C9B7');E(1.02,0,.22,.14,'#E6CF9C');break;
+      case 'pencil':L([[0,.0],[.62,-.42]],'#B7A070',4);L([[.57,-.38],[.72,-.49]],'#5C776D',2);break;
+      default:E(0,0,.46,.32,'#F2D9A0');
+    }
+    pop();
+    if(targetLocal){
+      // A restrained mint arc keeps the otherwise invisible control link
+      // legible even when the target is behind a foreground piece of furniture.
+      const tx=targetLocal.x,ty=targetLocal.y,arc=[];
+      for(let i=0;i<=14;i++){const q=i/14;arc.push([(px+(tx-px)*q)*u,(py+(ty-py)*q-.55*Math.sin(PI*q))*u]);}
+      d.flatLine(arc,'rgba(143,203,193,.72)',1.45);
+    }
+    // Three soft orbiting motes replace a physical hand-to-object contact.
+    for(let i=0;i<3;i++){const a=(s.time||0)*2.7+i*2.1;d.flatEllipse(x+Math.cos(a)*u*1.05,y+Math.sin(a)*u*.46,1.7,2.5,i===1?'#F6D373':'#8FCBC1',null,0);}
+    if(targetLocal&&obj.kind==='wateringCan'){
+      const sx=x+(1.35*Math.cos(obj.angle||0)-.255*Math.sin(obj.angle||0))*u,
+        sy=y+(1.35*Math.sin(obj.angle||0)+.255*Math.cos(obj.angle||0))*u;
+      const tx=targetLocal.x*u,ty=targetLocal.y*u;
+      for(let i=0;i<3;i++){const k=((s.time||0)*1.4+i*.31)%1,px2=sx+(tx-sx)*k,py2=sy+(ty-sy)*k+Math.sin(PI*k)*5;d.flatEllipse(px2,py2,1.7,3.3,'rgba(117,195,211,.8)',null,0);}
+    }
+  }
   function drawSurfaceItem(item,room,s){
     const p=YayaHomeArt.project(item.anchor.x,item.anchor.z,item.anchor.h||0,room);push();translate(p.x,p.y);
     drawHeld(s.u||22.8,{...s,heldObject:{...item,hand:1},waterTarget:null},[{side:1,palm:[0,0]},{side:-1,palm:[0,0]}]);pop();
@@ -54,18 +98,12 @@
           const reach=o.w*clamp((open-.25)/.75),xx=x-reach,zz=o.z+o.d+.015;if(reach>.01){poly(room,[[xx,zz,.18],[x,zz,.18],[x,zz,2.53],[xx,zz,2.53]],'#C9E0CF',1.5);for(let a=xx+.08;a<x;a+=.17)line3(room,[[a,zz+.01,.23],[a,zz+.01,2.5]],'#B5D2BE',1.2);line3(room,[[xx,zz+.02,.48],[x,zz+.02,.48]],'#E9EDD2',4);}
         }
       }
-      if(o.kind==='toilet'&&state.privacy>.005){const k=clamp(state.privacy||0),front=o.x+.02+(o.w+.22)*k,z0=o.z-.07,z1=z0+.045+(o.d+.165)*k,h=1.86;
-        // The folding modesty screen is part of this activity, not an overlay
-        // covering the whole room. It stands on two visible floor feet.
-        poly(room,[[front,z0,0],[front,z1,0],[front,z1,h],[front,z0,h]],'#B9CBB6',1.7);for(let z=z0+.22;z<z1;z+=.31)line3(room,[[front+.01,z,.10],[front+.01,z,h-.05]],'#A3BBA8',1.3);for(const z of [z0+.1,z1-.1])line3(room,[[front-.12,z,0],[front+.16,z,0]],'#708F7F',4);
-        const wing=front-(o.w+.28)*k;poly(room,[[wing,z1,0],[front,z1,0],[front,z1,h],[wing,z1,h]],'#C4D4BD',1.7);for(let x=wing+.16;x<front;x+=.29)line3(room,[[x,z1+.01,.10],[x,z1+.01,h-.05]],'#ABC2AE',1.2);
-        if(k>.4){const p=project(room,[front+.02,(z0+z1)/2,h*.66]);noStroke();fill('#F0E5BC');ellipse(p.x,p.y,24*k,27);fill('#8AAD8D');ellipse(p.x+2,p.y-3,8*k,14);}
-      }
+      // Toilets remain fully visible; this pet has no privacy anatomy, so a
+      // folding curtain only adds noise and breaks the bathroom perspective.
       if(o.kind==='sink'&&state.water&&o.grip){const p=project(room,[o.grip.x,o.grip.z,o.grip.h]);for(let i=0;i<4;i++){const a=(t*2+i*.8),x=p.x+Math.cos(a)*16,y=p.y+Math.sin(a)*6+3;noStroke();fill('rgba(181,235,238,.85)');ellipse(x,y,3.5,4.5);}}
       if(o.kind==='plant'&&state.water){const p=project(room,[o.x+o.w/2,o.z+o.d/2,(o.elevation||0)+o.h*.44]);for(let i=0;i<3;i++){const k=(t+i*.27)%1;noStroke();fill('rgba(116,187,199,'+(.6*(1-k))+')');ellipse(p.x+(i-1)*8,p.y-k*6,3,3);}}
     }
-    const lights=room.furniture.filter(o=>o.kind==='ceilingLamp');if(lights.length&&lights.every(o=>os(room,o,s).on===false)){noStroke();fill('rgba(68,88,108,.075)');rect(0,0,1920,1080);}
     pop();
   }
-  globalThis.YayaHomeEffects={drawWorld,drawHeld,drawSurfaceItem,drawForeground};
+  globalThis.YayaHomeEffects={drawWorld,drawHeld,drawTelekinetic,drawSurfaceItem,drawForeground};
 })();

@@ -26,8 +26,14 @@ function validate(s,old){
   for(const [key,o] of Object.entries(s.roomItems)){
     assert.deepEqual(o.anchor,old.roomItems[key].anchor,`${key}: surface anchor did not move`);
     if(o.owner!==old.roomItems[key].owner){
-      transfers++;const holder=s.heldObject||old.heldObject,hand=s.grips.find(h=>h.side===holder.hand),anchor=M.project(o.anchor,L.rooms[o.room]);
-      assert.ok(distance(hand.screen,anchor)<.1,`${key}: ownership changes only at actual palm contact`);
+      transfers++;
+      if(s.telekinetic||old.telekinetic){
+        const sourceDistance=Math.hypot(s.p.x-o.anchor.x,s.p.z-o.anchor.z);
+        assert.ok(sourceDistance>=.85&&sourceDistance<=1.40,`${key}: telekinetic ownership keeps an approximately one-metre source distance`);
+      }else{
+        const holder=s.heldObject||old.heldObject,hand=s.grips.find(h=>h.side===holder.hand),anchor=M.project(o.anchor,L.rooms[o.room]);
+        assert.ok(distance(hand.screen,anchor)<.1,`${key}: physical ownership changes only at actual palm contact`);
+      }
     }
   }
   if(s.phase==='door-push'){

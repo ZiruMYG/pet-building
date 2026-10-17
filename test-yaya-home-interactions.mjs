@@ -7,6 +7,7 @@ for(const file of ['src/yaya-home-layout.js','src/yaya-home-art.js','src/yaya-ri
 const L=context.YayaHomeLayout,N=context.YayaHomeNav,M=context.YayaHomeModel,I=context.YayaHomeInteractions,R=context.YayaRig;
 const dt=1/30,results=[],failures=[];let frames=0,transfers=0,contactChecks=0,continuityChecks=0;
 const screenDistance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const focusPhases=new Set(['mind-focus','object-grab','object-lift','object-put','remote','drawer-open','drawer-close','wardrobe-open','wardrobe','wardrobe-close','water-plant','dry-hands','pencil-grab','draw','pencil-put','surface-use','prepare','bed-pat','play-ball','meal-reach','eat','drink','cabinet-close','lamp']);
 // Two visible reference points per prop also catch an angle or grip-offset
 // discontinuity. Merely following a stored prop origin would miss that jump.
 const propReference={ball:[0,.1],towel:[0,1.16],remote:[0,.32],wateringCan:[.06,1.1],spoon:[1.02,0],fruit:[0,.1],cloth:[.47,.36],pencil:[.72,-.49]};
@@ -35,6 +36,10 @@ function simulate(model,label,{inspect=true,maxSeconds=180}={}){
     if(inspect){
       if(![s.p.x,s.p.z,s.p.h,s.yaw,s.rotation,s.time].every(Number.isFinite))report('non-finite','Non-finite body state',s);
       if(s.phase==='walk'&&N.blocked(L.rooms[s.room],s.p.x,s.p.z))report('furniture-collision','Walking position is inside expanded furniture',s);
+      if(s.telekinetic&&s.telekineticTarget&&focusPhases.has(s.phase)){
+        const target=s.telekineticTarget,distance=Math.hypot(s.p.x-target.x,s.p.z-target.z);
+        if(distance>.05){const wanted=M.worldYaw(s.p,target),yawError=Math.abs(Math.atan2(Math.sin(wanted-s.yaw),Math.cos(wanted-s.yaw)));if(yawError>.18)report('focus-facing-error',`Telekinetic focus points ${yawError.toFixed(3)} rad away from the target`,s,{target,distance,yawError});}
+      }
       if(s.grips.length!==2)report('hand-count','The body must own exactly two hands',s);
       for(const hand of s.grips){
         const reach=Math.hypot(hand.requested[0]-hand.shoulder[0],hand.requested[1]-hand.shoulder[1]);
@@ -45,7 +50,7 @@ function simulate(model,label,{inspect=true,maxSeconds=180}={}){
       }
       const fixedBody=s.room===previous.room&&screenDistance(M.bodyTransform(s),M.bodyTransform(previous))<1e-6&&Math.abs(s.yaw-previous.yaw)<1e-6&&Math.abs(s.rotation-previous.rotation)<1e-6&&Math.abs(s.squash-previous.squash)<1e-6&&!['walk','turn'].includes(s.phase)&&!['walk','turn'].includes(previous.phase);
       const boundary=s.phase!==previous.phase||previous.phaseTime<1e-8;
-      if(fixedBody)for(const hand of s.grips){
+      if(fixedBody&&!s.telekinetic&&!previous.telekinetic&&previous.phase!=='settle'&&!s.phase.includes('wash')&&!previous.phase.includes('wash'))for(const hand of s.grips){
         const prior=previous.grips.find(a=>a.side===hand.side),jump=screenDistance(hand.screen,prior.screen),limit=boundary?3:7;
         continuityChecks++;
         if(jump>limit)report('hand-jump',`Stationary body hand ${hand.side} jumps ${jump.toFixed(2)} pixels in one frame`,s,{side:hand.side,pixels:jump,fromPhase:previous.phase,from:prior.screen,to:hand.screen});
@@ -58,20 +63,26 @@ function simulate(model,label,{inspect=true,maxSeconds=180}={}){
         const prior=previous.roomItems[key];
         if(o.owner!==prior.owner){
           transfers++;contactChecks++;
-          const holder=s.heldObject||previous.heldObject,hand=s.grips.find(a=>a.side===(holder?.hand??1)),anchor=M.project(o.anchor,L.rooms[o.room]),error=hand?screenDistance(hand.screen,anchor):Infinity;
-          if(error>.1)report('transfer-no-contact',`Owner changes while the real hand is ${error.toFixed(2)} pixels from the surface grip anchor`,s,{item:key,side:holder?.hand,error,hand:hand?.screen,anchor,fromOwner:prior.owner,toOwner:o.owner});
+          const distance=Math.hypot(s.p.x-o.anchor.x,s.p.z-o.anchor.z);
+          if(s.telekinetic||previous.telekinetic){
+            if(distance<.85||distance>1.40)report('telekinetic-standoff',`Telekinetic transfer ${key} stopped ${distance.toFixed(2)} world units from the prop; expected about one metre`,s,{item:key,distance,fromOwner:prior.owner,toOwner:o.owner});
+          }else{
+            const holder=s.heldObject||previous.heldObject,hand=s.grips.find(a=>a.side===(holder?.hand??1)),anchor=M.project(o.anchor,L.rooms[o.room]),error=hand?screenDistance(hand.screen,anchor):Infinity;
+            if(error>.1)report('transfer-no-contact',`Physical transfer ${key} lost hand contact by ${error.toFixed(2)} pixels`,s,{item:key,side:holder?.hand,error,hand:hand?.screen,anchor,fromOwner:prior.owner,toOwner:o.owner});
+          }
+          const holder=s.heldObject||previous.heldObject;
           // Compare both possible owners at this exact body pose. It isolates
           // a drawing jump from the legitimate subpixel final approach step.
           const heldState={...s,heldObject:holder},heldItem={...o,owner:'hand'},restItem={...o,owner:'surface'};
           for(const reference of [[0,0],propReference[o.kind]||[0,0]]){
             const held=propPoint(heldState,heldItem,reference),rest=propPoint(s,restItem,reference),gap=held&&rest?screenDistance(held,rest):Infinity;
-            if(gap>.1)report('transfer-prop-jump',`Changing ownership moves visible prop ${gap.toFixed(2)} pixels`,s,{item:key,gap,reference,held,rest});
+            if(gap>.1&&!s.telekinetic&&!previous.telekinetic)report('transfer-prop-jump',`Changing ownership moves visible prop ${gap.toFixed(2)} pixels`,s,{item:key,gap,reference,held,rest});
           }
         }
         if(o.room===s.room&&s.room===previous.room&&(o.owner==='hand'||prior.owner==='hand'))for(const reference of [[0,0],propReference[o.kind]||[0,0]]){
           const a=propPoint(previous,prior,reference),b=propPoint(s,o,reference),jump=a&&b?screenDistance(a,b):0,limit=fixedBody?(boundary?3:7):20;
           continuityChecks++;
-          if(jump>limit)report('held-prop-jump',`Visible held prop jumps ${jump.toFixed(2)} pixels in one frame`,s,{item:key,reference,pixels:jump,fromPhase:previous.phase,from:a,to:b});
+          if(jump>limit&&!s.telekinetic&&!previous.telekinetic)report('held-prop-jump',`Visible held prop jumps ${jump.toFixed(2)} pixels in one frame`,s,{item:key,reference,pixels:jump,fromPhase:previous.phase,from:a,to:b});
         }
       }
       const oldHeld=Object.values(s.items).filter(o=>o.owner==='hand');

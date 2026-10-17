@@ -3,8 +3,12 @@
 (() => {
   'use strict';
   const PI=Math.PI,TAU=PI*2,U=28;
+  // Pixel-space locomotion speed.  This keeps the bedroom responsive while
+  // the controller still eases into and out of each route.
+  const WALK_SPEED=155;
   const clamp=n=>Math.max(0,Math.min(1,n)),ease=n=>{n=clamp(n);return n*n*(3-2*n);};
   const mix=(a,b,k)=>a+(b-a)*k;
+  const motionEase=k=>globalThis.YayaMotion?.transition?YayaMotion.transition(k,{anticipation:.10,settle:.14}).action:ease(k);
   const point=(a,b,k)=>({x:mix(a.x,b.x,k),y:mix(a.y,b.y,k)});
   const anchor={book:{x:1415,y:625},teddy:{x:1600,y:625},lamp:{x:206,y:659}};
   const commands=['window','read','teddy','tidy','lamp','sleep','wander'];
@@ -20,11 +24,12 @@
   }
   function bodyTransform(s) {
     const gait=s.gait,speed=s.speed||0,walking=s.motion==='walk';
-    const bob=walking?-.075*Math.abs(Math.sin(gait))*speed:0;
+    const motion=walking&&globalThis.YayaMotion?.sharedPhase?YayaMotion.sharedPhase(0,{gait,speed}):null;
+    const bob=motion?.bodyBob??(walking?-.075*Math.abs(Math.sin(gait))*speed:0);
     const lean=walking?Math.sin(s.yaw)*.025*speed:0;
     return {rotation:s.rotation+lean,x:s.position.x,y:s.position.y+bob*U,
-      sx:1+(walking?.015*Math.sin(gait*2)*speed:s.squash||0)*.25,
-      sy:1-(walking?.015*Math.sin(gait*2)*speed:s.squash||0)*.45};
+      sx:1+(walking?(motion?.bodySquash??(.015*Math.sin(gait*2)*speed)):s.squash||0)*.25,
+      sy:1-(walking?(motion?.bodySquash??(.015*Math.sin(gait*2)*speed)):s.squash||0)*.45};
   }
   function grips(s) {
     const targets=s.handTargets||(s.carrying?holdHands(s.yaw):null),tf=bodyTransform(s),c=Math.cos(s.yaw),n=Math.sin(s.yaw);
@@ -67,7 +72,7 @@
     function turn(yaw) {
       let start,end;
       add(.85,'turn','迈小步，转向要去的方向',()=>{start=s.yaw;end=yawNear(start,yaw);},k=>{
-        s.yaw=mix(start,end,ease(k));s.turnStep={from:start,to:end,phase:k};
+        s.yaw=mix(start,end,motionEase(k));s.turnStep={from:start,to:end,phase:k};
       },()=>{s.turnStep=null;});
     }
     function walkTo(x,y,label='慢慢走过去') {
@@ -79,7 +84,7 @@
         const dx=to.x-from.x,dy=to.y-from.y;
         heading=distance<2?s.yaw:Math.abs(dx)>20?(dx>0?PI/2:-PI/2):dy<0?PI:0;
         startYaw=s.yaw;heading=yawNear(startYaw,heading);
-        turnTime=Math.abs(heading-startYaw)>.08?.75:0;walkTime=.55+distance/115;
+        turnTime=Math.abs(heading-startYaw)>.08?.75:0;walkTime=.55+distance/WALK_SPEED;
         current.duration=turnTime+walkTime;s.motion='walk';
       },k=>{
         const elapsed=k*current.duration,progress=clamp((elapsed-turnTime)/walkTime),q=ease(progress);
@@ -99,7 +104,7 @@
     function handsTo(targets,seconds,phase,label,finish) {
       let start,end;
       add(seconds,phase,label,()=>{start=JSON.parse(JSON.stringify(s.handTargets||(s.carrying?holdHands(s.yaw):defaultHands(s.yaw))));end=typeof targets==='function'?targets():targets;},k=>{
-        const q=ease(k);s.handTargets={};for(const side of [-1,1]){const a=start[side]||defaultHands(s.yaw)[side],b=end[side]||defaultHands(s.yaw)[side];s.handTargets[side]=[mix(a[0],b[0],q),mix(a[1],b[1],q)];}
+        const q=motionEase(k);s.handTargets={};for(const side of [-1,1]){const a=start[side]||defaultHands(s.yaw)[side],b=end[side]||defaultHands(s.yaw)[side];s.handTargets[side]=[mix(a[0],b[0],q),mix(a[1],b[1],q)];}
       },finish);
     }
     const contactTargets=key=>Object.fromEntries([-1,1].map(side=>[side,[(anchor[key].x+side*39.2-s.position.x)/U,(anchor[key].y-16-s.position.y)/U]]));

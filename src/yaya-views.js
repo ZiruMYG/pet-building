@@ -47,7 +47,12 @@
       eye[0]=YayaBody.fitEllipseX(eye[0],eye[1],w,.9,bodyYaw);
       const kind=kinds[side<0?0:1];
       push();translate(eye[0]*u,eye[1]*u);
-      if(['happy','laugh','relieved','closed','sleepy'].includes(kind)) {
+      if(['narrow','determined'].includes(kind)) {
+        // Focused eyes are a small effort cue for telekinetic actions. They
+        // stay friendly and rounded elsewhere; only the upper/lower lids
+        // tighten during the short control beat.
+        D.flatLine([[-w*u,.22*u],[0,-.08*u],[w*u,.22*u]],C.ink,2.7);
+      } else if(['happy','laugh','relieved','closed','sleepy'].includes(kind)) {
         if(S.sleeping) {
           const lid=Array.from({length:17},(_,i)=>{const a=i/8-1;return [a*w*u,(.06+.16*(1-a*a))*u];});
           D.flatLine(lid,C.ink,2.6);
@@ -126,6 +131,9 @@
     let S=typeof state==='string'?getYayaEmotionState(state,age):state;
     const key=S.action||S.state||'idle';
     S=D.actionFace(S,key,age);
+    if(S.telekinetic){
+      S={...S,face:{...(S.face||S),eyes:'narrow',mouth:'flat',lookY:-.12,blush:Math.max(S.face?.blush||0,.34)}};
+    }
     const p=D.pose(age,S), cols=D.moodColors(S.face||S), C=D.palette,turnPose=view?.turnPose;
     if(turnPose) {
       p.dy=turnPose.bob;p.rot=turnPose.lean;p.sq=turnPose.squash;
@@ -149,7 +157,12 @@
       pop();
     };
     if(!view?.hideFeet)for(const foot of turnFeet.filter(f=>f.z<=centerDepth))paintTurnFoot(foot);
-    push(); translate(x+(turnPose?.bodyX||0)*u,y+(bob+centerDepth*.11)*u); rotate(lean); scale(1+(p.sq||0)*.25,1-(p.sq||0)*.45);
+    // A seated body settles into the cushion: lower and slightly compress the
+    // torso so the backrest reads as supporting the pet instead of hiding a
+    // standing character behind it. Feet keep their own cushion drop below.
+    const seatedAmount=typeof view?.seated==='number'?clamp01(view.seated):(view?.seated?1:0);
+    const seatedBodyY=.16*seatedAmount;
+    push(); translate(x+(turnPose?.bodyX||0)*u,y+(bob+centerDepth*.11+seatedBodyY)*u); rotate(lean); scale(1+(p.sq||0)*.25,(1-(p.sq||0)*.45)*(1-.08*seatedAmount));
     // A six-second turn must also finish its leaf cycle; using the independent
     // four-second leaf clock here would snap the blade at the video seam.
     const leafAge=turnPose?age*YayaLeaves.period/turnPose.duration:age;
@@ -174,7 +187,8 @@
       D.flatEllipse(0,0,(1.12-.18*side)*u,.5*u,foot.p[2]<-.1?'#D99928':cols.shade,C.ink,2.4); pop();
     };
     if(!turnPose&&!view?.hideFeet)for(const foot of feet.filter(f=>!locomotion || f.p[2]<=0)) paintFoot(foot);
-    for(const arm of arms.filter(a=>!a.foreground)) D.drawRigArm(u,arm,cols);
+    const drawArms=!view?.hideArms;
+    if(drawArms)for(const arm of arms.filter(a=>!a.foreground)) D.drawRigArm(u,arm,cols);
     if(typeof view?.drawBackProps==='function')view.drawBackProps({u,arms,cols,yaw});
     push(); scale(breadth,1); D.flatBody(u,cols); pop();
     if(!turnPose&&!view?.hideFeet)for(const foot of feet.filter(f=>locomotion && f.p[2]>0)) paintFoot(foot);
@@ -191,11 +205,11 @@
     // spawning a second arm on top of the tabletop.
     if(typeof view?.drawFurniture==='function')view.drawFurniture({u,arms,cols,yaw});
     const forearms=arms.filter(a=>a.foreground);
-    for(const arm of forearms) D.drawRigArm(u,arm,cols,false,{arm:true,palm:false});
+    if(drawArms)for(const arm of forearms) D.drawRigArm(u,arm,cols,false,{arm:true,palm:false});
     if(typeof view?.drawProps==='function')view.drawProps({u,arms,cols,yaw});
     else if(!view?.hideProps && D.drawRigProps && cs>.45) D.drawRigProps(u,key,age,arms,cols);
     if(!view?.hideProps&&typeof view?.drawProps!=='function'&&window.YayaScenes&&key==='hug'&&cs>0)YayaScenes.drawHeld(u,key,age,arms,cols,{yaw});
-    for(const arm of forearms) D.drawRigArm(u,arm,cols,false,{arm:false,palm:true});
+    if(drawArms)for(const arm of forearms) D.drawRigArm(u,arm,cols,false,{arm:false,palm:true});
     if(debug) {
       for(const arm of arms.filter(a=>a.foreground || cs>=0)) debugArm(D,u,arm);
       D.flatLine([[0,-7*u],[0,0]],'rgba(65,151,180,.45)',1.5);
