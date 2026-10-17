@@ -29,7 +29,7 @@ function validate(s,old){
       transfers++;
       if(s.telekinetic||old.telekinetic){
         const sourceDistance=Math.hypot(s.p.x-o.anchor.x,s.p.z-o.anchor.z);
-        assert.ok(sourceDistance>=.85&&sourceDistance<=1.40,`${key}: telekinetic ownership keeps an approximately one-metre source distance`);
+        assert.ok(sourceDistance>=1.30&&sourceDistance<=1.80,`${key}: telekinetic ownership keeps the wider 1.5-unit source distance`);
       }else{
         const holder=s.heldObject||old.heldObject,hand=s.grips.find(h=>h.side===holder.hand),anchor=M.project(o.anchor,L.rooms[o.room]);
         assert.ok(distance(hand.screen,anchor)<.1,`${key}: physical ownership changes only at actual palm contact`);

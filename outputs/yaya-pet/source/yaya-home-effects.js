@@ -47,10 +47,10 @@
     // that forward ray, even while the body turns in profile; the target may
     // be elsewhere in the room, but the prop itself must never slip behind
     // the pet. A link/stream communicates the remote destination instead.
-    // The controlled prop is always presented one world unit along the pet's
+    // The controlled prop is always presented 1.5 scene units along the pet's
     // gaze, at eye height. The logical destination remains `targetPoint`; it
     // is only used for the mint link and never for the prop's local position.
-    const front=YayaHomeModel.frontPresentation(s,room,1.0,1.63),px=front.x,py=front.y;
+    const front=YayaHomeModel.frontPresentation(s,room,1.5,1.63),px=front.x,py=front.y;
     const targetLocal=target?{x:(target.x-base.x)/u,y:(target.y-base.y)/u}:null;
     const float=.10*Math.sin((s.time||0)*Math.PI*2.2),x=px*u,y=(py+float)*u;
     push();translate(x,y);rotate(obj.angle||0);

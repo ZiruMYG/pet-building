@@ -66,9 +66,9 @@ function validate(s,old){
   if(s.carrying){
     assert.equal(held[0][0],s.carrying,'carrying state agrees with actual item ownership');
     assert.ok(s.telekinetic,'carried legacy props use the telekinetic presentation');
-    const tf=M.bodyTransform(s),front=M.frontPresentation(s,L.rooms[s.room],1.0,1.63),x=front.x*s.u*tf.sx,y=front.y*s.u*tf.sy;
-    near(s.heldScreen.x,tf.x+x*Math.cos(tf.rotation)-y*Math.sin(tf.rotation),'floating prop stays one metre along the gaze X');
-    near(s.heldScreen.y,tf.y+x*Math.sin(tf.rotation)+y*Math.cos(tf.rotation),'floating prop stays one metre along the gaze Y');
+    const tf=M.bodyTransform(s),front=M.frontPresentation(s,L.rooms[s.room]),x=front.x*s.u*tf.sx,y=front.y*s.u*tf.sy;
+    near(s.heldScreen.x,tf.x+x*Math.cos(tf.rotation)-y*Math.sin(tf.rotation),'floating prop stays in the extended focus position along the gaze X');
+    near(s.heldScreen.y,tf.y+x*Math.sin(tf.rotation)+y*Math.cos(tf.rotation),'floating prop stays in the extended focus position along the gaze Y');
   }
   if(s.sleeping)assert.ok(s.inBed,'sleeping requires support from the bed');
   if(s.phase==='desk')near(Math.sin(s.yaw-L.getFurniture(s.room,'desk-chair').seatYaw),0,'seated pet faces the desk, not the opposite side');
@@ -136,7 +136,7 @@ function validate(s,old){
         if(s.telekinetic||old.telekinetic){
           const src=s.items[key].anchor;
           const sourceDistance=Math.hypot(s.p.x-src.x,s.p.z-src.z);
-          assert.ok(sourceDistance>=.85&&sourceDistance<=1.40,`${key}: telekinetic ownership keeps an approximately one-metre source distance`);
+          assert.ok(sourceDistance>=1.30&&sourceDistance<=1.80,`${key}: telekinetic ownership keeps the wider 1.5-unit source distance`);
         }else assert.ok(dist(itemScreen(s,key),itemScreen(old,key))<.20,`${key}: physical ownership transfer remains continuous`);
       }else if(s.carrying===key&&old.carrying===key&&s.room===old.room)
         assert.ok(dist(itemScreen(s,key),itemScreen(old,key))<6,`${key}: the carried prop moves continuously`);
@@ -258,7 +258,7 @@ assert.ok(washRubs>100,'chest-height rubbing was sampled separately from faucet 
 assert.ok(lampContacts>40,'both bedroom lamp switches were tested at their real touch points');
 assert.ok(wardrobeContacts>100,'actual wardrobe handle contacts were sampled throughout the door arc');
 for(const yaw of [0,.6,Math.PI/2,Math.PI,-1.2]){
-  const probe=M.create({auto:false,random:()=>.5}),state=probe.getState();state.yaw=yaw;const front=M.frontPresentation(state,L.rooms[state.room],1.0,1.63);
-  assert.ok(Math.abs(Math.hypot(front.world.x-state.p.x,front.world.z-state.p.z)-1)<1e-9,`front presentation stays one world metre away at yaw ${yaw}`);
+  const probe=M.create({auto:false,random:()=>.5}),state=probe.getState();state.yaw=yaw;const front=M.frontPresentation(state,L.rooms[state.room]);
+  assert.ok(Math.abs(Math.hypot(front.world.x-state.p.x,front.world.z-state.p.z)-M.telekineticRange.distance)<1e-9,`front presentation stays ${M.telekineticRange.distance} world units away at yaw ${yaw}`);
 }
 console.log(JSON.stringify({ok:true,samples,transfers,doorCrossings,mealContacts,washContacts,washRubs,lampContacts,wardrobeContacts,autonomousSeconds:600,autonomousRooms:[...visited],autonomousTrips:autoTrips.length,rooms:L.roomOrder.length,directedJourneys:30,activities:results}));

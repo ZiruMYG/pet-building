@@ -65,7 +65,7 @@ function simulate(model,label,{inspect=true,maxSeconds=180}={}){
           transfers++;contactChecks++;
           const distance=Math.hypot(s.p.x-o.anchor.x,s.p.z-o.anchor.z);
           if(s.telekinetic||previous.telekinetic){
-            if(distance<.85||distance>1.40)report('telekinetic-standoff',`Telekinetic transfer ${key} stopped ${distance.toFixed(2)} world units from the prop; expected about one metre`,s,{item:key,distance,fromOwner:prior.owner,toOwner:o.owner});
+            if(distance<1.30||distance>1.80)report('telekinetic-standoff',`Telekinetic transfer ${key} stopped ${distance.toFixed(2)} world units from the prop; expected the wider 1.5-unit buffer`,s,{item:key,distance,fromOwner:prior.owner,toOwner:o.owner});
           }else{
             const holder=s.heldObject||previous.heldObject,hand=s.grips.find(a=>a.side===(holder?.hand??1)),anchor=M.project(o.anchor,L.rooms[o.room]),error=hand?screenDistance(hand.screen,anchor):Infinity;
             if(error>.1)report('transfer-no-contact',`Physical transfer ${key} lost hand contact by ${error.toFixed(2)} pixels`,s,{item:key,side:holder?.hand,error,hand:hand?.screen,anchor,fromOwner:prior.owner,toOwner:o.owner});
