@@ -136,10 +136,13 @@ function validate(s,old){
         if(s.telekinetic||old.telekinetic){
           const src=s.items[key].anchor;
           const sourceDistance=Math.hypot(s.p.x-src.x,s.p.z-src.z);
-          assert.ok(sourceDistance>=1.30&&sourceDistance<=1.80,`${key}: telekinetic ownership keeps the wider 1.5-unit source distance`);
+          assert.ok(sourceDistance>=M.telekineticRange.min-.05&&sourceDistance<=M.telekineticRange.max+.05,`${key}: telekinetic ownership keeps ${M.telekineticRange.distance}-unit source distance`);
         }else assert.ok(dist(itemScreen(s,key),itemScreen(old,key))<.20,`${key}: physical ownership transfer remains continuous`);
       }else if(s.carrying===key&&old.carrying===key&&s.room===old.room)
-        assert.ok(dist(itemScreen(s,key),itemScreen(old,key))<6,`${key}: the carried prop moves continuously`);
+        // The enlarged 1.8u focus distance increases the screen-space arc while
+        // the pet turns. Keep the per-frame continuity guard proportional to
+        // that longer presentation ray at the test's 120Hz sampling rate.
+        assert.ok(dist(itemScreen(s,key),itemScreen(old,key))<8,`${key}: the carried prop moves continuously`);
     }
     if(s.mealProp&&!old.mealProp)assert.ok(s.telekinetic,'utensil ownership begins with a mind-focus phase');
     if(!s.mealProp&&old.mealProp)assert.equal(s.hands,null,'utensil release leaves both short hands relaxed');

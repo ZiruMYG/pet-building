@@ -5,6 +5,7 @@ import vm from 'node:vm';
 const context=vm.createContext({console});context.window=context;
 for(const file of ['src/yaya-home-layout.js','src/yaya-home-art.js','src/yaya-rig.js','src/yaya-body.js','src/yaya-home-nav.js','src/yaya-home-interactions.js','src/yaya-home-model.js'])vm.runInContext(readFileSync(file,'utf8'),context,{filename:file});
 const L=context.YayaHomeLayout,N=context.YayaHomeNav,M=context.YayaHomeModel,I=context.YayaHomeInteractions,R=context.YayaRig;
+const rangeFor=key=>key.endsWith(':watering-can')||key==='watering-can'?M.telekineticRange.watering:key.endsWith(':pencil')||key==='pencil'?M.telekineticRange.pencil:M.telekineticRange;
 const dt=1/30,results=[],failures=[];let frames=0,transfers=0,contactChecks=0,continuityChecks=0;
 const screenDistance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const focusPhases=new Set(['mind-focus','object-grab','object-lift','object-put','remote','drawer-open','drawer-close','wardrobe-open','wardrobe','wardrobe-close','water-plant','dry-hands','pencil-grab','draw','pencil-put','surface-use','prepare','bed-pat','play-ball','meal-reach','eat','drink','cabinet-close','lamp']);
@@ -65,7 +66,8 @@ function simulate(model,label,{inspect=true,maxSeconds=180}={}){
           transfers++;contactChecks++;
           const distance=Math.hypot(s.p.x-o.anchor.x,s.p.z-o.anchor.z);
           if(s.telekinetic||previous.telekinetic){
-            if(distance<1.30||distance>1.80)report('telekinetic-standoff',`Telekinetic transfer ${key} stopped ${distance.toFixed(2)} world units from the prop; expected the wider 1.5-unit buffer`,s,{item:key,distance,fromOwner:prior.owner,toOwner:o.owner});
+            const range=rangeFor(key);
+            if(distance<range.min-.05||distance>range.max+.05)report('telekinetic-standoff',`Telekinetic transfer ${key} stopped ${distance.toFixed(2)} world units from the prop; expected ${range.distance.toFixed(2)} units`,s,{item:key,distance,range,fromOwner:prior.owner,toOwner:o.owner});
           }else{
             const holder=s.heldObject||previous.heldObject,hand=s.grips.find(a=>a.side===(holder?.hand??1)),anchor=M.project(o.anchor,L.rooms[o.room]),error=hand?screenDistance(hand.screen,anchor):Infinity;
             if(error>.1)report('transfer-no-contact',`Physical transfer ${key} lost hand contact by ${error.toFixed(2)} pixels`,s,{item:key,side:holder?.hand,error,hand:hand?.screen,anchor,fromOwner:prior.owner,toOwner:o.owner});

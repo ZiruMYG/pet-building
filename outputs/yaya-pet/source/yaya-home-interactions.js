@@ -3,10 +3,12 @@
 (() => {
  'use strict';
  const L=()=>YayaHomeLayout,PI=Math.PI,U=22.8;
- // The pet's visible body is larger than one floor unit, so the previous
- // .90-1.35u buffer still read as touching the furniture. Keep a wider,
- // shared focus range for every remote interaction.
- const TELEKINETIC_DISTANCE=1.5,TELEKINETIC_MIN=1.35,TELEKINETIC_MAX=1.75;
+ // The pet's visible body is larger than one floor unit, so even the previous
+ // 1.5u buffer could read as touching the furniture. Keep a wider shared
+ // focus range, with extra clearance for watering and desk work.
+ const TELEKINETIC_DISTANCE=1.8,TELEKINETIC_MIN=1.65,TELEKINETIC_MAX=2.10;
+ const TELEKINETIC_WATERING={distance:2.2,min:2.0,max:2.45};
+ const TELEKINETIC_PENCIL={distance:2.1,min:1.95,max:2.30};
  const descriptions={bed:['整理小床','抚平被子，再离开床边'],bedside:['打开床头柜','停在柜前，让抽屉自己打开再合好'],wardrobe:['看看衣柜','停在柜前，让柜门自己打开再合好'],bookshelf:['翻看书柜','停在低柜前，让抽屉自己打开再合好'],desk:['在书桌画画','坐到自己的椅子上，让小笔浮起来画几笔'],chair:['坐在椅子上','从空着的一侧坐下，小脚自然垂着'],rug:['在地毯上伸展','走到毯子上，站稳后伸个懒腰'],window:['去窗前看看','走到窗边，停下来看看外面的树'],ac:['调节空气','停在设备前，让遥控器浮到眼前操作，再回到原处'],picture:['欣赏墙上的画','走近一点，抬头仔细看看'],plant:['给绿植浇水','停在水壶前，让小壶飞到花盆旁浇水，再归位'],lamp:['开关床头灯','停在灯座前，让意念切换灯光'],shower:['洗个澡','走进淋浴区，自动帘合拢，冲洗后关水再出来'],toilet:['用洗手间','坐稳使用，结束后冲水，再洗手'],sink:['洗洗小手','伸手接水，搓一搓，再冲洗'],mirror:['照照镜子','面向镜子看看自己的倒影'],towel:['擦干小手','停在毛巾前，让它浮起来擦手，再挂回原处'],sofa:['坐沙发歇歇','走到沙发边，坐稳休息再站起'],coffeeTable:['让小布浮起来擦茶几','停在茶几前，让小布浮起来擦几下，再收好'],basket:['玩玩小球','停在空地边，让小球浮起来转一转，再回篮子'],fridge:['看看冰箱','停在冰箱前，让门自己打开，看看食物，再合好'],counter:['整理小水果','停在备餐台前，让水果自己摆整齐'],stove:['让小勺浮起来搅汤','停在汤锅前，让小勺浮起来慢慢搅几圈再回位'],cabinet:['看看吊柜','停在柜前，让柜门自己打开再合好'],diningTable:['坐好吃饭','坐到餐椅旁，让餐具悬浮着吃饭']};
  function items(roomId){const r=L().rooms[roomId],get=id=>L().getFurniture(r,id),out=[];
   const add=(id,kind,anchor,label,command='object:'+id,parent)=>out.push({id,kind,anchor,label,command,targetId:id,targetType:'item',room:roomId,parent,angle:kind==='pencil'?Math.PI/2:kind==='spoon'?Math.PI*4/3:0});
@@ -21,10 +23,10 @@
   }
   const towel=get('towel');if(towel)add('hand-towel','towel',{x:.19,z:towel.z+towel.d*.5,h:towel.elevation+.50},'让毛巾浮起来擦手','object:towel','towel');
   const basket=get('toy-basket');if(basket)add('basket-ball','ball',{x:basket.x+basket.w*.56,z:basket.z+basket.d*.62,h:basket.h-.10},'让小球浮起来玩','object:toy-basket','toy-basket');
-  // Keep the pencil toward the back half of the desktop. The chair is
-  // intentionally set back from the desk, so the pet can stay in a readable
-  // telekinetic buffer instead of hovering over the front edge.
-  const desk=get('desk');if(desk)add('pencil','pencil',{x:desk.x+1.23,z:desk.z+desk.d*.56,h:desk.h+.22},'让小笔浮起来画画','object:desk',desk.id);
+  // Keep the source pencil toward the far back corner of the desktop. The
+  // seated pet stays behind the chair, so the authored anchor leaves a clear
+  // visual gap before the pencil ever floats to the face.
+  const desk=get('desk');if(desk)add('pencil','pencil',{x:desk.x+.55,z:desk.z+.24,h:desk.h+.22},'让小笔浮起来画画','object:desk',desk.id);
   const table=get('coffee-table');if(table)add('cloth','cloth',{x:table.x+table.w-.08,z:table.z+table.d-.13,h:table.h+.08},'让小布浮起来擦茶几','object:coffee-table',table.id);
   const stove=get('stove');if(stove)add('ladle','spoon',{x:stove.x+stove.w-.05,z:stove.z+stove.d*.65,h:stove.h+.40},'让小勺浮起来搅汤','object:stove',stove.id);
   return out;
@@ -92,11 +94,11 @@
   function orientProp(angle,seconds=.3){let from;add(seconds,'prop-adjust','握稳手里的物品',()=>{from=s.heldObject?.angle||0;},k=>{if(s.heldObject)s.heldObject.angle=mix(from,angle,ease(k));});}
 
   const handlePose=(p,side=1)=>{s.contactHands=[side];return socketHands(p,side);};
-  function transfer(id,take,yaw=-2.053765){const o=item(id);if(!o)throw Error('房间没有这件物品：'+id);const side=1,stance=telekineticStance([o.anchor],yaw,TELEKINETIC_DISTANCE,TELEKINETIC_MIN,TELEKINETIC_MAX);
+  function transfer(id,take,yaw=-2.053765){const o=item(id);if(!o)throw Error('房间没有这件物品：'+id);const side=1,profile=o.id==='watering-can'?TELEKINETIC_WATERING:{distance:TELEKINETIC_DISTANCE,min:TELEKINETIC_MIN,max:TELEKINETIC_MAX},stance=telekineticStance([o.anchor],yaw,profile.distance,profile.min,profile.max);
    // Stop short, focus, then let the prop float in front of the face.  The
    // body never reaches through the buffer with a physical hand.
    release();walk(stance,take?'走到物体前一段距离':'走到原位前一段距离');turn(stance.yaw);mindFocus(o.anchor,take?'停下来，盯住物体发动意念':'停下来，让物体回到原位');
-   add(.72,take?'object-grab':'object-put',take?'物体浮起来了':'物体稳稳放回去了',()=>{o.owner=take?'hand':'surface';s.heldObject=take?{id:o.id,kind:o.kind,hand:side,angle:o.angle||0,telekinetic:true}:null;s.telekineticObject=take?{id:o.id,kind:o.kind}:null;s.telekinetic=true;s.telekineticTarget=take?o.anchor:null;s.hands=null;s.contactHands=null;if(o.parent&&['towel','basket'].includes(L().getFurniture(r,o.parent)?.kind))state(o.parent).held=take;},()=>{s.telekinetic=true;},()=>{if(!take){s.heldObject=null;s.telekineticObject=null;s.telekineticTarget=null;s.hands=null;s.contactHands=null;}});
+   add(.72,take?'object-grab':'object-put',take?'物体浮起来了':'物体稳稳放回去了',()=>{o.owner=take?'hand':'surface';s.heldObject=take?{id:o.id,kind:o.kind,hand:side,angle:o.angle||0,telekinetic:true}:null;s.telekineticDistance=take?profile.distance:null;s.telekineticObject=take?{id:o.id,kind:o.kind}:null;s.telekinetic=true;s.telekineticTarget=take?o.anchor:null;s.hands=null;s.contactHands=null;if(o.parent&&['towel','basket'].includes(L().getFurniture(r,o.parent)?.kind))state(o.parent).held=take;},()=>{s.telekinetic=true;},()=>{if(!take){s.heldObject=null;s.telekineticDistance=null;s.telekineticObject=null;s.telekineticTarget=null;s.hands=null;s.contactHands=null;}});
    if(take)add(.45,'object-lift','物体在眼前悬浮，跟着意念走');
   }
   const put=id=>transfer(id,false),pick=id=>transfer(id,true);
@@ -123,9 +125,9 @@
   }
   function towel(){const towelItem=item('hand-towel');pick('hand-towel');turn(()=>worldYaw(s.p,towelItem.anchor));mindFocus(towelItem.anchor,'毛巾悬浮到眼前，擦干两只小手');add(3,'dry-hands','毛巾悬浮着轻轻擦擦小手',()=>{s.telekineticTarget=towelItem.anchor;},k=>{if(s.heldObject)s.heldObject.angle=.08*Math.sin(k*PI*8);s.telekineticTarget=towelItem.anchor;aimAt(towelItem.anchor);});put('hand-towel');}
   function drawDesk(){const chair=L().getFurniture(r,'desk-chair'),pencil=item('pencil');sitOn(chair,'坐到书桌前');turn(()=>worldYaw(s.p,pencil.anchor));mindFocus(pencil.anchor,'坐在书桌前一段距离，发动意念拿起小笔');
-   add(.7,'pencil-grab','小笔悬浮到眼前',()=>{pencil.owner='hand';s.heldObject={id:pencil.id,kind:'pencil',hand:-1,angle:pencil.angle||PI/2,telekinetic:true};s.telekineticObject={id:pencil.id,kind:'pencil'};s.telekinetic=true;s.telekineticTarget=pencil.anchor;},()=>{s.telekinetic=true;});
+   add(.7,'pencil-grab','小笔悬浮到眼前',()=>{pencil.owner='hand';s.heldObject={id:pencil.id,kind:'pencil',hand:-1,angle:pencil.angle||PI/2,telekinetic:true};s.telekineticDistance=TELEKINETIC_PENCIL.distance;s.telekineticObject={id:pencil.id,kind:'pencil'};s.telekinetic=true;s.telekineticTarget=pencil.anchor;},()=>{s.telekinetic=true;});
    add(3.5,'draw','小笔悬浮在纸上，一笔一笔画出小叶子',()=>{},k=>{const p={...pencil.anchor,x:pencil.anchor.x+.10*Math.sin(k*PI*6),z:pencil.anchor.z+.045*(Math.cos(k*PI*6)-1)};s.telekineticTarget=p;aimAt(p);state('desk').used=true;state('desk').amount=k;});
-   add(.5,'pencil-put','小笔回到纸边',()=>{s.telekineticTarget=pencil.anchor;},()=>{},()=>{pencil.owner='surface';s.heldObject=null;s.telekineticObject=null;s.telekineticTarget=null;});standFrom(chair);
+   add(.5,'pencil-put','小笔回到纸边',()=>{s.telekineticTarget=pencil.anchor;},()=>{},()=>{pencil.owner='surface';s.heldObject=null;s.telekineticDistance=null;s.telekineticObject=null;s.telekineticTarget=null;});standFrom(chair);
   }
   function rubSurface(o,id,kind){pick(id);const prop=item(id),angle=prop.angle||0,tip={x:o.x+o.w*.68,z:o.z+o.d*.67,h:o.h+.366};
    const target=kind==='spoon'?offsetGrip(tip,1.02,0,angle,tip.h+.15):{x:o.x+o.w-.15,z:o.z+o.d*.65,h:o.h+.03},samples=[];

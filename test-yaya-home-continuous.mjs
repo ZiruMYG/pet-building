@@ -5,6 +5,7 @@ import vm from 'node:vm';
 const context=vm.createContext({console});context.window=context;
 for(const file of ['src/yaya-home-layout.js','src/yaya-home-art.js','src/yaya-rig.js','src/yaya-body.js','src/yaya-home-nav.js','src/yaya-home-interactions.js','src/yaya-home-model.js'])vm.runInContext(readFileSync(file,'utf8'),context,{filename:file});
 const L=context.YayaHomeLayout,N=context.YayaHomeNav,M=context.YayaHomeModel,I=context.YayaHomeInteractions,R=context.YayaRig;
+const rangeFor=key=>key.endsWith(':watering-can')||key==='watering-can'?M.telekineticRange.watering:key.endsWith(':pencil')||key==='pencil'?M.telekineticRange.pencil:M.telekineticRange;
 const dt=1/30,failures=[],sequence=[],interruptions=[],autonomous=[];
 let frames=0,doorContactFrames=0,roomCrossings=0,transfers=0,maxReach=0;
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -29,7 +30,8 @@ function validate(s,old){
       transfers++;
       if(s.telekinetic||old.telekinetic){
         const sourceDistance=Math.hypot(s.p.x-o.anchor.x,s.p.z-o.anchor.z);
-        assert.ok(sourceDistance>=1.30&&sourceDistance<=1.80,`${key}: telekinetic ownership keeps the wider 1.5-unit source distance`);
+        const range=rangeFor(key);
+        assert.ok(sourceDistance>=range.min-.05&&sourceDistance<=range.max+.05,`${key}: telekinetic ownership keeps ${range.distance}-unit source distance`);
       }else{
         const holder=s.heldObject||old.heldObject,hand=s.grips.find(h=>h.side===holder.hand),anchor=M.project(o.anchor,L.rooms[o.room]);
         assert.ok(distance(hand.screen,anchor)<.1,`${key}: physical ownership changes only at actual palm contact`);

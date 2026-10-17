@@ -52,10 +52,10 @@
    // face, even when the body turns away from the camera.
    if(s.carrying&&(telekinetic?front:((Math.cos(s.yaw)>-.15)===front))){
     if(telekinetic){
-      // Present a book or teddy 1.5 scene units along the gaze vector at eye
-      // height. The source shelf anchor stays in the interaction model; this
-      // screen point is only the readable in-front presentation layer.
-      const front=M.frontPresentation(s,r,1.5,1.63);
+      // Present a book or teddy on the selected focus ray at eye height. The
+      // source shelf anchor stays in the interaction model; this screen point
+      // is only the readable in-front presentation layer.
+      const front=M.frontPresentation(s,r);
       push();translate(front.x*u,front.y*u);scale(.72+.28*Math.abs(Math.cos(s.yaw)),1);drawItem(s.carrying,{x:0,y:0},s);pop();
       // Legacy book/teddy props use their own art module; add the same three
       // restrained focus motes used by room props so every floating object

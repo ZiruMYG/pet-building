@@ -7,7 +7,9 @@
  // a one-unit focus point reads as arm's length on the screen. Keep the
  // telekinetic presentation farther out where the child can see the whole
  // prop clearly without it touching the face or torso.
- const TELEKINETIC_DISTANCE=1.5,TELEKINETIC_MIN=1.35,TELEKINETIC_MAX=1.75;
+ const TELEKINETIC_DISTANCE=1.8,TELEKINETIC_MIN=1.65,TELEKINETIC_MAX=2.10;
+ const TELEKINETIC_WATERING={distance:2.2,min:2.0,max:2.45};
+ const TELEKINETIC_PENCIL={distance:2.1,min:1.95,max:2.30};
  // Keep the route solver in world units per second.  The previous 1.15
  // value made even short room crossings feel sluggish on the workbench.
  const WALK_SPEED=1.55;
@@ -28,14 +30,14 @@
  const defaultHands=s=>s.hands||(s.carrying?holdHands(s.yaw):s.heldObject?{...restHands(s.yaw),[s.heldObject.hand]:[.9*Math.sin(s.yaw)+s.heldObject.hand*2*Math.cos(s.yaw),-3.55]}:restHands(s.yaw));
  const blocked=(...a)=>YayaHomeNav.blocked(...a),pathfind=(...a)=>YayaHomeNav.pathfind(...a);
  function bodyTransform(s){const p=project(s.p,room(s.room)),walk=s.motion==='walk',speed=s.speed||0,motion=walk&&globalThis.YayaMotion?.sharedPhase?YayaMotion.sharedPhase(0,{gait:s.gait,speed}):null,bob=motion?.bodyBob??(walk?-.075*Math.abs(Math.sin(s.gait))*speed:0),lean=walk?Math.sin(s.yaw)*.025*speed:0,sq=walk?(motion?.bodySquash??(.015*Math.sin(s.gait*2)*speed)):s.squash||0;return {x:p.x,y:p.y+bob*U,rotation:(s.rotation||0)+lean,sx:1+sq*.25,sy:1-sq*.45};}
- // Return the screen/local position for a controlled prop 1.5 scene units in
- // front of the pet's gaze. The floor-plane heading is the same convention
+ // Return the screen/local position for a controlled prop on its selected
+ // focus ray (1.8 scene units by default) in front of the pet's gaze. The floor-plane heading is the same convention
  // used by YayaViews: local +z points to [sin(yaw), cos(yaw)]. Keeping this
  // conversion here prevents each renderer from inventing its own projected
  // "front" offset, which used to place a prop beside or behind the face at
  // diagonal yaws. `world` remains available as the logical presentation
  // point, while callers keep their actual interaction target separate.
- function frontPresentation(s,r,distance=TELEKINETIC_DISTANCE,height=1.63){
+ function frontPresentation(s,r,distance=s.telekineticDistance??TELEKINETIC_DISTANCE,height=1.63){
   const yaw=s.yaw||0,from={x:s.p.x,z:s.p.z,h:s.p.h||0};
   // `height` is relative to the pet's current support plane.  This keeps a
   // seated or bed-supported pet's presentation on the same eye line as a
@@ -44,7 +46,7 @@
   const a=project(from,r),b=project(world,r),dx=(b.x-a.x)/U,dy=(b.y-a.y)/U,rotation=s.rotation||0;
   // YayaHome.drawPet rotates the local presentation layer with the body while
   // YayaHomeArt.project already accounts for world depth. Undo that small
-  // body rotation so the point stays exactly 1.5 scene units along gaze.
+  // body rotation so the point stays on the selected focus distance along gaze.
   return {x:dx*Math.cos(rotation)+dy*Math.sin(rotation),y:-dx*Math.sin(rotation)+dy*Math.cos(rotation),world,distance,height};
  }
  function grips(s){const targets=defaultHands(s),tf=bodyTransform(s);return [-1,1].map(side=>{const a=YayaRig.solveArm({side,shoulder:[side*2.28*Math.cos(s.yaw)+.45*Math.sin(s.yaw),-3.93],target:targets[side],layer:'front'}),x=a.palm[0]*U*tf.sx,y=a.palm[1]*U*tf.sy;return {...a,screen:{x:tf.x+x*Math.cos(tf.rotation)-y*Math.sin(tf.rotation),y:tf.y+x*Math.sin(tf.rotation)+y*Math.cos(tf.rotation)}};});}
@@ -53,7 +55,7 @@
   const tf=bodyTransform(s);
   // Legacy book/teddy state is still exposed to the harness, but the visible
   // presentation is now a front-of-face telekinetic float rather than a palm.
-  if(s.telekinetic&&s.carrying){const front=frontPresentation(s,room(s.room),TELEKINETIC_DISTANCE,1.63),x=front.x*U*tf.sx,y=front.y*U*tf.sy;return {x:tf.x+x*Math.cos(tf.rotation)-y*Math.sin(tf.rotation),y:tf.y+x*Math.sin(tf.rotation)+y*Math.cos(tf.rotation)};}
+  if(s.telekinetic&&s.carrying){const front=frontPresentation(s,room(s.room)),x=front.x*U*tf.sx,y=front.y*U*tf.sy;return {x:tf.x+x*Math.cos(tf.rotation)-y*Math.sin(tf.rotation),y:tf.y+x*Math.sin(tf.rotation)+y*Math.cos(tf.rotation)};}
   const p=propLocal(s,grips(s)),x=p[0]*tf.sx,y=p[1]*tf.sy;return {x:tf.x+x*Math.cos(tf.rotation)-y*Math.sin(tf.rotation),y:tf.y+x*Math.sin(tf.rotation)+y*Math.cos(tf.rotation)};
  }
  function approachItem(r,anchor){
@@ -65,7 +67,7 @@
   }
   if(!best)throw Error(`${r.id}: 物品必须放在短手能触到的柜沿`);return best;
  }
- // Aim for the wider 1.5-unit focus buffer. The 1.75u ceiling preserves a
+ // Aim for the wider 1.8-unit focus buffer. The 2.10u ceiling preserves a
  // usable focus ray when a target sits directly beside a wall or cabinet edge.
  function telekineticItemApproach(r,anchor,preferred=TELEKINETIC_DISTANCE,min=TELEKINETIC_MIN,max=TELEKINETIC_MAX){
   const target=project(anchor,r);let best;
@@ -87,12 +89,12 @@
   function create({auto=true,random:providedRandom}={}){
   const random=providedRandom||globalThis.YayaProceduralStyle?.seeded('yaya-home-autonomy').next||Math.random;
   const items={book:{room:'bedroom',anchor:{...room('bedroom').anchors.book},owner:'shelf'},teddy:{room:'bedroom',anchor:{...room('bedroom').anchors.teddy},owner:'shelf'}};
-  const s={time:0,room:'bedroom',p:{...room('bedroom').spawn,h:0},yaw:0,gait:0,speed:0,motion:'idle',rotation:0,squash:0,seated:0,hands:null,carrying:null,telekinetic:false,telekineticTarget:null,telekineticObject:null,items,phase:'idle',phaseTime:0,action:null,label:'欢迎来到芽芽的家',auto,pending:null,wait:6,completed:0,doorOpen:{},openFurniture:null,inBed:false,cover:0,sleeping:false,lampOn:true,bookOpen:0,bookPage:0,fade:0,recent:{},history:[],error:null};
+  const s={time:0,room:'bedroom',p:{...room('bedroom').spawn,h:0},yaw:0,gait:0,speed:0,motion:'idle',rotation:0,squash:0,seated:0,hands:null,carrying:null,telekinetic:false,telekineticDistance:null,telekineticTarget:null,telekineticObject:null,items,phase:'idle',phaseTime:0,action:null,label:'欢迎来到芽芽的家',auto,pending:null,wait:6,completed:0,doorOpen:{},openFurniture:null,inBed:false,cover:0,sleeping:false,lampOn:true,bookOpen:0,bookPage:0,fade:0,recent:{},history:[],error:null};
   Object.assign(s,{objects:{},roomItems:YayaHomeInteractions.initialize(),heldObject:null,interactionBusy:false,contactHands:null,support:null,notice:null});
   let queue=[],current=null,lastDt=1/60;
   const add=(duration,phase,label,enter,update,finish)=>queue.push({duration,phase,label,enter,update,finish});
   function hold(seconds,phase,label,finish){add(seconds,phase,label,()=>{s.motion='idle';s.speed=0;},()=>{},finish);queue.at(-1).isHold=true;}
-  function turn(yaw){let a,b;add(.65,'turn','迈一步，转向要去的地方',()=>{a=s.yaw;b=nearYaw(a,typeof yaw==='function'?yaw():yaw);},k=>{s.yaw=mix(a,b,motionEase(k));s.turnStep={from:a,to:b,phase:k};},()=>{s.turnStep=null;});}
+  function turn(yaw,duration=.65){let a,b;add(duration,'turn','迈一步，转向要去的地方',()=>{a=s.yaw;b=nearYaw(a,typeof yaw==='function'?yaw():yaw);},k=>{s.yaw=mix(a,b,motionEase(k));s.turnStep={from:a,to:b,phase:k};},()=>{s.turnStep=null;});}
   // Keep the gaze vector attached to a moving telekinetic target (for example
   // a drawer handle as the drawer opens). This is deliberately an exact
   // floor-plane aim; the presentation layer may still place the prop one
@@ -113,8 +115,8 @@
   function pose(seconds,phase,label,target){let start;add(seconds,phase,label,()=>{start={};for(const key of Object.keys(target))start[key]=s[key];},k=>{for(const key of Object.keys(target))s[key]=mix(start[key],target[key],ease(k));});}
   function hands(target,seconds,phase,label,finish){let a,b;add(seconds,phase,label,()=>{a=defaultHands(s);b=typeof target==='function'?target():target;},k=>{const q=motionEase(k);s.hands={};for(const side of [-1,1])s.hands[side]=a[side].map((n,i)=>mix(n,b[side][i],q));},finish);}
   const contact=key=>{const a=project(s.items[key].anchor,room(s.room)),p=project(s.p,room(s.room));return Object.fromEntries([-1,1].map(side=>[side,[(a.x-p.x)/U+side*.9,(a.y-8-p.y)/U]]));};
-  function pick(key){let stance;walk(()=>{stance=telekineticItemApproach(room(s.room),s.items[key].anchor);return stance;},'走到物体前一段距离');add(.65,'turn','站稳，看看要拿的东西',()=>{current.from=s.yaw;},k=>{s.yaw=mix(current.from,nearYaw(current.from,stance.yaw),ease(k));});add(.48,'mind-focus','停下来，盯住物体发动意念',()=>{s.telekinetic=true;s.telekineticTarget=s.items[key].anchor;},()=>{s.telekinetic=true;s.telekineticTarget=s.items[key].anchor;});add(.72,'reach','物体浮到眼前',()=>{s.items[key].owner='hand';s.carrying=key;s.telekineticObject={id:key,kind:key};s.telekinetic=true;s.telekineticTarget=s.items[key].anchor;s.hands=null;},()=>{s.telekinetic=true;});}
-  function put(key){let stance;walk(()=>{stance=telekineticItemApproach(room(s.room),s.items[key].anchor);return stance;},'带着物体走到原位前一段距离');add(.65,'turn','转向放东西的位置',()=>{current.from=s.yaw;},k=>{s.yaw=mix(current.from,nearYaw(current.from,stance.yaw),ease(k));});add(.48,'mind-focus','停下来，让物体回到原位',()=>{s.telekinetic=true;s.telekineticTarget=s.items[key].anchor;},()=>{s.telekinetic=true;s.telekineticTarget=s.items[key].anchor;});add(.72,'place','物体稳稳回到柜面',()=>{s.items[key].owner='shelf';s.carrying=null;s.telekineticObject=null;s.telekineticTarget=null;s.hands=null;},()=>{s.telekinetic=true;});}
+  function pick(key){let stance;walk(()=>{stance=telekineticItemApproach(room(s.room),s.items[key].anchor);return stance;},'走到物体前一段距离');add(.65,'turn','站稳，看看要拿的东西',()=>{current.from=s.yaw;},k=>{s.yaw=mix(current.from,nearYaw(current.from,stance.yaw),ease(k));});add(.48,'mind-focus','停下来，盯住物体发动意念',()=>{s.telekinetic=true;s.telekineticTarget=s.items[key].anchor;},()=>{s.telekinetic=true;s.telekineticTarget=s.items[key].anchor;});add(.72,'reach','物体浮到眼前',()=>{s.items[key].owner='hand';s.carrying=key;s.telekineticDistance=TELEKINETIC_DISTANCE;s.telekineticObject={id:key,kind:key};s.telekinetic=true;s.telekineticTarget=s.items[key].anchor;s.hands=null;},()=>{s.telekinetic=true;});}
+  function put(key){let stance;walk(()=>{stance=telekineticItemApproach(room(s.room),s.items[key].anchor);return stance;},'带着物体走到原位前一段距离');add(.65,'turn','转向放东西的位置',()=>{current.from=s.yaw;},k=>{s.yaw=mix(current.from,nearYaw(current.from,stance.yaw),ease(k));});add(.48,'mind-focus','停下来，让物体回到原位',()=>{s.telekinetic=true;s.telekineticTarget=s.items[key].anchor;},()=>{s.telekinetic=true;s.telekineticTarget=s.items[key].anchor;});add(.72,'place','物体稳稳回到柜面',()=>{s.items[key].owner='shelf';s.carrying=null;s.telekineticDistance=null;s.telekineticObject=null;s.telekineticTarget=null;s.hands=null;},()=>{s.telekinetic=true;});}
   // The direction of a doorway is derived from its actual floor threshold.
   // Hard-coded diagonal yaws made z1 crossings face back toward the old room,
   // so the actor appeared to reverse through the opening.  The renderer and
@@ -126,26 +128,32 @@
   }
   function travel(to){const ids=L.roomPath(s.room,to);for(let i=1;i<ids.length;i++){const from=ids[i-1],dest=ids[i],d=room(from).doors.find(d=>d.to===dest),other=room(dest).doors.find(x=>x.id===d.toDoor),edgeInfo=wall=>{const axis=wall[0],max=wall.endsWith('1');return {hand:axis==='z'?(max?1:-1):(max?-1:1),yaw:axis==='z'?(max?-2.30:2.30):(max?2.30:-2.30)};},entry=edgeInfo(d.wall),arrival=edgeInfo(other.wall),hand=entry.hand,yaw=entry.yaw,arrivalYaw=doorInwardYaw(room(dest),other),entryStance={};
     walk(()=>{const stance=approachSocket(room(from),[L.doorHandle(d,0),L.doorHandle(d,.10)],yaw,hand);entryStance.x=stance.x;entryStance.z=stance.z;return stance;},`走到门把手旁，准备${d.label}`);turn(yaw);
-    hands(()=>{s.contactHands=[hand];return socketHands(L.doorHandle(d,0),hand);},.7,'door-reach','先握住自己的门把手');
-    add(.45,'door-push','小手推开门',()=>{},k=>{s.doorOpen[d.id]=.10*ease(k);s.hands=socketHands(L.doorHandle(d,s.doorOpen[d.id]),hand);});
-    hands(()=>restHands(s.yaw),.5,'door-release','松开把手，让门继续打开',()=>{s.hands=null;s.contactHands=null;});
-    add(.55,'open-door',d.label,()=>{},k=>{s.doorOpen[d.id]=.10+.90*ease(k);});
+    // The room connection is an open threshold (there is no rendered door
+    // leaf), so the old hand-open-release sequence made a crossing feel like
+    // a four-second chore. Keep a tiny push cue for continuity with the rig,
+    // then let the actor walk straight through the threshold.
+    hands(()=>{s.contactHands=[hand];return socketHands(L.doorHandle(d,0),hand);},.22,'door-reach','走到门边');
+    add(.18,'door-push','推开门边的条纹',()=>{},k=>{s.doorOpen[d.id]=.10*ease(k);s.hands=socketHands(L.doorHandle(d,s.doorOpen[d.id]),hand);});
+    hands(()=>restHands(s.yaw),.10,'door-release','松手，直接走进去',()=>{s.hands=null;s.contactHands=null;s.doorOpen[d.id]=1;});
     // Face the threshold while leaving the source room.  The handle stance
     // can be offset diagonally from the opening, so derive this heading from
     // the actual stance-to-threshold segment instead of a wall-name constant.
     // The paired room gets its own inward heading after the fade.
-    turn(()=>worldYaw(entryStance,L.doorPoint(room(from),d,.68)));let start;
+    // Face the threshold only briefly. Do not turn to a global heading after
+    // arrival: that extra pivot was the visible "拖泥带水" pause at every
+    // room change.
+    turn(()=>worldYaw(entryStance,L.doorPoint(room(from),d,.68)),.22);let start;
     // Keep the actor just inside the collision-safe floor boundary while
     // crossing an exposed-edge threshold. The visual door still opens at the
     // edge, but navigation never asks the solver to stand in the wall band.
-    add(.7,'leave','穿过打开的门',()=>{start={...s.p};},k=>{const target=L.doorPoint(room(from),d,.68),q=ease(k);s.p={x:mix(start.x,target.x,q),z:mix(start.z,target.z,q),h:0};s.motion='walk';s.speed=.4;s.gait+=.05;s.fade=clamp((k-.55)/.45);},()=>{s.room=dest;s.p={...L.doorPoint(room(dest),other,.68),h:0};
+    add(.36,'leave','直接走进门口',()=>{start={...s.p};},k=>{const target=L.doorPoint(room(from),d,.68),q=ease(k);s.p={x:mix(start.x,target.x,q),z:mix(start.z,target.z,q),h:0};s.motion='walk';s.speed=.55;s.gait+=.08;s.fade=clamp((k-.48)/.52);},()=>{s.room=dest;s.p={...L.doorPoint(room(dest),other,.68),h:0};
       // Preserve the continuous angle branch at the room hand-off.  The
       // paired doorway can have an equivalent ±2π heading, but selecting the
       // nearest representative prevents an apparent snap or backward pivot.
       s.yaw=nearYaw(s.yaw,arrivalYaw);s.doorOpen={[other.id]:1};s.fade=1;});
-    add(.75,'arrive',`来到${room(dest).label}`,()=>{},k=>{const a=L.doorPoint(room(dest),other,.68),b=L.doorPoint(room(dest),other,1);s.p={x:mix(a.x,b.x,ease(k)),z:mix(a.z,b.z,ease(k)),h:0};s.fade=1-clamp(k/.45);s.motion='walk';s.speed=.4;s.gait+=.05;},()=>{s.motion='idle';s.speed=0;});
-    add(.4,'close-door','门缓缓回合，站稳再走',()=>{},k=>{s.doorOpen[other.id]=1-ease(k);},()=>{s.doorOpen={};});
-   }turn(0);
+    add(.34,'arrive',`走进${room(dest).label}`,()=>{},k=>{const a=L.doorPoint(room(dest),other,.68),b=L.doorPoint(room(dest),other,1.08);s.p={x:mix(a.x,b.x,ease(k)),z:mix(a.z,b.z,ease(k)),h:0};s.fade=1-clamp(k/.34);s.motion='walk';s.speed=.55;s.gait+=.08;},()=>{s.motion='idle';s.speed=0;});
+    add(.10,'close-door','走稳了',()=>{},()=>{},()=>{s.doorOpen={};});
+   }
   }
   function sitOn(furniture,label){let a,b;walk(furniture.approach,label);turn(furniture.seatYaw??0);add(1.0,'sit',label,()=>{a={...s.p};s.seatFurniture=furniture.id;b=furniture.seat||{x:furniture.x+furniture.w/2,z:furniture.z+furniture.d/2,h:furniture.h};},k=>{const q=ease(k);s.p={x:mix(a.x,b.x,q),z:mix(a.z,b.z,q),h:mix(0,b.h,q)+.15*Math.sin(PI*k)};s.seated=q;});}
   function standFrom(furniture){let a;add(1,'stand','小脚落地，站稳再走',()=>{a={...s.p};},k=>{const q=ease(k);s.p={x:mix(a.x,furniture.approach.x,q),z:mix(a.z,furniture.approach.z,q),h:a.h*(1-q)};s.seated=1-q;},()=>{s.seatFurniture=null;});}
@@ -244,5 +252,5 @@
   function getState(){const out=JSON.parse(JSON.stringify(s));out.u=U;out.grips=grips(s);out.heldScreen=s.carrying?heldScreen(s):null;out.remaining=current?current.duration-s.phaseTime:0;out.queueLength=queue.length;return out;}
   return {step,request,setRoom:id=>request('room:'+id),setAuto:value=>{s.auto=!!value;s.wait=Math.min(s.wait,3);},getState};
  }
-  globalThis.YayaHomeModel={create,labels,project,worldYaw,blocked,pathfind,approachItem,bodyTransform,frontPresentation,grips,propLocal,restHands,holdHands,defaultHands,U,telekineticRange:{distance:TELEKINETIC_DISTANCE,min:TELEKINETIC_MIN,max:TELEKINETIC_MAX}};
+  globalThis.YayaHomeModel={create,labels,project,worldYaw,blocked,pathfind,approachItem,bodyTransform,frontPresentation,grips,propLocal,restHands,holdHands,defaultHands,U,telekineticRange:{distance:TELEKINETIC_DISTANCE,min:TELEKINETIC_MIN,max:TELEKINETIC_MAX,watering:TELEKINETIC_WATERING,pencil:TELEKINETIC_PENCIL}};
 })();
