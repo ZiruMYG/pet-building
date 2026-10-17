@@ -10,9 +10,12 @@
  const TELEKINETIC_DISTANCE=1.8,TELEKINETIC_MIN=1.65,TELEKINETIC_MAX=2.10;
  const TELEKINETIC_WATERING={distance:2.2,min:2.0,max:2.45};
  const TELEKINETIC_PENCIL={distance:2.1,min:1.95,max:2.30};
- // Keep the route solver in world units per second.  The previous 1.15
- // value made even short room crossings feel sluggish on the workbench.
- const WALK_SPEED=1.55;
+ // Keep a brisk but readable pace in world units per second. The previous
+ // 1.55 value still left a visible hesitation before short walks; the small
+ // lead-in below preserves a soft acceleration without making the pet drag.
+ const WALK_SPEED=1.80;
+ const WALK_LEAD=.18;
+ const WALK_TURN=.45;
  const clamp=x=>Math.max(0,Math.min(1,x)),ease=x=>{x=clamp(x);return x*x*(3-2*x);},mix=(a,b,k)=>a+(b-a)*k;
  const motionEase=k=>globalThis.YayaMotion?.transition?YayaMotion.transition(k,{anticipation:.10,settle:.14}).action:ease(k);
  const labels={sleep:'上床休息',read:'看绘本',teddy:'抱抱小熊',desk:'坐到书桌旁',window:'看看窗外',wardrobe:'看看衣柜',lamp:'开关床头灯',wander:'在房间走走',wash:'洗洗小手',mirror:'照照镜子',sofa:'坐沙发休息',stretch:'伸个懒腰',wave:'挥手打招呼',eat:'坐下吃饭',drink:'坐下喝水'};
@@ -102,10 +105,10 @@
   function aimAt(target){if(!target||!Number.isFinite(target.x)||!Number.isFinite(target.z))return;s.yaw=nearYaw(s.yaw,worldYaw(s.p,target));}
   function walk(target,label='沿空出来的过道走过去'){
    let route,base,initialYaw,firstYaw,turnTime;
-   add(null,'walk',label,()=>{const r=room(s.room),end=typeof target==='function'?target():target;route=YayaHomeNav.buildRoute(r,pathfind(r,s.p,end));base=s.gait;initialYaw=s.yaw;const sample=YayaHomeNav.sampleRoute(route,0);firstYaw=route.length<1e-6?s.yaw:nearYaw(s.yaw,worldYaw(sample,{x:sample.x+sample.dx,z:sample.z+sample.dz}));turnTime=Math.abs(firstYaw-s.yaw)>.1?.65:0;current.duration=route.length<1e-6?.03:turnTime+.3+route.length/WALK_SPEED;s.motion='walk';s.route=route.points;},k=>{
+   add(null,'walk',label,()=>{const r=room(s.room),end=typeof target==='function'?target():target;route=YayaHomeNav.buildRoute(r,pathfind(r,s.p,end));base=s.gait;initialYaw=s.yaw;const sample=YayaHomeNav.sampleRoute(route,0);firstYaw=route.length<1e-6?s.yaw:nearYaw(s.yaw,worldYaw(sample,{x:sample.x+sample.dx,z:sample.z+sample.dz}));turnTime=Math.abs(firstYaw-s.yaw)>.1?WALK_TURN:0;current.duration=route.length<1e-6?.03:turnTime+WALK_LEAD+route.length/WALK_SPEED;s.motion='walk';s.route=route.points;},k=>{
     const elapsed=k*current.duration,moveTime=current.duration-turnTime,progress=clamp((elapsed-turnTime)/moveTime),distance=ease(progress)*route.length,q=YayaHomeNav.sampleRoute(route,distance);s.p={x:q.x,z:q.z,h:0};
-    if(elapsed<turnTime){const ph=elapsed/turnTime;s.yaw=mix(initialYaw,firstYaw,ease(ph));s.turnStep={from:initialYaw,to:firstYaw,phase:ph};}
-    else if(route.length>1e-6){s.turnStep=null;const heading=nearYaw(s.yaw,worldYaw(q,{x:q.x+q.dx,z:q.z+q.dz}));s.yaw+=Math.max(-6.5*lastDt,Math.min(6.5*lastDt,heading-s.yaw));}
+    if(elapsed<turnTime){const ph=elapsed/turnTime,desired=mix(initialYaw,firstYaw,ease(ph)),turnRate=(s.carrying||s.heldObject)?4.25:12;s.yaw+=Math.max(-turnRate*lastDt,Math.min(turnRate*lastDt,desired-s.yaw));s.turnStep={from:initialYaw,to:firstYaw,phase:ph};}
+    else if(route.length>1e-6){s.turnStep=null;const heading=nearYaw(s.yaw,worldYaw(q,{x:q.x+q.dx,z:q.z+q.dz})),turnRate=(s.carrying||s.heldObject)?4.25:6.5;s.yaw+=Math.max(-turnRate*lastDt,Math.min(turnRate*lastDt,heading-s.yaw));}
     // The gait remains arc-length based, while the speed envelope is bounded
     // and smooth at both ends of the route. This keeps faster travel from
     // making the feet or body pop when a walk starts/ends.
@@ -126,44 +129,30 @@
     const a=project(L.doorPoint(r,d,inset),r),b=project(L.doorPoint(r,d,inner),r);
     return worldYaw({x:L.doorPoint(r,d,inset).x,z:L.doorPoint(r,d,inset).z},{x:L.doorPoint(r,d,inner).x,z:L.doorPoint(r,d,inner).z});
   }
-  function travel(to){const ids=L.roomPath(s.room,to);for(let i=1;i<ids.length;i++){const from=ids[i-1],dest=ids[i],d=room(from).doors.find(d=>d.to===dest),other=room(dest).doors.find(x=>x.id===d.toDoor),edgeInfo=wall=>{const axis=wall[0],max=wall.endsWith('1');return {hand:axis==='z'?(max?1:-1):(max?-1:1),yaw:axis==='z'?(max?-2.30:2.30):(max?2.30:-2.30)};},entry=edgeInfo(d.wall),arrival=edgeInfo(other.wall),hand=entry.hand,yaw=entry.yaw,arrivalYaw=doorInwardYaw(room(dest),other),entryStance={};
-    walk(()=>{const stance=approachSocket(room(from),[L.doorHandle(d,0),L.doorHandle(d,.10)],yaw,hand);entryStance.x=stance.x;entryStance.z=stance.z;return stance;},`走到门把手旁，准备${d.label}`);turn(yaw);
-    // The room connection is an open threshold (there is no rendered door
-    // leaf), so the old hand-open-release sequence made a crossing feel like
-    // a four-second chore. Keep a tiny push cue for continuity with the rig,
-    // then let the actor walk straight through the threshold.
-    hands(()=>{s.contactHands=[hand];return socketHands(L.doorHandle(d,0),hand);},.22,'door-reach','走到门边');
-    add(.18,'door-push','推开门边的条纹',()=>{},k=>{s.doorOpen[d.id]=.10*ease(k);s.hands=socketHands(L.doorHandle(d,s.doorOpen[d.id]),hand);});
-    hands(()=>restHands(s.yaw),.10,'door-release','松手，直接走进去',()=>{s.hands=null;s.contactHands=null;s.doorOpen[d.id]=1;});
-    // Face the threshold while leaving the source room.  The handle stance
-    // can be offset diagonally from the opening, so derive this heading from
-    // the actual stance-to-threshold segment instead of a wall-name constant.
-    // The paired room gets its own inward heading after the fade.
-    // Face the threshold only briefly. Do not turn to a global heading after
-    // arrival: that extra pivot was the visible "拖泥带水" pause at every
-    // room change.
-    turn(()=>worldYaw(entryStance,L.doorPoint(room(from),d,.68)),.22);let start;
-    // Keep the actor just inside the collision-safe floor boundary while
-    // crossing an exposed-edge threshold. The visual door still opens at the
-    // edge, but navigation never asks the solver to stand in the wall band.
-    add(.36,'leave','直接走进门口',()=>{start={...s.p};},k=>{const target=L.doorPoint(room(from),d,.68),q=ease(k);s.p={x:mix(start.x,target.x,q),z:mix(start.z,target.z,q),h:0};s.motion='walk';s.speed=.55;s.gait+=.08;s.fade=clamp((k-.48)/.52);},()=>{s.room=dest;s.p={...L.doorPoint(room(dest),other,.68),h:0};
-      // Preserve the continuous angle branch at the room hand-off.  The
-      // paired doorway can have an equivalent ±2π heading, but selecting the
-      // nearest representative prevents an apparent snap or backward pivot.
-      s.yaw=nearYaw(s.yaw,arrivalYaw);s.doorOpen={[other.id]:1};s.fade=1;});
-    add(.34,'arrive',`走进${room(dest).label}`,()=>{},k=>{const a=L.doorPoint(room(dest),other,.68),b=L.doorPoint(room(dest),other,1.08);s.p={x:mix(a.x,b.x,ease(k)),z:mix(a.z,b.z,ease(k)),h:0};s.fade=1-clamp(k/.34);s.motion='walk';s.speed=.55;s.gait+=.08;},()=>{s.motion='idle';s.speed=0;});
-    add(.10,'close-door','走稳了',()=>{},()=>{},()=>{s.doorOpen={};});
+  function travel(to){const ids=L.roomPath(s.room,to);for(let i=1;i<ids.length;i++){const from=ids[i-1],dest=ids[i],d=room(from).doors.find(d=>d.to===dest),other=room(dest).doors.find(x=>x.id===d.toDoor),entryPoint=L.doorPoint(room(from),d,.68),edgePoint=L.doorPoint(room(from),d,.22),arrivalPoint=L.doorPoint(room(dest),other,.68),innerPoint=L.doorPoint(room(dest),other,1.08),arrivalYaw=doorInwardYaw(room(dest),other),entryStance={...entryPoint};
+    // Doorways are open thresholds in this dollhouse. Walk to the threshold
+    // and cross in one continuous beat; there is no handle, push, or release
+    // animation to suggest a physical door that is not actually drawn.
+    walk(()=>entryPoint,`直接走向${d.label}入口`);let start,startYaw,crossYaw;
+    add(.30,'leave','直接走进门口',()=>{start={...s.p};startYaw=s.yaw;crossYaw=nearYaw(startYaw,worldYaw(start,edgePoint));},k=>{const q=ease(k);s.p={x:mix(start.x,edgePoint.x,q),z:mix(start.z,edgePoint.z,q),h:0};s.yaw=mix(startYaw,crossYaw,ease(k));s.motion='walk';s.speed=.72;s.gait+=.12;s.fade=clamp((k-.35)/.65);},()=>{s.room=dest;s.p={...arrivalPoint,h:0};
+      // Preserve the continuous angle branch at the room hand-off. The
+      // paired doorway gets its own inward heading without an extra pivot.
+      s.yaw=nearYaw(s.yaw,arrivalYaw);s.doorOpen={};s.fade=1;});
+    add(.28,'arrive',`走进${room(dest).label}`,()=>{},k=>{const q=ease(k);s.p={x:mix(arrivalPoint.x,innerPoint.x,q),z:mix(arrivalPoint.z,innerPoint.z,q),h:0};s.yaw=nearYaw(s.yaw,arrivalYaw);s.fade=1-clamp(k/.28);s.motion='walk';s.speed=.72;s.gait+=.12;},()=>{s.motion='idle';s.speed=0;});
    }
   }
-  function sitOn(furniture,label){let a,b;walk(furniture.approach,label);turn(furniture.seatYaw??0);add(1.0,'sit',label,()=>{a={...s.p};s.seatFurniture=furniture.id;b=furniture.seat||{x:furniture.x+furniture.w/2,z:furniture.z+furniture.d/2,h:furniture.h};},k=>{const q=ease(k);s.p={x:mix(a.x,b.x,q),z:mix(a.z,b.z,q),h:mix(0,b.h,q)+.15*Math.sin(PI*k)};s.seated=q;});}
-  function standFrom(furniture){let a;add(1,'stand','小脚落地，站稳再走',()=>{a={...s.p};},k=>{const q=ease(k);s.p={x:mix(a.x,furniture.approach.x,q),z:mix(a.z,furniture.approach.z,q),h:a.h*(1-q)};s.seated=1-q;},()=>{s.seatFurniture=null;});}
-  function sleep(){const bed=get(s.room,'bed');walk(bed.approach,'走到自己的床边');turn(-1.08);let start,startYaw,endYaw;
-   add(1.2,'climb','蹬一下小脚，坐到床沿',()=>{start={...s.p};s.inBed=true;s.cover=1;},k=>{const q=ease(k),b=bed.sit;s.p={x:mix(start.x,b.x,q),z:mix(start.z,b.z,q),h:mix(0,b.h,q)+.22*Math.sin(PI*k)};s.seated=q;});
-   turn(0);hold(.6,'bed-sit','在床边坐稳');
-   add(1.8,'lie-down','后脑慢慢靠上枕头',()=>{start={...s.p};startYaw=s.yaw;endYaw=nearYaw(startYaw,1.28);},k=>{const q=ease(k);s.p={x:mix(start.x,bed.x+bed.w-.62,q),z:mix(start.z,bed.z+bed.d/2,q),h:mix(start.h,bed.h+.50,q)};s.rotation=-Math.atan2(.82,.43)*q;s.yaw=mix(startYaw,endYaw,q);s.seated=1-q;},()=>{s.sleeping=true;});
-   hold(1.2,'cover','小脚已经藏进铺好的被子里');hold(7,'sleep','躺在枕头上，安静睡一会儿');hold(1.1,'uncover','醒来了，准备从被子里坐起来');
-   add(1.7,'sit-up','慢慢坐起来',()=>{start={...s.p};startYaw=s.yaw;endYaw=nearYaw(startYaw,0);s.sleeping=false;},k=>{const q=ease(k),b=bed.sit;s.p={x:mix(start.x,b.x,q),z:mix(start.z,b.z,q),h:mix(start.h,b.h,q)};s.rotation=-Math.atan2(.82,.43)*(1-q);s.yaw=mix(startYaw,endYaw,q);s.seated=q;});hold(.6,'bed-sit','坐稳了再下床');
-   add(1.15,'climb-down','小脚落回地面',()=>{start={...s.p};},k=>{const q=ease(k),b=bed.approach;s.p={x:mix(start.x,b.x,q),z:mix(start.z,b.z,q),h:start.h*(1-q)+.12*Math.sin(PI*k)};s.seated=1-q;},()=>{s.inBed=false;});
+  function sitOn(furniture,label){let a,b;walk(furniture.approach,label);turn(furniture.seatYaw??0,.42);add(.68,'sit',label,()=>{a={...s.p};s.seatFurniture=furniture.id;s.rotation=0;b=furniture.seat||{x:furniture.x+furniture.w/2,z:furniture.z+furniture.d/2,h:furniture.h};},k=>{const q=ease(k);s.p={x:mix(a.x,b.x,q),z:mix(a.z,b.z,q),h:mix(0,b.h,q)+.10*Math.sin(PI*k)};s.seated=q;s.squash=.055*Math.sin(PI*k);},()=>{s.squash=0;});}
+  function standFrom(furniture){let a;add(.68,'stand','小脚落地，站稳再走',()=>{a={...s.p};s.squash=0;},k=>{const q=ease(k);s.p={x:mix(a.x,furniture.approach.x,q),z:mix(a.z,furniture.approach.z,q),h:a.h*(1-q)};s.seated=1-q;s.squash=.04*Math.sin(PI*k);},()=>{s.seatFurniture=null;s.squash=0;});}
+  function sleep(){const bed=get(s.room,'bed'),sit=bed.sit||{x:bed.x+bed.w-.64,z:bed.z+bed.d/2,h:bed.h+.1},sleepPoint=bed.sleep||{x:bed.x+bed.w*.52,z:bed.z+bed.d/2,h:bed.h+.13};walk(bed.approach,'走到自己的床边');turn(()=>worldYaw(s.p,sit),.42);let start,startYaw,endYaw;
+   // A short, supported climb puts the pet on the near edge; the mattress
+   // owns the actual sleep point so the body travels toward the pillow.
+   add(.78,'climb','蹬一下小脚，坐到床沿',()=>{start={...s.p};s.inBed=true;s.cover=0;s.rotation=0;},k=>{const q=ease(k);s.p={x:mix(start.x,sit.x,q),z:mix(start.z,sit.z,q),h:mix(0,sit.h,q)+.12*Math.sin(PI*k)};s.seated=q;s.squash=.055*Math.sin(PI*k);},()=>{s.squash=0;});
+   hold(.22,'bed-sit','在床边坐稳');
+   add(1.15,'lie-down','顺着床面躺到枕头上',()=>{start={...s.p};startYaw=s.yaw;endYaw=nearYaw(startYaw,1.28);},k=>{const q=ease(k),target=sleepPoint;s.p={x:mix(start.x,target.x,q),z:mix(start.z,target.z,q),h:mix(start.h,target.h,q)};s.rotation=-Math.PI/2*q;s.yaw=mix(startYaw,endYaw,q);s.seated=1-q;s.squash=-.045*Math.sin(PI*q);},()=>{s.sleeping=true;s.squash=0;});
+   add(.55,'cover','把小被子拉到胸口',()=>{s.cover=0;},k=>{s.cover=ease(k);});hold(4.5,'sleep','躺在枕头上，安静睡一会儿');
+   add(.55,'uncover','醒来后把被子推回床尾',()=>{s.cover=1;},k=>{s.cover=1-ease(k);});
+   add(1.05,'sit-up','撑起身体，先坐稳再下床',()=>{start={...s.p};startYaw=s.yaw;endYaw=nearYaw(startYaw,worldYaw(start,sit));s.sleeping=false;},k=>{const q=ease(k),target=sit;s.p={x:mix(start.x,target.x,q),z:mix(start.z,target.z,q),h:mix(start.h,target.h,q)};s.rotation=-Math.PI/2*(1-q);s.yaw=mix(startYaw,endYaw,q);s.seated=q;s.squash=-.045*Math.sin(PI*(1-q));},()=>{s.squash=0;});hold(.22,'bed-sit','坐稳了再下床');
+   add(.78,'climb-down','小脚落回地面',()=>{start={...s.p};},k=>{const q=ease(k),b=bed.approach;s.p={x:mix(start.x,b.x,q),z:mix(start.z,b.z,q),h:start.h*(1-q)+.08*Math.sin(PI*k)};s.seated=1-q;s.squash=.04*Math.sin(PI*k);},()=>{s.inBed=false;s.squash=0;s.rotation=0;});
   }
   function touch(furniture,phase,label){
    const r=room(s.room),anchor={x:furniture.x+furniture.w*.5,z:furniture.z+furniture.d*.5,h:(furniture.h||1)+.35};

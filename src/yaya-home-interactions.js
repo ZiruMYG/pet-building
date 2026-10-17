@@ -23,10 +23,10 @@
   }
   const towel=get('towel');if(towel)add('hand-towel','towel',{x:.19,z:towel.z+towel.d*.5,h:towel.elevation+.50},'让毛巾浮起来擦手','object:towel','towel');
   const basket=get('toy-basket');if(basket)add('basket-ball','ball',{x:basket.x+basket.w*.56,z:basket.z+basket.d*.62,h:basket.h-.10},'让小球浮起来玩','object:toy-basket','toy-basket');
-  // Keep the source pencil toward the far back corner of the desktop. The
-  // seated pet stays behind the chair, so the authored anchor leaves a clear
-  // visual gap before the pencil ever floats to the face.
-  const desk=get('desk');if(desk)add('pencil','pencil',{x:desk.x+.55,z:desk.z+.24,h:desk.h+.22},'让小笔浮起来画画','object:desk',desk.id);
+  // Keep the pencil near the desk's front centre. From the chair this is a
+  // clear, straight-ahead focus point at roughly two floor units, so the
+  // seated pet does not twist toward a side corner to find its prop.
+  const desk=get('desk');if(desk)add('pencil','pencil',{x:desk.x+desk.w*.5,z:desk.z+desk.d*.08,h:desk.h+.22},'让小笔浮起来画画','object:desk',desk.id);
   const table=get('coffee-table');if(table)add('cloth','cloth',{x:table.x+table.w-.08,z:table.z+table.d-.13,h:table.h+.08},'让小布浮起来擦茶几','object:coffee-table',table.id);
   const stove=get('stove');if(stove)add('ladle','spoon',{x:stove.x+stove.w-.05,z:stove.z+stove.d*.65,h:stove.h+.40},'让小勺浮起来搅汤','object:stove',stove.id);
   return out;

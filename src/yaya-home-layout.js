@@ -20,7 +20,9 @@
     // bedside cabinet beside the actual bedside table.
     f('bookshelf','bookshelf',2.05,.16,1.12,.50,.98,{wall:'z0',facing:'+z',label:'低书柜',approach:{x:2.62,z:1.20},contents:guest?['books']:['books','teddy']}),
     f('desk','desk',3.55,.15,2.96,1.24,1.04,{wall:'z0',facing:'+z',label:'小书桌',approach:{x:5.05,z:3.36}}),
-    f('desk-chair','chair',4.24,1.69,1.62,1.23,.67,{facing:'-z',seatYaw:2.053765202651458,label:'书桌椅',approach:{x:5.05,z:3.51},seat:{x:5.05,z:2.31,h:.67}}),
+    // The chair sits square to the desk.  The old diagonal yaw made the pet
+    // turn toward the room corner and its feet drift sideways while drawing.
+    f('desk-chair','chair',4.24,1.69,1.62,1.23,.67,{facing:'-z',seatYaw:Math.PI,label:'书桌椅',approach:{x:5.05,z:3.51},seat:{x:5.05,z:2.31,h:.67}}),
     // The rug sits in the open centre of the room.  Keeping both exposed
     // edges clear makes the threshold and the bed approach read naturally.
     f('rug','rug',4.20,2.18,3.35,2.42,.02,{collision:false,label:'活动地毯'}),
