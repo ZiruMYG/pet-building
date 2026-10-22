@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#d8f0dd">
+  <title>Yaya · Today companion</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #stage {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #stage canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+      background: transparent;
+    }
+  </style>
+</head>
+<body>
+  <div id="stage" role="img" aria-label="Yaya, your English learning companion"></div>
+
+  <script>
+    window.__YAYA_ERRORS = [];
+    window.addEventListener('error', function (event) {
+      window.__YAYA_ERRORS.push(String(event.message || event.error || 'unknown'));
+      document.title = 'ERR ' + String(event.message || 'unknown');
+    });
+    window.addEventListener('unhandledrejection', function (event) {
+      window.__YAYA_ERRORS.push(String(event.reason || 'unhandled rejection'));
+      document.title = 'ERR ' + String(event.reason || 'unhandled rejection');
+    });
+    (function () {
+      const originalError = console.error;
+      console.error = function () {
+        window.__YAYA_ERRORS.push(Array.prototype.join.call(arguments, ' '));
+        document.title = 'ERR console';
+        return originalError.apply(console, arguments);
+      };
+    })();
+  </script>
+  <script src="../outputs/yaya-pet/source/vendor/p5.min.js"></script>
+  <script src="../outputs/yaya-pet/source/config-yaya-pet.js"></script>
+  <script src="../outputs/yaya-pet/source/yaya-procedural-style.js"></script>
+  <script src="core.js"></script>
+  <script src="../outputs/yaya-pet/source/yaya-motion.js"></script>
+  <script src="../outputs/yaya-pet/source/yaya-turns.js"></script>
+  <script src="../outputs/yaya-pet/source/yaya-actions.js"></script>
+  <script src="../outputs/yaya-pet/source/yaya-rig.js"></script>
+  <script src="../outputs/yaya-pet/source/yaya-body.js"></script>
+  <script src="../outputs/yaya-pet/source/yaya-gait.js"></script>
+  <script src="../outputs/yaya-pet/source/yaya-leaves.js"></script>
+  <script src="../outputs/yaya-pet/source/yaya-pet.js"></script>
+  <script src="../outputs/yaya-pet/source/yaya-views.js"></script>
+  <script src="../outputs/yaya-pet/source/yaya-scenes.js"></script>
+  <script src="companion-stage.js?v=3"></script>
+</body>
+</html>
